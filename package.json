@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start --lan --clear",
+    "start": "expo start --lan",
     "start:fresh": "expo start --lan --clear",
-    "start:usb": "expo start --localhost --clear",
-    "start:tunnel": "expo start --tunnel --clear",
+    "start:usb": "expo start --localhost",
+    "start:tunnel": "expo start --tunnel",
     "android": "expo start --android --lan",
     "ios": "expo start --ios --lan",
     "web": "expo start --web",
