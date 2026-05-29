@@ -101,6 +101,12 @@ Funkce `maskFromDays`, `daysFromMask` jsou v `src/domain/week.ts`.
 Důvod: Metro v Expo SDK 54 importuje `.sql` jako asset (číslo/URI), ne string → Drizzle migrátor pak selže s "failed to parse migration".
 **Když přidáš novou migraci:** zkopíruj SQL z `.sql` souboru jako string do `migrations.js`.
 
+### react-native-web (peer dep expo-router v6)
+`expo-router v6` vyžaduje `react-native-web` jako peer dependency — potřebuje ho pro generování
+sitemap, 404 stránky a web bundlu i při vývoji pro Android. Bez něj Metro hází:
+`Unable to resolve "react-native-web/dist/index" from expo-router/build/renderRootComponent.js`
+Balíček je v `dependencies` jako `react-native-web@^0.21.0`.
+
 ### react-native-worklets (peer dep reanimated v4)
 `react-native-reanimated v4` vyžaduje `react-native-worklets` jako peer dependency.
 Babel plugin `react-native-reanimated/plugin` interně dělá `require('react-native-worklets/plugin')`.
