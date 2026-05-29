@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { Switch, Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -10,6 +10,8 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
+// ─── Reusable settings row ────────────────────────────────────────────────────
+
 interface SettingsRowProps {
   icon: string;
   iconBg: string;
@@ -18,17 +20,23 @@ interface SettingsRowProps {
   showArrow?: boolean;
   right?: React.ReactNode;
   onPress?: () => void;
+  isLast?: boolean;
 }
 
-function SettingsRow({ icon, iconBg, label, value, showArrow = true, right, onPress }: SettingsRowProps) {
-  const { Pressable } = require('react-native');
+function SettingsRow({
+  icon,
+  iconBg,
+  label,
+  value,
+  showArrow = true,
+  right,
+  onPress,
+  isLast = false,
+}: SettingsRowProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }: { pressed: boolean }) => [
-        styles.row,
-        pressed && onPress ? styles.rowPressed : null,
-      ]}
+      style={({ pressed }) => [styles.row, !isLast && styles.rowBorder, pressed && onPress ? styles.rowPressed : null]}
     >
       <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
         <Text style={styles.rowIconEmoji}>{icon}</Text>
@@ -44,16 +52,17 @@ function SettingsRow({ icon, iconBg, label, value, showArrow = true, right, onPr
   );
 }
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 export default function SettingsScreen() {
   const activities = useAppStore((s) => s.activities);
   const settings = useSettingsStore();
 
-  // Tracking since
+  // "Tracking since" — from settings or from earliest activity
   const trackingSince = useMemo(() => {
     if (settings.trackingSinceMs) {
       return format(new Date(settings.trackingSinceMs), 'MMM yyyy', { locale: dateFnsCs });
     }
-    // Fallback: earliest activity
     if (activities.length > 0) {
       const earliest = activities.reduce(
         (min, a) => (a.createdAt < min ? a.createdAt : min),
@@ -64,12 +73,12 @@ export default function SettingsScreen() {
     return null;
   }, [settings.trackingSinceMs, activities]);
 
-  // Profile initials
+  // Profile initials (up to 2 chars)
   const initials = useMemo(() => {
     const name = settings.userName.trim();
-    if (!name) return 'MT'; // Mission Tracker
-    const parts = name.split(' ');
-    return parts
+    if (!name) return 'MT';
+    return name
+      .split(' ')
       .slice(0, 2)
       .map((p) => p[0]?.toUpperCase() ?? '')
       .join('');
@@ -78,28 +87,24 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* ── Header ── */}
         <Text style={styles.pageTitle}>{t.settings.title}</Text>
 
-        {/* Profile card */}
-        <View style={styles.profileCard}>
+        {/* ── Profile card ── */}
+        <Pressable style={styles.profileCard} onPress={() => {}}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName}>
-              {settings.userName || 'Mission Tracker'}
-            </Text>
+            <Text style={styles.profileName}>{settings.userName || 'Mission Tracker'}</Text>
             {trackingSince ? (
-              <Text style={styles.profileSince}>
-                {t.settings.trackingSince(trackingSince)}
-              </Text>
+              <Text style={styles.profileSince}>{t.settings.trackingSince(trackingSince)}</Text>
             ) : null}
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#CCC" />
-        </View>
+        </Pressable>
 
-        {/* Preferences */}
+        {/* ── Preferences ── */}
         <Text style={styles.sectionTitle}>{t.settings.preferencesSection}</Text>
         <View style={styles.section}>
           <SettingsRow
@@ -107,13 +112,7 @@ export default function SettingsScreen() {
             iconBg="#FFF0E8"
             label={t.settings.reminders}
             showArrow={false}
-            right={
-              <Switch
-                value={false}
-                onValueChange={() => {}}
-                color={COLORS.primary}
-              />
-            }
+            right={<Switch value={false} onValueChange={() => {}} color={COLORS.primary} />}
           />
           <SettingsRow
             icon="🎨"
@@ -128,10 +127,11 @@ export default function SettingsScreen() {
             label={t.settings.weekStartsOn}
             value={settings.weekStart === 'monday' ? t.settings.monday : t.settings.sunday}
             onPress={() => {}}
+            isLast
           />
         </View>
 
-        {/* Goals */}
+        {/* ── Goals ── */}
         <Text style={styles.sectionTitle}>{t.settings.goalsSection}</Text>
         <View style={styles.section}>
           <SettingsRow
@@ -147,33 +147,25 @@ export default function SettingsScreen() {
             label={t.settings.dailyTarget}
             value={t.settings.dailyTargetAll}
             onPress={() => {}}
+            isLast
           />
         </View>
 
-        {/* Data */}
+        {/* ── Data ── */}
         <Text style={styles.sectionTitle}>{t.settings.dataSection}</Text>
         <View style={styles.section}>
-          <SettingsRow
-            icon="📤"
-            iconBg="#E8F7EB"
-            label={t.settings.exportData}
-            onPress={() => {}}
-          />
-          <SettingsRow
-            icon="📥"
-            iconBg="#E8F4FE"
-            label={t.settings.importData}
-            onPress={() => {}}
-          />
+          <SettingsRow icon="📤" iconBg="#E8F7EB" label={t.settings.exportData} onPress={() => {}} />
+          <SettingsRow icon="📥" iconBg="#E8F4FE" label={t.settings.importData} onPress={() => {}} />
           <SettingsRow
             icon="🗑️"
             iconBg="#FFE8E8"
             label={t.settings.resetData}
             onPress={() => {}}
+            isLast
           />
         </View>
 
-        {/* About */}
+        {/* ── About ── */}
         <Text style={styles.sectionTitle}>{t.settings.about}</Text>
         <View style={styles.section}>
           <SettingsRow
@@ -182,6 +174,7 @@ export default function SettingsScreen() {
             label={t.settings.version}
             value="0.1.0"
             showArrow={false}
+            isLast
           />
         </View>
       </ScrollView>
@@ -221,21 +214,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  profileName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  profileSince: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
+  avatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  profileName: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  profileSince: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
@@ -260,13 +241,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 13,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
     gap: 14,
   },
-  rowPressed: {
-    backgroundColor: '#F5F5F5',
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F0F0',
   },
+  rowPressed: { backgroundColor: '#F8F8F8' },
   rowIcon: {
     width: 36,
     height: 36,
@@ -276,14 +257,6 @@ const styles = StyleSheet.create({
   },
   rowIconEmoji: { fontSize: 18 },
   rowLabel: { flex: 1 },
-  rowText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  rowValue: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginTop: 1,
-  },
+  rowText: { fontSize: 15, fontWeight: '500', color: COLORS.text },
+  rowValue: { fontSize: 13, color: COLORS.textSecondary, marginTop: 1 },
 });
