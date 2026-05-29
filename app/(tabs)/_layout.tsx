@@ -1,47 +1,111 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 
+import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+interface TabIconProps {
+  icon: IconName;
+  label: string;
+  focused: boolean;
+}
+
+function TabBarIcon({ icon, label, focused }: TabIconProps) {
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <MaterialCommunityIcons
+        name={icon}
+        size={22}
+        color={focused ? COLORS.primary : '#9E9E9E'}
+      />
+      <Text
+        style={[
+          styles.label,
+          { color: focused ? COLORS.primary : '#9E9E9E' },
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
-  const theme = useTheme();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarStyle: { backgroundColor: theme.colors.surface },
-        headerStyle: { backgroundColor: theme.colors.surface },
-        headerTitleStyle: { color: theme.colors.onSurface },
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: styles.tabBar,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: t.tabs.week,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-week" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon icon="home-outline" label={t.tabs.habits} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
         name="stats"
         options={{
-          title: t.tabs.stats,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chart-bar" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon icon="chart-bar" label={t.tabs.insights} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="streak"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon icon="fire" label={t.tabs.streak} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: t.tabs.settings,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon icon="account-outline" label={t.tabs.profile} focused={focused} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 0,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    height: 64,
+    paddingBottom: 8,
+    paddingTop: 4,
+  },
+  iconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 2,
+    minWidth: 64,
+  },
+  iconWrapActive: {
+    backgroundColor: COLORS.primaryLight,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+});

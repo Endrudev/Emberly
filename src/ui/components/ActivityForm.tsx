@@ -4,7 +4,7 @@ import { Button, HelperText, Text, TextInput, useTheme } from 'react-native-pape
 
 import type { DayOfWeek } from '@/domain/types';
 import { t } from '@/i18n/cs';
-import { activityColors } from '@/ui/theme';
+import { activityColors, getPastelColor } from '@/ui/theme';
 
 const POPULAR_EMOJI = [
   '💪',
@@ -49,7 +49,7 @@ export function ActivityForm({ initial, submitLabel, onSubmit, onCancel }: Activ
   const theme = useTheme();
   const [name, setName] = useState(initial?.name ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? POPULAR_EMOJI[0]!);
-  const [color, setColor] = useState(initial?.color ?? activityColors[0]);
+  const [color, setColor] = useState<string>(initial?.color ?? activityColors[0] ?? '#4AABF5');
   const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(
     initial?.scheduledDays ?? [],
   );

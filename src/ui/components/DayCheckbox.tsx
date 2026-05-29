@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { t } from '@/i18n/cs';
@@ -11,7 +11,7 @@ interface DayCheckboxProps {
   completed: boolean;
   scheduled: boolean;
   isToday: boolean;
-  /** Barva aktivity, použitá pro splněné/scheduled stav. */
+  /** Accent colour of the parent activity. */
   color: string;
   disabled?: boolean;
   onPress: () => void;
@@ -26,30 +26,39 @@ function DayCheckboxImpl({
   disabled,
   onPress,
 }: DayCheckboxProps) {
-  const theme = useTheme();
+  const label = t.days.abbr[day];
 
-  const borderColor = scheduled ? color : theme.colors.outlineVariant;
-  const backgroundColor = completed ? color : 'transparent';
-  const iconColor = completed
-    ? theme.dark
-      ? theme.colors.onSurface
-      : '#fff'
-    : theme.colors.onSurfaceVariant;
+  // Checkbox style:
+  // - completed  → filled with accent colour, white check
+  // - scheduled  → white with accent border
+  // - unscheduled → light gray, thin border
+  const boxBg = completed ? color : '#FFFFFF';
+  const boxBorder = completed ? color : scheduled ? color : '#DDDDDD';
+  const boxBorderWidth = completed ? 0 : scheduled ? 2 : 1;
+  const checkColor = '#FFFFFF';
 
-  const label = t.days.short[day];
+  // Day label style
+  const labelColor = isToday ? color : '#999999';
+  const labelBg = isToday ? `${color}18` : 'transparent'; // very light tint for today
 
   return (
     <View style={styles.container}>
-      <Text
-        variant="labelSmall"
-        style={{
-          color: isToday ? theme.colors.primary : theme.colors.onSurfaceVariant,
-          fontWeight: isToday ? '700' : '400',
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </Text>
+      {/* Day label */}
+      <View style={[styles.labelWrap, { backgroundColor: labelBg }]}>
+        <Text
+          style={[
+            styles.label,
+            {
+              color: labelColor,
+              fontWeight: isToday ? '700' : '500',
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+
+      {/* Circular checkbox */}
       <Pressable
         onPress={onPress}
         disabled={disabled}
@@ -57,18 +66,19 @@ function DayCheckboxImpl({
         accessibilityState={{ checked: completed, disabled }}
         accessibilityLabel={`${t.days.long[day]}${completed ? ', splněno' : ''}`}
         style={({ pressed }) => [
-          styles.box,
+          styles.circle,
           {
-            borderColor,
-            backgroundColor,
-            borderWidth: scheduled ? 2 : 1,
-            opacity: pressed ? 0.7 : scheduled ? 1 : 0.5,
+            backgroundColor: boxBg,
+            borderColor: boxBorder,
+            borderWidth: boxBorderWidth,
+            opacity: pressed ? 0.7 : scheduled || completed ? 1 : 0.45,
           },
         ]}
       >
-        {completed ? <MaterialCommunityIcons name="check" size={18} color={iconColor} /> : null}
+        {completed ? (
+          <MaterialCommunityIcons name="check" size={15} color={checkColor} />
+        ) : null}
       </Pressable>
-      {isToday ? <View style={[styles.todayDot, { backgroundColor: theme.colors.primary }]} /> : null}
     </View>
   );
 }
@@ -79,19 +89,22 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     flex: 1,
-    paddingVertical: 4,
+    gap: 5,
   },
-  box: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  labelWrap: {
+    borderRadius: 10,
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+  },
+  label: {
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  circle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  todayDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 4,
   },
 });

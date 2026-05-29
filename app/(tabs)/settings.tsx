@@ -1,19 +1,289 @@
-import { View, StyleSheet } from 'react-native';
-import { Text } from 'react-native-paper';
+import { useMemo } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { Switch, Text } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { cs as dateFnsCs } from 'date-fns/locale';
 
+import { useAppStore } from '@/store/useAppStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
-export default function SettingsScreen() {
+interface SettingsRowProps {
+  icon: string;
+  iconBg: string;
+  label: string;
+  value?: string;
+  showArrow?: boolean;
+  right?: React.ReactNode;
+  onPress?: () => void;
+}
+
+function SettingsRow({ icon, iconBg, label, value, showArrow = true, right, onPress }: SettingsRowProps) {
+  const { Pressable } = require('react-native');
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium">{t.settings.title}</Text>
-      <Text variant="bodyMedium" style={{ marginTop: 8 }}>
-        {t.common.placeholder}
-      </Text>
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }: { pressed: boolean }) => [
+        styles.row,
+        pressed && onPress ? styles.rowPressed : null,
+      ]}
+    >
+      <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
+        <Text style={styles.rowIconEmoji}>{icon}</Text>
+      </View>
+      <View style={styles.rowLabel}>
+        <Text style={styles.rowText}>{label}</Text>
+        {value ? <Text style={styles.rowValue}>{value}</Text> : null}
+      </View>
+      {right ?? (showArrow && onPress ? (
+        <MaterialCommunityIcons name="chevron-right" size={20} color="#CCC" />
+      ) : null)}
+    </Pressable>
+  );
+}
+
+export default function SettingsScreen() {
+  const activities = useAppStore((s) => s.activities);
+  const settings = useSettingsStore();
+
+  // Tracking since
+  const trackingSince = useMemo(() => {
+    if (settings.trackingSinceMs) {
+      return format(new Date(settings.trackingSinceMs), 'MMM yyyy', { locale: dateFnsCs });
+    }
+    // Fallback: earliest activity
+    if (activities.length > 0) {
+      const earliest = activities.reduce(
+        (min, a) => (a.createdAt < min ? a.createdAt : min),
+        activities[0]!.createdAt,
+      );
+      return format(new Date(earliest), 'MMM yyyy', { locale: dateFnsCs });
+    }
+    return null;
+  }, [settings.trackingSinceMs, activities]);
+
+  // Profile initials
+  const initials = useMemo(() => {
+    const name = settings.userName.trim();
+    if (!name) return 'MT'; // Mission Tracker
+    const parts = name.split(' ');
+    return parts
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? '')
+      .join('');
+  }, [settings.userName]);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <Text style={styles.pageTitle}>{t.settings.title}</Text>
+
+        {/* Profile card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.profileName}>
+              {settings.userName || 'Mission Tracker'}
+            </Text>
+            {trackingSince ? (
+              <Text style={styles.profileSince}>
+                {t.settings.trackingSince(trackingSince)}
+              </Text>
+            ) : null}
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#CCC" />
+        </View>
+
+        {/* Preferences */}
+        <Text style={styles.sectionTitle}>{t.settings.preferencesSection}</Text>
+        <View style={styles.section}>
+          <SettingsRow
+            icon="🔔"
+            iconBg="#FFF0E8"
+            label={t.settings.reminders}
+            showArrow={false}
+            right={
+              <Switch
+                value={false}
+                onValueChange={() => {}}
+                color={COLORS.primary}
+              />
+            }
+          />
+          <SettingsRow
+            icon="🎨"
+            iconBg="#F0EEFF"
+            label={t.settings.appearance}
+            value={t.settings.themeLight}
+            onPress={() => {}}
+          />
+          <SettingsRow
+            icon="📅"
+            iconBg="#E8F4FE"
+            label={t.settings.weekStartsOn}
+            value={settings.weekStart === 'monday' ? t.settings.monday : t.settings.sunday}
+            onPress={() => {}}
+          />
+        </View>
+
+        {/* Goals */}
+        <Text style={styles.sectionTitle}>{t.settings.goalsSection}</Text>
+        <View style={styles.section}>
+          <SettingsRow
+            icon="🔥"
+            iconBg="#FFF0E8"
+            label={t.settings.streakGoal}
+            value={t.settings.streakGoalDays(settings.streakGoalDays)}
+            onPress={() => {}}
+          />
+          <SettingsRow
+            icon="🎯"
+            iconBg="#FFE8F4"
+            label={t.settings.dailyTarget}
+            value={t.settings.dailyTargetAll}
+            onPress={() => {}}
+          />
+        </View>
+
+        {/* Data */}
+        <Text style={styles.sectionTitle}>{t.settings.dataSection}</Text>
+        <View style={styles.section}>
+          <SettingsRow
+            icon="📤"
+            iconBg="#E8F7EB"
+            label={t.settings.exportData}
+            onPress={() => {}}
+          />
+          <SettingsRow
+            icon="📥"
+            iconBg="#E8F4FE"
+            label={t.settings.importData}
+            onPress={() => {}}
+          />
+          <SettingsRow
+            icon="🗑️"
+            iconBg="#FFE8E8"
+            label={t.settings.resetData}
+            onPress={() => {}}
+          />
+        </View>
+
+        {/* About */}
+        <Text style={styles.sectionTitle}>{t.settings.about}</Text>
+        <View style={styles.section}>
+          <SettingsRow
+            icon="ℹ️"
+            iconBg="#F0F2F5"
+            label={t.settings.version}
+            value="0.1.0"
+            showArrow={false}
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  safe: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { padding: 20, paddingBottom: 40 },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 20,
+    letterSpacing: -0.5,
+  },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  profileSince: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textTertiary,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  section: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    marginBottom: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+    gap: 14,
+  },
+  rowPressed: {
+    backgroundColor: '#F5F5F5',
+  },
+  rowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowIconEmoji: { fontSize: 18 },
+  rowLabel: { flex: 1 },
+  rowText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+  rowValue: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
 });

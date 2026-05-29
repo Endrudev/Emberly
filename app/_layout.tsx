@@ -1,21 +1,31 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Redirect, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, PaperProvider, Text } from 'react-native-paper';
 import { useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useDbInit } from '@/db/useDbInit';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { darkTheme, lightTheme } from '@/ui/theme';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
-  const theme = scheme === 'dark' ? darkTheme : lightTheme;
+  const settings = useSettingsStore();
   const { ready, error } = useDbInit();
+
+  // Determine theme
+  const resolvedScheme =
+    settings.theme === 'system' ? scheme : settings.theme === 'dark' ? 'dark' : 'light';
+  const theme = resolvedScheme === 'dark' ? darkTheme : lightTheme;
+
+  const isLoading = !settings._hasHydrated || !ready;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
-        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
+
         {error ? (
           <View
             style={{
@@ -30,7 +40,7 @@ export default function RootLayout() {
               Chyba databáze: {error.message}
             </Text>
           </View>
-        ) : !ready ? (
+        ) : isLoading ? (
           <View
             style={{
               flex: 1,
@@ -39,8 +49,13 @@ export default function RootLayout() {
               backgroundColor: theme.colors.background,
             }}
           >
-            <ActivityIndicator size="large" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
+        ) : !settings.onboardingCompleted ? (
+          // First launch — show onboarding before main app
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="onboarding" />
+          </Stack>
         ) : (
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />

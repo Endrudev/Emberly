@@ -408,6 +408,48 @@ export function computeWeekProgress(
   };
 }
 
+// ---- Per-activity current streak ----
+
+/**
+ * Aktuální streak pro jednu aktivitu: počet po sobě jdoucích naplánovaných dní
+ * (od dneška zpět), kdy byla aktivita splněna.
+ * Dny, na které aktivita není naplánovaná, se přeskakují (nelapají streak).
+ * Dnešní ještě nesplněný naplánovaný den streak neresetuje.
+ */
+export function computeCurrentActivityStreak(
+  activity: ActivityForStreak,
+  completions: readonly Completion[],
+  todayIso: string,
+): number {
+  const mask = daysToMask(activity.scheduledDays);
+  if (mask === 0) return 0;
+
+  const completedSet = new Set(
+    completions.filter((c) => c.activityId === activity.id).map((c) => c.date),
+  );
+
+  let streak = 0;
+  let cursorIso = todayIso;
+
+  while (cursorIso >= activity.createdAtIso) {
+    const dow = dowOf(parseIsoDate(cursorIso));
+
+    if (isDayScheduled(mask, dow)) {
+      if (completedSet.has(cursorIso)) {
+        streak += 1;
+      } else if (cursorIso < todayIso) {
+        // Minulý naplánovaný den byl vynechán — konec streaku.
+        break;
+      }
+      // Dnešní nenaplnění ještě neruší streak — pokračujeme zpět.
+    }
+
+    cursorIso = shiftDateIso(cursorIso, -1);
+  }
+
+  return streak;
+}
+
 // Expose for tests
 export const _internals = { indexCompletions, evaluateDay };
 
