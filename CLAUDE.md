@@ -7,13 +7,24 @@ Primárně Android, cross-platform codebase (iOS path open, nevyžaduje eject).
 ## Jak spustit
 ```bash
 npm install --legacy-peer-deps
-npx expo start --tunnel      # doporučeno pro fyzický telefon
-npx expo start               # lokální síť (vyžaduje stejnou WiFi + otevřený port 8081)
+npm start                    # LAN mode (telefon i PC na stejné WiFi) — DOPORUČENO
+npm run start:usb            # USB kabel: adb reverse tcp:8081 tcp:8081 + localhost
+npm run start:tunnel         # NEPOUŽÍVAT — Expo tunnel infrastruktura je nespolehlivá
 npm test                     # Jest unit testy (25 testů, suite streaks + week)
 npm run typecheck            # tsc --noEmit
 npm run lint                 # ESLint
 npm run db:generate          # Drizzle — vygeneruje nové SQL migrace ze schématu
 ```
+
+### Připojení telefonu (LAN mode)
+1. PC i Android musí být na **stejné WiFi**
+2. `npm start` — v QR kódu bude `exp://192.168.x.x:8081`
+3. Pokud Expo Go nevidí PC: otevři Windows Defender Firewall → povolit `node.exe` na privátních sítích
+4. Alternativa: `npm run start:usb` s USB kabelem (adb reverse tcp:8081 tcp:8081)
+
+### Proč ne --tunnel
+Expo SDK 54 používá vlastní `@expo/ws-tunnel` (nahradil ngrok). Tato infrastruktura je nespolehlivá — hází `TypeError: Cannot read properties of undefined (reading 'body')`.
+Error message zmiňuje ngrok historicky, ale příčina je na straně Expo serverů.
 
 ## Tech stack
 - **Expo SDK 54** (managed workflow, new architecture enabled)
