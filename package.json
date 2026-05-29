@@ -15,7 +15,9 @@
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "typecheck": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "adb:setup": "\"%LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe\" reverse tcp:8081 tcp:8081 && \"%LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe\" reverse tcp:8082 tcp:8082 && \"%LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe\" reverse tcp:8083 tcp:8083",
+    "android:usb": "npm run adb:setup && expo start --localhost"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
