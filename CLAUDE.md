@@ -7,8 +7,9 @@ Primárně Android, cross-platform codebase (iOS path open, nevyžaduje eject).
 ## Jak spustit
 ```bash
 npm install --legacy-peer-deps
-npm start                    # LAN mode (telefon i PC na stejné WiFi) — DOPORUČENO
-npm run start:usb            # USB kabel: adb reverse tcp:8081 tcp:8081 + localhost
+npm start                    # LAN mode — DOPORUČENO (telefon i PC na stejné síti)
+npm run start:usb            # USB kabel: spustí adb reverse + localhost Metro
+npm run start:fresh          # LAN mode + --clear (použij po změně balíčků)
 npm run start:tunnel         # NEPOUŽÍVAT — Expo tunnel infrastruktura je nespolehlivá
 npm test                     # Jest unit testy (25 testů, suite streaks + week)
 npm run typecheck            # tsc --noEmit
@@ -16,15 +17,36 @@ npm run lint                 # ESLint
 npm run db:generate          # Drizzle — vygeneruje nové SQL migrace ze schématu
 ```
 
-### Připojení telefonu (LAN mode)
-1. PC i Android musí být na **stejné WiFi**
-2. `npm start` — v QR kódu bude `exp://192.168.x.x:8081`
-3. Pokud Expo Go nevidí PC: otevři Windows Defender Firewall → povolit `node.exe` na privátních sítích
-4. Alternativa: `npm run start:usb` s USB kabelem (adb reverse tcp:8081 tcp:8081)
+### Připojení telefonu (LAN mode) — ověřený postup
+1. PC i Android musí být na **stejné síti** (PC na Ethernetu, telefon na WiFi — stačí stejný router)
+2. Spusť `npm start` a **počkej** než terminál zobrazí `Android Bundled XXXXX ms`
+3. Teprve po bundlingu scannuj QR kód v Expo Go
+4. Port může být 8081 nebo 8082/8083 — to je normální, QR kód obsahuje správný port
+
+### Windows Firewall — nutná jednorázová konfigurace
+Po instalaci **Docker Desktop** (nebo jiného software s Hyper-V) se Windows Firewall resetuje
+a smaže výjimky pro Node.js. Bez výjimky telefon nemůže stáhnout bundle.
+
+**Oprava (jednou, jako Admin):**
+```powershell
+# PowerShell jako správce (Win+X → Terminal Admin):
+New-NetFirewallRule -DisplayName "Expo Metro - Node.js" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8081-8083 -Program "C:\Program Files\nodejs\node.exe" -Profile Private,Domain,Public
+```
+
+Ověření:
+```powershell
+Get-NetFirewallRule -DisplayName "Expo Metro - Node.js" | Get-NetFirewallPortFilter
+```
 
 ### Proč ne --tunnel
-Expo SDK 54 používá vlastní `@expo/ws-tunnel` (nahradil ngrok). Tato infrastruktura je nespolehlivá — hází `TypeError: Cannot read properties of undefined (reading 'body')`.
-Error message zmiňuje ngrok historicky, ale příčina je na straně Expo serverů.
+Expo SDK 54 používá vlastní `@expo/ws-tunnel` (nahradil ngrok). Tato infrastruktura je
+nespolehlivá — hází `TypeError: Cannot read properties of undefined (reading 'body')`.
+Error message zmiňuje ngrok historicky, příčina je na straně Expo serverů.
+
+### Proč ne --clear v defaultním startu
+`--clear` maže Metro cache → první bundle compile trvá 26+ sekund → Expo Go vyprší timeout
+před stažením → `Failed to download remote update`. Použí `npm run start:fresh` jen po
+změně balíčků nebo babel/metro configu.
 
 ## Tech stack
 - **Expo SDK 54** (managed workflow, new architecture enabled)
@@ -34,7 +56,8 @@ Error message zmiňuje ngrok historicky, ale příčina je na straně Expo serve
 - **drizzle-orm** nad **expo-sqlite v16** — typovaná data vrstva
 - **Zustand** pro globální stav (plochý store, odvozená data v selektorech)
 - **expo-notifications** — persistent ongoing notifikace (náhrada widgetu pro v1)
-- **react-native-reanimated v4** + **react-native-worklets** (peer dep reanimated v4)
+- **react-native-reanimated v4** + **react-native-worklets@0.5.1** (peer dep reanimated v4)
+- **react-native-web@^0.21.0** — peer dep expo-router v6 (nutný i pro Android vývoj)
 - **date-fns**, expo-haptics, expo-file-system, expo-sharing, expo-document-picker
 - **Jest / jest-expo** — unit testy doménové logiky
 
@@ -42,13 +65,15 @@ Error message zmiňuje ngrok historicky, ale příčina je na straně Expo serve
 ```
 app/
 ├── (tabs)/
-│   ├── _layout.tsx          # bottom tab navigátor
-│   ├── index.tsx            # Tento týden (hlavní obrazovka)
-│   ├── stats.tsx            # Statistiky
-│   └── settings.tsx         # Nastavení
+│   ├── _layout.tsx          # bottom tab navigátor (4 taby: Aktivity/Přehledy/Streak/Profil)
+│   ├── index.tsx            # Aktivity — weekly tracker (hlavní obrazovka)
+│   ├── stats.tsx            # Přehledy — statistiky + heatmapa
+│   ├── streak.tsx           # Streak — denní streak + tier systém
+│   └── settings.tsx         # Profil — nastavení + export/import
 ├── activity/
 │   ├── new.tsx              # Přidat aktivitu (modal)
 │   └── [id].tsx             # Upravit aktivitu (modal)
+├── onboarding.tsx           # 3-krokový onboarding (první spuštění)
 └── _layout.tsx              # root layout — PaperProvider, useDbInit, gesture handler
 
 src/
@@ -67,16 +92,22 @@ src/
 │   ├── types.ts             # Activity, Completion, WeekProgress, Streak, DayOfWeek (0=Po)
 │   ├── week.ts              # weekDates, mondayOf, todayIso, maskFromDays, daysFromMask
 │   └── streaks.ts           # computeDailyStreak, computeWeeklyStreak, computeActivityStreak
+│                            # + computeCurrentActivityStreak (per-aktivita streak)
 ├── store/
-│   └── useAppStore.ts       # Zustand — activities, completions, currentWeekStart, toggleCompletion
+│   ├── useAppStore.ts       # Zustand — activities, completions, currentWeekStart, toggleCompletion
+│   └── useSettingsStore.ts  # Zustand persist (AsyncStorage) — onboarding, theme, weekStart
 ├── ui/
-│   ├── theme.ts             # lightTheme, darkTheme, activityColors[]
+│   ├── theme.ts             # lightTheme, darkTheme, activityPalette (accent+pastel páry)
+│   │                        # + getPastelColor() helper
 │   └── components/
-│       ├── ActivityRow.tsx  # řádek aktivity + 7 checkboxů
-│       ├── DayCheckbox.tsx  # jednotlivý checkbox (scheduled/bonus/completed/today)
-│       └── WeekHeader.tsx   # 7 sloupců dnů + šipky navigace
+│       ├── ActivityRow.tsx  # pastelová karta aktivity + kruhové checkboxy
+│       ├── DayCheckbox.tsx  # kruhový checkbox (scheduled/bonus/completed/today)
+│       ├── CircularProgress.tsx  # SVG kruhový progress (react-native-svg)
+│       ├── HabitHeatmap.tsx      # 15týdenní GitHub-style heatmapa
+│       ├── StreakBadge.tsx        # streak badge komponenta
+│       └── WeekHeader.tsx        # záhlaví týdne (starý, nahrazen inline v index.tsx)
 ├── i18n/
-│   └── cs.ts                # veškeré UI texty (struktura pro pozdější en)
+│   └── cs.ts                # veškeré UI texty + funkce pro plurály
 └── utils/
 
 __tests__/
@@ -108,34 +139,44 @@ sitemap, 404 stránky a web bundlu i při vývoji pro Android. Bez něj Metro h�
 Balíček je v `dependencies` jako `react-native-web@^0.21.0`.
 
 ### react-native-worklets (peer dep reanimated v4)
-`react-native-reanimated v4` vyžaduje `react-native-worklets` jako peer dependency.
+`react-native-reanimated v4` vyžaduje `react-native-worklets@0.5.1` jako peer dependency.
+⚠️ Verze musí být `0.5.1` — novější (0.9.x) není kompatibilní s reanimated 4.1.7.
 Babel plugin `react-native-reanimated/plugin` interně dělá `require('react-native-worklets/plugin')`.
-Oba balíčky jsou v `package.json` a instalují se s `--legacy-peer-deps`.
 
 ### Expo Go vs dev build
-- **Expo Go**: funguje pro UI, navigaci, DB, seed data
+- **Expo Go**: funguje pro UI, navigaci, DB, seed data, onboarding
 - **Dev build** (`npx expo run:android`): potřeba pro notification action buttony a plné testování notifikací
+
+### Onboarding flow
+`app/onboarding.tsx` se zobrazí při prvním spuštění. Stav uložen v `useSettingsStore`
+(Zustand persist → AsyncStorage). Výběr aktivit v onboardingu vytvoří seed aktivity v DB.
+
+### Firewall po Docker/Hyper-V instalaci
+Instalace Docker Desktop povoluje Hyper-V a resetuje Windows Firewall výjimky.
+Bez pravidla pro `node.exe` na portech 8081-8083 telefon nemůže stáhnout bundle.
+Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše).
 
 ## Stav implementace
 ```
 [x] 1.  Setup (Expo SDK 54, TS strict, Router v6, ESLint/Prettier)
 [x] 2.  DB vrstva (Drizzle schema, expo-sqlite v16, repositories, seed)
 [x] 3.  Domain logika + unit testy (streaks, week — 25 testů)
-[x] 4.  Theme + komponenty (ActivityRow, DayCheckbox, WeekHeader)
-[x] 5.  Home obrazovka (weekly tracker, FAB, navigace týdnů)
+[x] 4.  Theme + komponenty (ActivityRow, DayCheckbox, CircularProgress, HabitHeatmap)
+[x] 5.  Home obrazovka (weekly tracker, week navigation, summary card)
 [x] 6.  Add/Edit Activity (modal formulář, emoji/barva/dny, long-press menu)
-[ ] 7.  Statistiky + heatmapa
-[ ] 8.  Nastavení
+[x] 7.  Statistiky + heatmapa (Stats screen, 15-week heatmap, per-activity bars)
+[x] 8.  Onboarding (3-krokový flow, výběr aktivit, AsyncStorage persistence)
+[x] R.  Redesign UI (nový design systém, 4 taby, pastelové karty, streak tier systém)
 [ ] 9.  Persistentní notifikace (Android)
 [ ] 10. Export/Import JSON
-[ ] 11. Polish (animace, haptika, a11y)
+[ ] 11. Nastavení (funkční — theme, week start, streak goal)
+[ ] 12. Polish (animace, haptika, a11y)
 ```
 
 ## Časté příkazy
 ```bash
-# Reset DB (dev) — smazat app data v emulátoru nebo:
-# V kódu: useDbInit.ts obsahuje DEV seed, smazání node_modules/.expo nestačí,
-# musíš smazat app data na telefonu/emulátoru
+# Reset DB (dev) — smazat app data na telefonu/emulátoru
+# useDbInit.ts seeduje při prázdné DB automaticky
 
 # Nová Drizzle migrace po změně schema.ts:
 npm run db:generate
@@ -143,4 +184,10 @@ npm run db:generate
 
 # Spustit jen streaks testy:
 npx jest __tests__/streaks.test.ts --verbose
+
+# Zkontrolovat verze balíčků:
+npx expo install --check
+
+# Zabít staré Metro instance (pokud port obsazen):
+# PowerShell: Stop-Process -Id (Get-NetTCPConnection -LocalPort 8081 -State Listen).OwningProcess -Force
 ```
