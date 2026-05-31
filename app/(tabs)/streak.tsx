@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
 
 import { useAppStore } from '@/store/useAppStore';
@@ -134,7 +135,7 @@ export default function StreakScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20, paddingBottom: TAB_BAR_SPACE + 20 },
   pageTitle: {
     fontSize: 28,
     fontWeight: '800',

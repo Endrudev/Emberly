@@ -10,6 +10,7 @@ import { cs as dateFnsCs } from 'date-fns/locale';
 import { useAppStore } from '@/store/useAppStore';
 import { ActivityRow } from '@/ui/components/ActivityRow';
 import { CircularProgress } from '@/ui/components/CircularProgress';
+import { TAB_BAR_SPACE } from './_layout';
 import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak } from '@/domain/streaks';
 import { COLORS } from '@/ui/theme';
@@ -268,7 +269,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listContent: {
-    paddingBottom: 120, // extra space for floating tab bar + FAB
+    // TAB_BAR_SPACE (pill+gap) + FAB height 60 + margin 16
+    paddingBottom: TAB_BAR_SPACE + 60 + 16,
     paddingTop: 4,
   },
   summaryCard: {
@@ -338,7 +340,8 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 24,
-    bottom: 28,       // lifted to align with floating pill tab bar
+    // Sit just above the floating pill: TAB_BAR_SPACE + small gap
+    bottom: TAB_BAR_SPACE + 10,
     width: 60,
     height: 60,
     borderRadius: 30,
