@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
@@ -22,12 +23,7 @@ function TabBarIcon({ icon, label, focused }: TabIconProps) {
         size={22}
         color={focused ? COLORS.primary : '#9E9E9E'}
       />
-      <Text
-        style={[
-          styles.label,
-          { color: focused ? COLORS.primary : '#9E9E9E' },
-        ]}
-      >
+      <Text style={[styles.label, { color: focused ? COLORS.primary : '#9E9E9E' }]}>
         {label}
       </Text>
     </View>
@@ -35,12 +31,23 @@ function TabBarIcon({ icon, label, focused }: TabIconProps) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
+  // Tab bar height: icon area (56px) + bottom safe area (nav bar)
+  const tabBarHeight = 56 + insets.bottom;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: tabBarHeight,
+            paddingBottom: insets.bottom,
+          },
+        ],
       }}
     >
       <Tabs.Screen
@@ -88,8 +95,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
-    height: 64,
-    paddingBottom: 8,
     paddingTop: 4,
   },
   iconWrap: {
