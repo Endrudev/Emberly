@@ -23,9 +23,12 @@ function TabBarIcon({ icon, label, focused }: TabIconProps) {
         size={22}
         color={focused ? COLORS.primary : '#9E9E9E'}
       />
-      <Text style={[styles.label, { color: focused ? COLORS.primary : '#9E9E9E' }]}>
-        {label}
-      </Text>
+      {/* Label only visible on active tab — matches design */}
+      {focused && (
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
     </View>
   );
 }
@@ -104,19 +107,20 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   iconWrap: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
-    gap: 2,
-    minWidth: 64,
+    gap: 6,
   },
   iconWrapActive: {
     backgroundColor: COLORS.primaryLight,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
 });
