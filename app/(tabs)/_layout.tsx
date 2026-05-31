@@ -11,11 +11,11 @@ import { t } from '@/i18n/cs';
 // ─── Design tokens ───────────────────────────────────────────────────────────
 // All tab bar measurements in one place — change here, updates everywhere.
 
-/** Height of the white pill itself (icon 22 + vertical padding 9*2 + tabItem padding 4*2). */
-export const TAB_PILL_HEIGHT = 58;
+/** Height of the white pill itself. */
+export const TAB_PILL_HEIGHT = 72;
 
-/** Total space tab bar takes from bottom of SafeAreaView (pill + gap above bottom). */
-export const TAB_BAR_SPACE = TAB_PILL_HEIGHT + 12;
+/** Total space tab bar takes from bottom of SafeAreaView (pill + gap). */
+export const TAB_BAR_SPACE = TAB_PILL_HEIGHT + 16;
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -96,19 +96,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 8,           // breathing room above pill
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
 
-  /** White floating pill — borderRadius large enough for fully round ends. */
+  /** White floating pill */
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 40,
-    paddingHorizontal: 6,   // inner horizontal breathing room
-    paddingVertical: 4,     // inner vertical breathing room
-    // Elevation
+    borderRadius: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     elevation: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -116,7 +115,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
   },
 
-  /** Each tab occupies equal space in the pill. */
+  /** Each tab — equal share of the pill width */
   tabItem: {
     flex: 1,
     alignItems: 'center',
@@ -124,21 +123,21 @@ const styles = StyleSheet.create({
   },
 
   /**
-   * Inner container — same size for active AND inactive tabs
-   * so the pill height stays constant.
+   * Inner container — identical paddingVertical for active + inactive
+   * so pill height never jumps when switching tabs.
    */
   tabInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 9,     // ← identical for active + inactive
-    paddingHorizontal: 10,
+    gap: 7,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
   },
 
-  /** Active state: rounded rectangle inside the outer pill. */
+  /** Active: green background, slightly more horizontal padding for label room */
   tabInnerActive: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     backgroundColor: COLORS.primaryLight,
     borderRadius: 16,
   },
