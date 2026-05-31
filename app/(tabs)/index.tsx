@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: 120, // extra space for floating tab bar + FAB
     paddingTop: 4,
   },
   summaryCard: {

@@ -1,6 +1,7 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,116 +10,113 @@ import { t } from '@/i18n/cs';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-interface TabIconProps {
-  icon: IconName;
-  label: string;
-  focused: boolean;
-}
+const TAB_CONFIG: Record<string, { icon: IconName; iconFocused: IconName; label: string }> = {
+  index:    { icon: 'home-outline',    iconFocused: 'home',           label: t.tabs.habits   },
+  stats:    { icon: 'chart-bar',       iconFocused: 'chart-bar',      label: t.tabs.insights },
+  streak:   { icon: 'fire',            iconFocused: 'fire',           label: t.tabs.streak   },
+  settings: { icon: 'account-outline', iconFocused: 'account',        label: t.tabs.profile  },
+};
 
-function TabBarIcon({ icon, label, focused }: TabIconProps) {
+// ─── Custom floating pill tab bar ────────────────────────────────────────────
+function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <MaterialCommunityIcons
-        name={icon}
-        size={22}
-        color={focused ? COLORS.primary : '#9E9E9E'}
-      />
-      {/* Label only visible on active tab — matches design */}
-      {focused && (
-        <Text style={styles.label} numberOfLines={1}>
-          {label}
-        </Text>
-      )}
+    <View style={[styles.wrapper, { paddingBottom: insets.bottom + 8 }]}>
+      <View style={styles.pill}>
+        {state.routes.map((route, index) => {
+          const focused = state.index === index;
+          const cfg = TAB_CONFIG[route.name];
+          if (!cfg) return null;
+          const iconName = focused ? cfg.iconFocused : cfg.icon;
+          const iconColor = focused ? COLORS.primary : '#BDBDBD';
+
+          return (
+            <Pressable
+              key={route.key}
+              onPress={() => navigation.navigate(route.name)}
+              style={styles.tabItem}
+              accessibilityRole="button"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={cfg.label}
+            >
+              {/* Active: green pill with icon + label. Inactive: just icon */}
+              <View style={[styles.tabInner, focused && styles.tabInnerActive]}>
+                <MaterialCommunityIcons name={iconName} size={21} color={iconColor} />
+                {focused && (
+                  <Text style={styles.tabLabel} numberOfLines={1}>
+                    {cfg.label}
+                  </Text>
+                )}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
+// ─── Layout ──────────────────────────────────────────────────────────────────
 export default function TabsLayout() {
-  const insets = useSafeAreaInsets();
-
-  // Tab bar height: icon area (56px) + bottom safe area (nav bar)
-  const tabBarHeight = 56 + insets.bottom;
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarStyle: [
-          styles.tabBar,
-          {
-            height: tabBarHeight,
-            paddingBottom: insets.bottom,
-          },
-        ],
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="home-outline" label={t.tabs.habits} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="chart-bar" label={t.tabs.insights} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="streak"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="fire" label={t.tabs.streak} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="account-outline" label={t.tabs.profile} focused={focused} />
-          ),
-        }}
-      />
-    </Tabs>
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    />
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  tabBar: {
+  // Outer container sits at the absolute bottom above safe area
+  wrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    // Transparent bg — content shows through
+  },
+  // The white floating pill
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 0,
-    // Floating pill — all corners rounded
-    borderRadius: 32,
-    // Lift off the screen edge
-    marginHorizontal: 16,
-    marginBottom: 12,
-    // Shadow so it floats above content
-    elevation: 12,
+    borderRadius: 40,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    width: '100%',
+    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
-    paddingTop: 6,
+    elevation: 12,
   },
-  iconWrap: {
+  // Each tab gets equal space
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  // Inner container — auto-sized, NOT flex
+  tabInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
     gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 24,
   },
-  iconWrapActive: {
+  // Active state — green tinted pill behind icon+label
+  tabInnerActive: {
     backgroundColor: COLORS.primaryLight,
   },
-  label: {
+  tabLabel: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.primary,
