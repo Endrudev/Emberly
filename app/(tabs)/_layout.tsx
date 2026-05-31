@@ -134,13 +134,13 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,     // ← identical for active + inactive
     paddingHorizontal: 10,
-    borderRadius: 28,
   },
 
-  /** Active state: green tinted pill. */
+  /** Active state: green tinted pill — 999 guarantees perfect pill shape. */
   tabInnerActive: {
-    paddingHorizontal: 14,  // slightly wider to give room for label
+    paddingHorizontal: 14,
     backgroundColor: COLORS.primaryLight,
+    borderRadius: 999,
   },
 
   tabLabel: {
