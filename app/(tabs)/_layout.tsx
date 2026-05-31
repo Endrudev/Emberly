@@ -90,15 +90,17 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
-    // Rounded top corners matching design
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    // Floating pill — all corners rounded
+    borderRadius: 32,
+    // Lift off the screen edge
+    marginHorizontal: 16,
+    marginBottom: 12,
     // Shadow so it floats above content
     elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
     paddingTop: 6,
   },
   iconWrap: {
