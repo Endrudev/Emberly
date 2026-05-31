@@ -90,12 +90,16 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
-    elevation: 8,
+    // Rounded top corners matching design
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    // Shadow so it floats above content
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    paddingTop: 4,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    paddingTop: 6,
   },
   iconWrap: {
     alignItems: 'center',

@@ -112,9 +112,8 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <MaterialCommunityIcons name="menu" size={24} color={COLORS.text} />
         <Text style={styles.appTitle}>{t.home.appTitle}</Text>
-        <Pressable onPress={() => router.push('/activity/new')} hitSlop={12}>
-          <MaterialCommunityIcons name="plus-circle-outline" size={26} color={COLORS.primary} />
-        </Pressable>
+        {/* spacer — + button moved to FAB above tab bar */}
+        <View style={{ width: 26 }} />
       </View>
 
       {/* ── View mode tabs ── */}
@@ -211,6 +210,16 @@ export default function HomeScreen() {
           />
         )}
       />
+
+      {/* ── Floating "+" button above tab bar ── */}
+      <Pressable
+        style={styles.fab}
+        onPress={() => router.push('/activity/new')}
+        accessibilityLabel={t.home.addActivity}
+        accessibilityRole="button"
+      >
+        <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -326,4 +335,20 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
   emptyBody: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
 });
