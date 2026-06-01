@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   circle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -100,8 +100,9 @@ src/
 │   ├── theme.ts             # lightTheme, darkTheme, activityPalette (accent+pastel páry)
 │   │                        # + getPastelColor() helper
 │   └── components/
-│       ├── ActivityRow.tsx  # pastelová karta aktivity + kruhové checkboxy
-│       ├── DayCheckbox.tsx  # kruhový checkbox (scheduled/bonus/completed/today)
+│       ├── ActivityRow.tsx  # bílá karta aktivity — čtvercová ikona (solid color), Everyday tag, streak pod názvem
+│       ├── DayCheckbox.tsx  # kruhový checkbox 34px (scheduled/bonus/completed/today)
+│       ├── TabIcons.tsx     # vlastní SVG ikony pro floating pill (Home/Stats/Streak/Profile)
 │       ├── CircularProgress.tsx  # SVG kruhový progress (react-native-svg)
 │       ├── HabitHeatmap.tsx      # 15týdenní GitHub-style heatmapa
 │       ├── StreakBadge.tsx        # streak badge komponenta
@@ -151,6 +152,36 @@ Babel plugin `react-native-reanimated/plugin` interně dělá `require('react-na
 `app/onboarding.tsx` se zobrazí při prvním spuštění. Stav uložen v `useSettingsStore`
 (Zustand persist → AsyncStorage). Výběr aktivit v onboardingu vytvoří seed aktivity v DB.
 
+### Design systém — Home screen (R2, "Habit Radar" mockup)
+Domovská obrazovka (`app/(tabs)/index.tsx`) byla přepracována podle designového mockupu:
+
+**Vizuální tokeny:**
+- Pozadí obrazovky: `#FAF8F5` (teplá krémová, ne šedá `#F7F7F7`)
+- Header: zelený hamburger (`COLORS.primary`) + "Habit **Radar**" (tmavá+zelená dual-color) + ☀️ v `#FFF3D4` kroužku
+- Tab filtry: Today / Weekly / Monthly / Overall (anglicky v design tokenech)
+- Summary karta: **plná zelená** (`COLORS.primary`), bílý SVG kroužek (progress), veškerý text bílý
+- Sekce header: "VAŠE NÁVYKY" vlevo + "X aktivní" vpravo (malá šedá písmena, letterSpacing)
+
+**ActivityRow:**
+- Karta: bílá (`#FFFFFF`), `borderRadius: 16`, subtle shadow (`elevation: 2`)
+- Ikona aktivity: **čtvercová** (`50×50`, `borderRadius: 14`), solid barva aktivity (ne pastel)
+- Layout: `[ikona] | [název\n🔥 streak] | [Everyday pill]`
+- Tag: `#F0F0F0` pozadí, `borderRadius: 20`, šedý text
+
+**DayCheckbox:** kruhy zvětšeny z 30 → **34px**
+
+**Tab bar (floating pill):**
+- `TAB_PILL_HEIGHT = 80`, `TAB_BAR_SPACE = 100`
+- Aktivní tab: `borderRadius: 44` (plně kulatý pill), zelené pozadí `COLORS.primaryLight`
+- Neaktivní ikony: `#5A6270` (tmavě šedá, ne světlá `#BDBDBD`)
+- **Ikony: vlastní SVG** ze souborů designu (`src/ui/components/TabIcons.tsx`)
+  - `HomeTabIcon` — viewBox 45×45, single path
+  - `StatsTabIcon` — viewBox 45×43, path fill-rule evenodd (3 sloupce)
+  - `StreakTabIcon` — viewBox 45×45, path s fill + stroke (oboje driven by `color` prop)
+  - `ProfileTabIcon` — viewBox 45×45, 2 paths (hlava + tělo)
+  - Každá přijímá `{ color: string; size: number }` — barva se přepíná centrálně v `_layout.tsx`
+  - `MaterialCommunityIcons` již není potřeba pro tab bar
+
 ### Firewall po Docker/Hyper-V instalaci
 Instalace Docker Desktop povoluje Hyper-V a resetuje Windows Firewall výjimky.
 Bez pravidla pro `node.exe` na portech 8081-8083 telefon nemůže stáhnout bundle.
@@ -167,6 +198,7 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 [x] 7.  Statistiky + heatmapa (Stats screen, 15-week heatmap, per-activity bars)
 [x] 8.  Onboarding (3-krokový flow, výběr aktivit, AsyncStorage persistence)
 [x] R.  Redesign UI (nový design systém, 4 taby, pastelové karty, streak tier systém)
+[x] R2. Home screen redesign (Habit Radar mockup) — viz sekce "Design systém" níže
 [ ] 9.  Persistentní notifikace (Android)
 [ ] 10. Export/Import JSON
 [ ] 11. Nastavení (funkční — theme, week start, streak goal)

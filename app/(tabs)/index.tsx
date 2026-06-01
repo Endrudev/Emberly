@@ -16,11 +16,14 @@ import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak 
 import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
+// ─── Warm off-white background matching the design ────────────────────────────
+const BG = '#FAF8F5';
+
 type ViewMode = 'today' | 'weekly' | 'monthly' | 'overall';
 
 const VIEW_MODES: { key: ViewMode; label: string }[] = [
-  { key: 'today', label: t.home.viewToday },
-  { key: 'weekly', label: t.home.viewWeekly },
+  { key: 'today',   label: t.home.viewToday   },
+  { key: 'weekly',  label: t.home.viewWeekly  },
   { key: 'monthly', label: t.home.viewMonthly },
   { key: 'overall', label: t.home.viewOverall },
 ];
@@ -31,11 +34,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
 
-  const activities = useAppStore((s) => s.activities);
-  const completions = useAppStore((s) => s.completions);
+  const activities      = useAppStore((s) => s.activities);
+  const completions     = useAppStore((s) => s.completions);
   const currentWeekStart = useAppStore((s) => s.currentWeekStart);
-  const loaded = useAppStore((s) => s.loaded);
-  const loadAll = useAppStore((s) => s.loadAll);
+  const loaded          = useAppStore((s) => s.loaded);
+  const loadAll         = useAppStore((s) => s.loadAll);
   const toggleCompletion = useAppStore((s) => s.toggleCompletion);
 
   useEffect(() => {
@@ -48,17 +51,17 @@ export default function HomeScreen() {
     [currentWeekStart],
   );
 
-  // Weekly progress summary
+  // Weekly progress
   const weekProgress = useMemo(
     () => computeWeekProgress(activities.map(toActivityForStreak), completions, currentWeekStart),
     [activities, completions, currentWeekStart],
   );
 
-  // Days left in current week (0 = Sunday, max 6 = Monday)
+  // Days left in current week
   const daysLeftInWeek = useMemo(() => {
     const isCurrentWeek = currentWeekStart === mondayOfIso(parseIsoDate(today));
     if (!isCurrentWeek) return 0;
-    const dow = ((new Date().getDay() + 6) % 7); // Mon=0..Sun=6
+    const dow = (new Date().getDay() + 6) % 7; // Mon=0..Sun=6
     return 6 - dow;
   }, [currentWeekStart, today]);
 
@@ -66,15 +69,7 @@ export default function HomeScreen() {
     weekProgress.plannedCount > 0
       ? weekProgress.completedCount / weekProgress.plannedCount
       : 0;
-
   const progressPct = Math.round(progressRatio * 100);
-
-  const summaryLabel = useMemo(() => {
-    if (progressPct >= 100) return t.home.greatWeek;
-    if (progressPct >= 75) return t.home.goodWeek;
-    if (progressPct >= 50) return t.home.okWeek;
-    return t.home.badWeek;
-  }, [progressPct]);
 
   // Per-activity streak
   const activityStreaks = useMemo(() => {
@@ -97,7 +92,7 @@ export default function HomeScreen() {
     return map;
   }, [completions]);
 
-  // Week label for header
+  // Week label for navigation
   const weekLabel = useMemo(() => {
     const start = parseIsoDate(currentWeekStart);
     const end = new Date(start);
@@ -109,28 +104,48 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+
       {/* ── App header ── */}
       <View style={styles.header}>
-        <MaterialCommunityIcons name="menu" size={24} color={COLORS.text} />
-        <Text style={styles.appTitle}>{t.home.appTitle}</Text>
-        {/* spacer — + button moved to FAB above tab bar */}
-        <View style={{ width: 26 }} />
+        <Pressable hitSlop={12} accessibilityRole="button" accessibilityLabel="Menu">
+          <MaterialCommunityIcons name="menu" size={24} color={COLORS.primary} />
+        </Pressable>
+
+        {/* Dual-colour title: "Habit" dark + "Radar" green */}
+        <View style={styles.titleRow}>
+          <Text style={styles.appTitleDark}>Habit </Text>
+          <Text style={styles.appTitleGreen}>Radar</Text>
+        </View>
+
+        {/* Sun / theme button */}
+        <Pressable hitSlop={12} accessibilityRole="button" accessibilityLabel="Nastavení tématu">
+          <View style={styles.sunBtn}>
+            <Text style={styles.sunIcon}>☀️</Text>
+          </View>
+        </Pressable>
       </View>
 
-      {/* ── View mode tabs ── */}
-      <View style={styles.modeTabs}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modeTabsInner}>
-          {VIEW_MODES.map((m) => (
-            <Pressable
-              key={m.key}
-              onPress={() => setViewMode(m.key)}
-              style={[styles.modeTab, m.key === viewMode && styles.modeTabActive]}
-            >
-              <Text style={[styles.modeTabLabel, m.key === viewMode && styles.modeTabLabelActive]}>
-                {m.label}
-              </Text>
-            </Pressable>
-          ))}
+      {/* ── Period tabs: Today / Weekly / Monthly / Overall ── */}
+      <View style={styles.modeTabsWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modeTabsInner}
+        >
+          {VIEW_MODES.map((m) => {
+            const active = m.key === viewMode;
+            return (
+              <Pressable
+                key={m.key}
+                onPress={() => setViewMode(m.key)}
+                style={[styles.modeTab, active && styles.modeTabActive]}
+              >
+                <Text style={[styles.modeTabLabel, active && styles.modeTabLabelActive]}>
+                  {m.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -138,42 +153,50 @@ export default function HomeScreen() {
         data={activities}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+
         ListHeaderComponent={
           <>
-            {/* ── Weekly summary card ── */}
+            {/* ── Summary card — solid green ── */}
             {weekProgress.plannedCount > 0 ? (
               <View style={styles.summaryCard}>
+                {/* Circular progress — white ring on green */}
                 <CircularProgress
-                  size={72}
+                  size={76}
                   strokeWidth={7}
                   progress={progressRatio}
-                  color={COLORS.primary}
-                  trackColor="#D4EED9"
+                  color="#FFFFFF"
+                  trackColor="rgba(255,255,255,0.30)"
                 >
                   <Text style={styles.summaryPct}>{progressPct}%</Text>
                 </CircularProgress>
+
+                {/* Stats text */}
                 <View style={styles.summaryText}>
-                  <Text style={styles.summaryWeekLabel}>{t.home.weeklyLabel}</Text>
-                  <Text style={styles.summaryMain}>
-                    {t.home.completedThisWeek(weekProgress.completedCount, weekProgress.plannedCount)}
-                  </Text>
+                  <Text style={styles.summaryWeekLabel}>{t.home.thisWeekLabel}</Text>
+                  <View style={styles.summaryCountRow}>
+                    <Text style={styles.summaryCount}>
+                      {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
+                    </Text>
+                    <Text style={styles.summaryDone}> {t.home.completedLabel}</Text>
+                  </View>
                   <Text style={styles.summaryWeekInfo}>
                     {isCurrentWeek && daysLeftInWeek > 0
-                      ? `🔥 ${t.home.daysLeftThisWeek(daysLeftInWeek)}`
+                      ? `🔥 ${t.home.daysLeftShort(daysLeftInWeek)}`
                       : weekLabel}
                   </Text>
                 </View>
               </View>
             ) : null}
 
-            {/* ── Week navigation ── */}
+            {/* ── Subtle week navigation ── */}
             <View style={styles.weekNav}>
               <Pressable
                 onPress={() => useAppStore.getState().goToPreviousWeek()}
                 hitSlop={10}
                 style={styles.navBtn}
               >
-                <MaterialCommunityIcons name="chevron-left" size={20} color={COLORS.textSecondary} />
+                <MaterialCommunityIcons name="chevron-left" size={18} color={COLORS.textSecondary} />
               </Pressable>
               <Pressable onPress={() => useAppStore.getState().goToCurrentWeek()} hitSlop={10}>
                 <Text style={styles.weekNavLabel}>
@@ -185,11 +208,22 @@ export default function HomeScreen() {
                 hitSlop={10}
                 style={styles.navBtn}
               >
-                <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textSecondary} />
+                <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.textSecondary} />
               </Pressable>
             </View>
+
+            {/* ── "VAŠE NÁVYKY  X aktivní" section header ── */}
+            {activities.length > 0 ? (
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t.home.habitsSection}</Text>
+                <Text style={styles.sectionCount}>
+                  {t.home.activeCount(activities.length)}
+                </Text>
+              </View>
+            ) : null}
           </>
         }
+
         ListEmptyComponent={
           loaded ? (
             <View style={styles.empty}>
@@ -199,6 +233,7 @@ export default function HomeScreen() {
             </View>
           ) : null
         }
+
         renderItem={({ item }) => (
           <ActivityRow
             activity={item}
@@ -212,7 +247,7 @@ export default function HomeScreen() {
         )}
       />
 
-      {/* ── Floating "+" button above tab bar ── */}
+      {/* ── Floating "+" FAB above tab bar ── */}
       <Pressable
         style={styles.fab}
         onPress={() => router.push('/activity/new')}
@@ -221,30 +256,59 @@ export default function HomeScreen() {
       >
         <MaterialCommunityIcons name="plus" size={28} color="#fff" />
       </Pressable>
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+  safe: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+
+  // ── Header ──────────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: COLORS.background,
+    paddingTop: 10,
+    paddingBottom: 6,
+    backgroundColor: BG,
   },
-  appTitle: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  appTitleDark: {
     fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: '#1A1A1A',
     letterSpacing: -0.3,
   },
-  modeTabs: {
-    backgroundColor: COLORS.background,
-    paddingBottom: 4,
+  appTitleGreen: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: -0.3,
+  },
+  sunBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF3D4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sunIcon: {
+    fontSize: 18,
+  },
+
+  // ── Period tabs ──────────────────────────────────────────────────────────────
+  modeTabsWrap: {
+    backgroundColor: BG,
+    paddingBottom: 8,
   },
   modeTabsInner: {
     paddingHorizontal: 16,
@@ -262,72 +326,111 @@ const styles = StyleSheet.create({
   modeTabLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.textSecondary,
+    color: '#AAAAAA',
   },
   modeTabLabelActive: {
     color: COLORS.primary,
     fontWeight: '700',
   },
+
+  // ── FlatList content ─────────────────────────────────────────────────────────
   listContent: {
-    // TAB_BAR_SPACE (pill+gap) + FAB height 60 + margin 16
-    paddingBottom: TAB_BAR_SPACE + 60 + 16,
+    paddingBottom: TAB_BAR_SPACE + 70,
     paddingTop: 4,
   },
+
+  // ── Summary card — SOLID GREEN ───────────────────────────────────────────────
   summaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primary,
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
     marginBottom: 4,
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderRadius: 20,
+    padding: 20,
+    gap: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.30,
+    shadowRadius: 14,
+    elevation: 8,
   },
   summaryPct: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: '#FFFFFF',
   },
-  summaryText: { flex: 1 },
+  summaryText: {
+    flex: 1,
+  },
   summaryWeekLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primary,
-    letterSpacing: 0.8,
-    marginBottom: 2,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 1,
+    marginBottom: 4,
   },
-  summaryMain: {
-    fontSize: 22,
+  summaryCountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  summaryCount: {
+    fontSize: 26,
     fontWeight: '800',
-    color: COLORS.text,
+    color: '#FFFFFF',
     letterSpacing: -0.5,
+  },
+  summaryDone: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.90)',
   },
   summaryWeekInfo: {
     fontSize: 13,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 4,
   },
+
+  // ── Week navigation ──────────────────────────────────────────────────────────
   weekNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
   weekNavLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     color: COLORS.textSecondary,
   },
   navBtn: {
     padding: 4,
   },
+
+  // ── "VAŠE NÁVYKY / X aktivní" ─────────────────────────────────────────────
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#AAAAAA',
+    letterSpacing: 1.2,
+  },
+  sectionCount: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#AAAAAA',
+  },
+
+  // ── Empty state ──────────────────────────────────────────────────────────────
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -337,10 +440,11 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
   emptyBody: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+
+  // ── FAB ──────────────────────────────────────────────────────────────────────
   fab: {
     position: 'absolute',
     right: 24,
-    // Sit just above the floating pill: TAB_BAR_SPACE + small gap
     bottom: TAB_BAR_SPACE + 10,
     width: 60,
     height: 60,
