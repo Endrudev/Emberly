@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -15,9 +15,6 @@ import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/
 import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak } from '@/domain/streaks';
 import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
-
-// ─── Warm off-white background matching the design ────────────────────────────
-const BG = '#FAF8F5';
 
 type ViewMode = 'today' | 'weekly' | 'monthly' | 'overall';
 
@@ -34,11 +31,21 @@ export default function HomeScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
 
-  const activities      = useAppStore((s) => s.activities);
-  const completions     = useAppStore((s) => s.completions);
+  // ── Theme — dark mode adaptations ────────────────────────────────────────
+  const paperTheme = useTheme();
+  const isDark = paperTheme.dark;
+
+  const BG          = isDark ? '#1C1C1E' : '#FAF8F5';
+  const textPrimary = isDark ? '#F2F2F7' : '#1A1A1A';
+  const textMuted   = isDark ? '#8E8E93' : '#AAAAAA';
+  const textSec     = isDark ? '#ABABAB' : '#666666';
+
+  // ── Store ─────────────────────────────────────────────────────────────────
+  const activities       = useAppStore((s) => s.activities);
+  const completions      = useAppStore((s) => s.completions);
   const currentWeekStart = useAppStore((s) => s.currentWeekStart);
-  const loaded          = useAppStore((s) => s.loaded);
-  const loadAll         = useAppStore((s) => s.loadAll);
+  const loaded           = useAppStore((s) => s.loaded);
+  const loadAll          = useAppStore((s) => s.loadAll);
   const toggleCompletion = useAppStore((s) => s.toggleCompletion);
 
   useEffect(() => {
@@ -51,17 +58,15 @@ export default function HomeScreen() {
     [currentWeekStart],
   );
 
-  // Weekly progress
   const weekProgress = useMemo(
     () => computeWeekProgress(activities.map(toActivityForStreak), completions, currentWeekStart),
     [activities, completions, currentWeekStart],
   );
 
-  // Days left in current week
   const daysLeftInWeek = useMemo(() => {
     const isCurrentWeek = currentWeekStart === mondayOfIso(parseIsoDate(today));
     if (!isCurrentWeek) return 0;
-    const dow = (new Date().getDay() + 6) % 7; // Mon=0..Sun=6
+    const dow = (new Date().getDay() + 6) % 7;
     return 6 - dow;
   }, [currentWeekStart, today]);
 
@@ -71,7 +76,6 @@ export default function HomeScreen() {
       : 0;
   const progressPct = Math.round(progressRatio * 100);
 
-  // Per-activity streak
   const activityStreaks = useMemo(() => {
     const map = new Map<number, number>();
     for (const a of activities) {
@@ -81,7 +85,6 @@ export default function HomeScreen() {
     return map;
   }, [activities, completions, today]);
 
-  // Completions indexed by activity
   const completionsByActivity = useMemo(() => {
     const map = new Map<number, Set<string>>();
     for (const c of completions) {
@@ -92,7 +95,6 @@ export default function HomeScreen() {
     return map;
   }, [completions]);
 
-  // Week label for navigation
   const weekLabel = useMemo(() => {
     const start = parseIsoDate(currentWeekStart);
     const end = new Date(start);
@@ -103,30 +105,13 @@ export default function HomeScreen() {
   const isCurrentWeek = currentWeekStart === mondayOfIso(parseIsoDate(today));
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: BG }]}>
 
-      {/* ── App header ── */}
-      <View style={styles.header}>
-        <Pressable hitSlop={12} accessibilityRole="button" accessibilityLabel="Menu">
-          <MaterialCommunityIcons name="menu" size={24} color={COLORS.primary} />
-        </Pressable>
+      {/* ── Page title (stejný styl jako ostatní taby) ── */}
+      <Text style={[styles.pageTitle, { color: textPrimary }]}>{t.tabs.habits}</Text>
 
-        {/* Dual-colour title: "Habit" dark + "Radar" green */}
-        <View style={styles.titleRow}>
-          <Text style={styles.appTitleDark}>Habit </Text>
-          <Text style={styles.appTitleGreen}>Radar</Text>
-        </View>
-
-        {/* Sun / theme button */}
-        <Pressable hitSlop={12} accessibilityRole="button" accessibilityLabel="Nastavení tématu">
-          <View style={styles.sunBtn}>
-            <Text style={styles.sunIcon}>☀️</Text>
-          </View>
-        </Pressable>
-      </View>
-
-      {/* ── Period tabs: Today / Weekly / Monthly / Overall ── */}
-      <View style={styles.modeTabsWrap}>
+      {/* ── Period tabs ── */}
+      <View style={[styles.modeTabsWrap, { backgroundColor: BG }]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -140,7 +125,11 @@ export default function HomeScreen() {
                 onPress={() => setViewMode(m.key)}
                 style={[styles.modeTab, active && styles.modeTabActive]}
               >
-                <Text style={[styles.modeTabLabel, active && styles.modeTabLabelActive]}>
+                <Text style={[
+                  styles.modeTabLabel,
+                  { color: active ? COLORS.primary : textMuted },
+                  active && styles.modeTabLabelActive,
+                ]}>
                   {m.label}
                 </Text>
               </Pressable>
@@ -152,7 +141,8 @@ export default function HomeScreen() {
       <FlatList
         data={activities}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { backgroundColor: BG }]}
+        style={{ backgroundColor: BG }}
         showsVerticalScrollIndicator={false}
 
         ListHeaderComponent={
@@ -160,7 +150,6 @@ export default function HomeScreen() {
             {/* ── Summary card — solid green ── */}
             {weekProgress.plannedCount > 0 ? (
               <View style={styles.summaryCard}>
-                {/* Circular progress — white ring on green */}
                 <CircularProgress
                   size={76}
                   strokeWidth={7}
@@ -171,7 +160,6 @@ export default function HomeScreen() {
                   <Text style={styles.summaryPct}>{progressPct}%</Text>
                 </CircularProgress>
 
-                {/* Stats text */}
                 <View style={styles.summaryText}>
                   <Text style={styles.summaryWeekLabel}>{t.home.thisWeekLabel}</Text>
                   <View style={styles.summaryCountRow}>
@@ -189,17 +177,17 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            {/* ── Subtle week navigation ── */}
+            {/* ── Week navigation ── */}
             <View style={styles.weekNav}>
               <Pressable
                 onPress={() => useAppStore.getState().goToPreviousWeek()}
                 hitSlop={10}
                 style={styles.navBtn}
               >
-                <MaterialCommunityIcons name="chevron-left" size={18} color={COLORS.textSecondary} />
+                <MaterialCommunityIcons name="chevron-left" size={18} color={textSec} />
               </Pressable>
               <Pressable onPress={() => useAppStore.getState().goToCurrentWeek()} hitSlop={10}>
-                <Text style={styles.weekNavLabel}>
+                <Text style={[styles.weekNavLabel, { color: textSec }]}>
                   {isCurrentWeek ? t.home.thisWeek : weekLabel}
                 </Text>
               </Pressable>
@@ -208,15 +196,17 @@ export default function HomeScreen() {
                 hitSlop={10}
                 style={styles.navBtn}
               >
-                <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.textSecondary} />
+                <MaterialCommunityIcons name="chevron-right" size={18} color={textSec} />
               </Pressable>
             </View>
 
-            {/* ── "VAŠE NÁVYKY  X aktivní" section header ── */}
+            {/* ── "VAŠE NÁVYKY  X aktivní" ── */}
             {activities.length > 0 ? (
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.home.habitsSection}</Text>
-                <Text style={styles.sectionCount}>
+                <Text style={[styles.sectionTitle, { color: textMuted }]}>
+                  {t.home.habitsSection}
+                </Text>
+                <Text style={[styles.sectionCount, { color: textMuted }]}>
                   {t.home.activeCount(activities.length)}
                 </Text>
               </View>
@@ -228,8 +218,8 @@ export default function HomeScreen() {
           loaded ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🎯</Text>
-              <Text style={styles.emptyTitle}>{t.home.appTitle}</Text>
-              <Text style={styles.emptyBody}>{t.home.empty}</Text>
+              <Text style={[styles.emptyTitle, { color: textPrimary }]}>{t.home.appTitle}</Text>
+              <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
             </View>
           ) : null
         }
@@ -243,11 +233,12 @@ export default function HomeScreen() {
             currentStreak={activityStreaks.get(item.id) ?? 0}
             onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
             onLongPress={() => router.push(`/activity/${item.id}`)}
+            isDark={isDark}
           />
         )}
       />
 
-      {/* ── Floating "+" FAB above tab bar ── */}
+      {/* ── FAB ── */}
       <Pressable
         style={styles.fab}
         onPress={() => router.push('/activity/new')}
@@ -262,54 +253,19 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BG,
-  },
+  safe: { flex: 1 },
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 6,
-    backgroundColor: BG,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  appTitleDark: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    letterSpacing: -0.3,
-  },
-  appTitleGreen: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.primary,
-    letterSpacing: -0.3,
-  },
-  sunBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFF3D4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sunIcon: {
-    fontSize: 18,
   },
 
   // ── Period tabs ──────────────────────────────────────────────────────────────
-  modeTabsWrap: {
-    backgroundColor: BG,
-    paddingBottom: 8,
-  },
+  modeTabsWrap: { paddingBottom: 8 },
   modeTabsInner: {
     paddingHorizontal: 16,
     gap: 4,
@@ -320,26 +276,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  modeTabActive: {
-    backgroundColor: COLORS.primaryLight,
-  },
-  modeTabLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#AAAAAA',
-  },
-  modeTabLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '700',
-  },
+  modeTabActive: { backgroundColor: COLORS.primaryLight },
+  modeTabLabel: { fontSize: 14, fontWeight: '500' },
+  modeTabLabelActive: { fontWeight: '700' },
 
-  // ── FlatList content ─────────────────────────────────────────────────────────
+  // ── FlatList ─────────────────────────────────────────────────────────────────
   listContent: {
     paddingBottom: TAB_BAR_SPACE + 70,
     paddingTop: 4,
   },
 
-  // ── Summary card — SOLID GREEN ───────────────────────────────────────────────
+  // ── Summary card ─────────────────────────────────────────────────────────────
   summaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -361,9 +308,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  summaryText: {
-    flex: 1,
-  },
+  summaryText: { flex: 1 },
   summaryWeekLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -392,7 +337,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // ── Week navigation ──────────────────────────────────────────────────────────
+  // ── Week nav ─────────────────────────────────────────────────────────────────
   weekNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -400,16 +345,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
   },
-  weekNavLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: COLORS.textSecondary,
-  },
-  navBtn: {
-    padding: 4,
-  },
+  weekNavLabel: { fontSize: 13, fontWeight: '500' },
+  navBtn: { padding: 4 },
 
-  // ── "VAŠE NÁVYKY / X aktivní" ─────────────────────────────────────────────
+  // ── Section header ────────────────────────────────────────────────────────────
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -421,14 +360,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#AAAAAA',
     letterSpacing: 1.2,
   },
-  sectionCount: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#AAAAAA',
-  },
+  sectionCount: { fontSize: 12, fontWeight: '500' },
 
   // ── Empty state ──────────────────────────────────────────────────────────────
   empty: {
@@ -438,8 +372,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
-  emptyBody: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  emptyBody: { fontSize: 14, textAlign: 'center' },
 
   // ── FAB ──────────────────────────────────────────────────────────────────────
   fab: {

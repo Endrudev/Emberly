@@ -120,8 +120,21 @@ export default function SettingsScreen() {
             icon="🎨"
             iconBg="#F0EEFF"
             label={t.settings.appearance}
-            value={t.settings.themeLight}
-            onPress={() => {}}
+            value={
+              settings.theme === 'dark'
+                ? t.settings.themeDark
+                : settings.theme === 'light'
+                  ? t.settings.themeLight
+                  : t.settings.themeSystem
+            }
+            showArrow={false}
+            right={
+              <Switch
+                value={settings.theme === 'dark'}
+                onValueChange={(v) => settings.setTheme(v ? 'dark' : 'light')}
+                color={COLORS.primary}
+              />
+            }
           />
           <SettingsRow
             icon="📅"

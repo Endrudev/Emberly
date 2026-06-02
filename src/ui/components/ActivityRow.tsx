@@ -15,6 +15,8 @@ interface ActivityRowProps {
   currentStreak?: number;
   onTogglePress: (dateIso: string) => void;
   onLongPress?: () => void;
+  /** Adapts card surface + text colours to the dark theme. */
+  isDark?: boolean;
 }
 
 function ActivityRowImpl({
@@ -25,8 +27,15 @@ function ActivityRowImpl({
   currentStreak = 0,
   onTogglePress,
   onLongPress,
+  isDark = false,
 }: ActivityRowProps) {
   const scheduledSet = useMemo(() => new Set(activity.scheduledDays), [activity.scheduledDays]);
+
+  // Dynamic tokens
+  const cardBg   = isDark ? '#2C2C2E' : '#FFFFFF';
+  const namColor = isDark ? '#F2F2F7' : '#1A1A1A';
+  const tagBg    = isDark ? '#3A3A3C' : '#F0F0F0';
+  const tagColor = isDark ? '#ABABAB' : '#888888';
 
   // Schedule tag: "Everyday" or abbreviated days list
   const scheduleLabel = useMemo(() => {
@@ -39,7 +48,7 @@ function ActivityRowImpl({
       onLongPress={onLongPress}
       delayLongPress={400}
       android_ripple={{ color: `${activity.color}18` }}
-      style={styles.card}
+      style={[styles.card, { backgroundColor: cardBg }]}
       accessibilityRole="button"
       accessibilityLabel={activity.name}
     >
@@ -52,7 +61,7 @@ function ActivityRowImpl({
 
         {/* Name + streak */}
         <View style={styles.nameBlock}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: namColor }]} numberOfLines={1}>
             {activity.name}
           </Text>
           {currentStreak > 0 ? (
@@ -65,8 +74,8 @@ function ActivityRowImpl({
         </View>
 
         {/* Schedule tag pill */}
-        <View style={styles.tagPill}>
-          <Text style={styles.tagText} numberOfLines={1}>{scheduleLabel}</Text>
+        <View style={[styles.tagPill, { backgroundColor: tagBg }]}>
+          <Text style={[styles.tagText, { color: tagColor }]} numberOfLines={1}>{scheduleLabel}</Text>
         </View>
       </View>
 
