@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTheme } from 'react-native-paper';
 import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 import {
@@ -34,20 +35,26 @@ const TAB_CONFIG: Record<string, { Icon: TabIconComponent; label: string }> = {
 // ─── Custom tab bar ───────────────────────────────────────────────────────────
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { dark: isDark } = useTheme();
+
+  // Dark-mode adaptive colours
+  const pillBg        = isDark ? '#2C2C2E' : '#FFFFFF';
+  const activeTabBg   = isDark ? 'rgba(45,181,74,0.18)' : COLORS.primaryLight;
+  const inactiveColor = isDark ? '#8E8E93' : '#5A6270';
 
   return (
     <View
       pointerEvents="box-none"
       style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 8) }]}
     >
-      <View style={styles.pill}>
+      <View style={[styles.pill, { backgroundColor: pillBg }]}>
         {state.routes.map((route) => {
           const focused = state.index === state.routes.indexOf(route);
           const cfg = TAB_CONFIG[route.name];
           if (!cfg) return null;
 
           const { Icon, label } = cfg;
-          const iconColor = focused ? COLORS.primary : '#5A6270';
+          const iconColor = focused ? COLORS.primary : inactiveColor;
 
           return (
             <Pressable
@@ -63,7 +70,11 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                * Both active and inactive share the SAME paddingVertical so the
                * pill height never changes when switching tabs.
                */}
-              <View style={[styles.tabInner, focused && styles.tabInnerActive]}>
+              <View style={[
+                styles.tabInner,
+                focused && styles.tabInnerActive,
+                focused && { backgroundColor: activeTabBg },
+              ]}>
                 <Icon color={iconColor} size={22} />
                 {focused && (
                   <Text style={styles.tabLabel} numberOfLines={1}>
@@ -148,8 +159,8 @@ const styles = StyleSheet.create({
   },
 
   tabLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: COLORS.primary,
     letterSpacing: -0.1,
   },

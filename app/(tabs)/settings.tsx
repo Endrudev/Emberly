@@ -9,6 +9,7 @@ import { cs as dateFnsCs } from 'date-fns/locale';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useAppTheme } from '@/ui/useAppTheme';
 import { COLORS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
@@ -23,6 +24,9 @@ interface SettingsRowProps {
   right?: React.ReactNode;
   onPress?: () => void;
   isLast?: boolean;
+  isDark?: boolean;
+  border?: string;
+  rowPressedBg?: string;
 }
 
 function SettingsRow({
@@ -34,21 +38,31 @@ function SettingsRow({
   right,
   onPress,
   isLast = false,
+  isDark = false,
+  border = '#F0F0F0',
+  rowPressedBg = '#F8F8F8',
 }: SettingsRowProps) {
+  const textColor = isDark ? '#F2F2F7' : '#1A1A1A';
+  const valueColor = isDark ? '#ABABAB' : '#666666';
+
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.row, !isLast && styles.rowBorder, pressed && onPress ? styles.rowPressed : null]}
+      style={({ pressed }) => [
+        styles.row,
+        !isLast && [styles.rowBorder, { borderBottomColor: border }],
+        pressed && onPress ? { backgroundColor: rowPressedBg } : null,
+      ]}
     >
       <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
         <Text style={styles.rowIconEmoji}>{icon}</Text>
       </View>
       <View style={styles.rowLabel}>
-        <Text style={styles.rowText}>{label}</Text>
-        {value ? <Text style={styles.rowValue}>{value}</Text> : null}
+        <Text style={[styles.rowText, { color: textColor }]}>{label}</Text>
+        {value ? <Text style={[styles.rowValue, { color: valueColor }]}>{value}</Text> : null}
       </View>
       {right ?? (showArrow && onPress ? (
-        <MaterialCommunityIcons name="chevron-right" size={20} color="#CCC" />
+        <MaterialCommunityIcons name="chevron-right" size={20} color={isDark ? '#555' : '#CCC'} />
       ) : null)}
     </Pressable>
   );
@@ -57,10 +71,10 @@ function SettingsRow({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
+  const C = useAppTheme();
   const activities = useAppStore((s) => s.activities);
-  const settings = useSettingsStore();
+  const settings   = useSettingsStore();
 
-  // "Tracking since" — from settings or from earliest activity
   const trackingSince = useMemo(() => {
     if (settings.trackingSinceMs) {
       return format(new Date(settings.trackingSinceMs), 'MMM yyyy', { locale: dateFnsCs });
@@ -75,7 +89,6 @@ export default function SettingsScreen() {
     return null;
   }, [settings.trackingSinceMs, activities]);
 
-  // Profile initials (up to 2 chars)
   const initials = useMemo(() => {
     const name = settings.userName.trim();
     if (!name) return 'MT';
@@ -86,30 +99,40 @@ export default function SettingsScreen() {
       .join('');
   }, [settings.userName]);
 
+  // Shared props passed to every SettingsRow for dark mode adaptation
+  const rowProps = { isDark: C.isDark, border: C.border, rowPressedBg: C.rowPressed };
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: C.BG }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* ── Header ── */}
-        <Text style={styles.pageTitle}>{t.settings.title}</Text>
+
+        <Text style={[styles.pageTitle, { color: C.text }]}>{t.settings.title}</Text>
 
         {/* ── Profile card ── */}
-        <Pressable style={styles.profileCard} onPress={() => {}}>
+        <Pressable style={[styles.profileCard, { backgroundColor: C.surface }]} onPress={() => {}}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName}>{settings.userName || 'Mission Tracker'}</Text>
+            <Text style={[styles.profileName, { color: C.text }]}>
+              {settings.userName || 'Mission Tracker'}
+            </Text>
             {trackingSince ? (
-              <Text style={styles.profileSince}>{t.settings.trackingSince(trackingSince)}</Text>
+              <Text style={[styles.profileSince, { color: C.textSecondary }]}>
+                {t.settings.trackingSince(trackingSince)}
+              </Text>
             ) : null}
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color="#CCC" />
+          <MaterialCommunityIcons name="chevron-right" size={20} color={C.isDark ? '#555' : '#CCC'} />
         </Pressable>
 
         {/* ── Preferences ── */}
-        <Text style={styles.sectionTitle}>{t.settings.preferencesSection}</Text>
-        <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+          {t.settings.preferencesSection}
+        </Text>
+        <View style={[styles.section, { backgroundColor: C.surface }]}>
           <SettingsRow
+            {...rowProps}
             icon="🔔"
             iconBg="#FFF0E8"
             label={t.settings.reminders}
@@ -117,6 +140,7 @@ export default function SettingsScreen() {
             right={<Switch value={false} onValueChange={() => {}} color={COLORS.primary} />}
           />
           <SettingsRow
+            {...rowProps}
             icon="🎨"
             iconBg="#F0EEFF"
             label={t.settings.appearance}
@@ -137,6 +161,7 @@ export default function SettingsScreen() {
             }
           />
           <SettingsRow
+            {...rowProps}
             icon="📅"
             iconBg="#E8F4FE"
             label={t.settings.weekStartsOn}
@@ -147,9 +172,12 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Goals ── */}
-        <Text style={styles.sectionTitle}>{t.settings.goalsSection}</Text>
-        <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+          {t.settings.goalsSection}
+        </Text>
+        <View style={[styles.section, { backgroundColor: C.surface }]}>
           <SettingsRow
+            {...rowProps}
             icon="🔥"
             iconBg="#FFF0E8"
             label={t.settings.streakGoal}
@@ -157,6 +185,7 @@ export default function SettingsScreen() {
             onPress={() => {}}
           />
           <SettingsRow
+            {...rowProps}
             icon="🎯"
             iconBg="#FFE8F4"
             label={t.settings.dailyTarget}
@@ -167,11 +196,14 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── Data ── */}
-        <Text style={styles.sectionTitle}>{t.settings.dataSection}</Text>
-        <View style={styles.section}>
-          <SettingsRow icon="📤" iconBg="#E8F7EB" label={t.settings.exportData} onPress={() => {}} />
-          <SettingsRow icon="📥" iconBg="#E8F4FE" label={t.settings.importData} onPress={() => {}} />
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+          {t.settings.dataSection}
+        </Text>
+        <View style={[styles.section, { backgroundColor: C.surface }]}>
+          <SettingsRow {...rowProps} icon="📤" iconBg="#E8F7EB" label={t.settings.exportData} onPress={() => {}} />
+          <SettingsRow {...rowProps} icon="📥" iconBg="#E8F4FE" label={t.settings.importData} onPress={() => {}} />
           <SettingsRow
+            {...rowProps}
             icon="🗑️"
             iconBg="#FFE8E8"
             label={t.settings.resetData}
@@ -181,9 +213,10 @@ export default function SettingsScreen() {
         </View>
 
         {/* ── About ── */}
-        <Text style={styles.sectionTitle}>{t.settings.about}</Text>
-        <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>
+        <View style={[styles.section, { backgroundColor: C.surface }]}>
           <SettingsRow
+            {...rowProps}
             icon="ℹ️"
             iconBg="#F0F2F5"
             label={t.settings.version}
@@ -192,25 +225,24 @@ export default function SettingsScreen() {
             isLast
           />
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+  safe: { flex: 1 },
   scroll: { padding: 20, paddingBottom: TAB_BAR_SPACE + 20 },
   pageTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: COLORS.text,
     marginBottom: 20,
     letterSpacing: -0.5,
   },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -230,18 +262,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  profileName: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  profileSince: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  profileName: { fontSize: 16, fontWeight: '700' },
+  profileSince: { fontSize: 12, marginTop: 2 },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.textTertiary,
     letterSpacing: 0.8,
     marginBottom: 8,
     marginLeft: 4,
   },
   section: {
-    backgroundColor: COLORS.surface,
     borderRadius: 16,
     marginBottom: 24,
     overflow: 'hidden',
@@ -260,9 +290,7 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
   },
-  rowPressed: { backgroundColor: '#F8F8F8' },
   rowIcon: {
     width: 36,
     height: 36,
@@ -272,6 +300,6 @@ const styles = StyleSheet.create({
   },
   rowIconEmoji: { fontSize: 18 },
   rowLabel: { flex: 1 },
-  rowText: { fontSize: 15, fontWeight: '500', color: COLORS.text },
-  rowValue: { fontSize: 13, color: COLORS.textSecondary, marginTop: 1 },
+  rowText:  { fontSize: 15, fontWeight: '500' },
+  rowValue: { fontSize: 13, marginTop: 1 },
 });
