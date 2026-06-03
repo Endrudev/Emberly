@@ -158,13 +158,17 @@ export default function HomeScreen() {
         *  overflow:hidden clips the taller circle card once height < CIRCLE_H.
         ─────────────────────────────────────────────────────────────────────── */}
       {weekProgress.plannedCount > 0 && (
-        <Animated.View style={[styles.headerZone, { height: headerH }]}>
+        // headerZone is always green — both child cards are transparent.
+        // This prevents the white flash that occurs when two semi-transparent
+        // coloured layers are composited on top of the page background.
+        <Animated.View style={[
+          styles.headerZone,
+          { height: headerH, backgroundColor: cardBg },
+          isDark && { elevation: 0, shadowOpacity: 0 },
+        ]}>
 
           {/* ── State A: big circle progress card ── */}
-          <Animated.View style={[
-            styles.card, styles.circleCard,
-            { backgroundColor: cardBg, opacity: circleOpacity },
-          ]}>
+          <Animated.View style={[styles.card, styles.circleCard, { opacity: circleOpacity }]}>
             <CircularProgress
               size={56}
               strokeWidth={6}
@@ -185,19 +189,20 @@ export default function HomeScreen() {
           </Animated.View>
 
           {/* ── State B: compact bar ── */}
-          <Animated.View style={[
-            styles.card, styles.barCard,
-            { backgroundColor: cardBg, opacity: barOpacity },
-          ]}>
+          <Animated.View style={[styles.card, styles.barCard, { opacity: barOpacity }]}>
             <View style={styles.barHeader}>
               <Text style={styles.heroLabel}>{t.home.thisWeekLabel}</Text>
-              <Text style={styles.barCount}>
-                {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
-                {'  '}
+              {/* Sibling Texts — avoids nested-Text rendering quirks in RN */}
+              <View style={styles.barRight}>
+                <Text style={styles.barCount}>
+                  {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
+                </Text>
                 <Text style={styles.barPct}>{progressPct}%</Text>
-              </Text>
+              </View>
             </View>
             <View style={styles.progressTrack}>
+              {/* No borderRadius on fill — at 1–4% width the rounded ends overlap
+                  and the fill disappears. Parent overflow:hidden provides the clip. */}
               <View style={[styles.progressFill, { width: `${progressPct}%` as `${number}%` }]} />
             </View>
           </Animated.View>
@@ -301,24 +306,26 @@ const styles = StyleSheet.create({
   },
 
   // ── Animated header zone ───────────────────────────────────────────────────
+  // This View owns the green background + shadow so child cards can be
+  // transparent — eliminating the white flash during the crossfade.
   headerZone: {
     marginHorizontal: 16,
     marginBottom: 8,
-    overflow: 'hidden',
-  },
-
-  // Base card — shared by both states
-  card: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.22,
     shadowRadius: 8,
     elevation: 6,
+  },
+
+  // Base card — no background/shadow, those are on headerZone
+  card: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
 
   // State A: circle layout (row)
@@ -370,6 +377,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  barRight: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
   barCount: {
     fontSize: 14,
     fontFamily: FONTS.extraBold,
@@ -390,7 +402,9 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 3,
+    // No borderRadius — at 1–4 % the rounded ends overlap and the fill
+    // visually disappears. The parent's overflow:hidden + borderRadius
+    // already clips the left edge cleanly.
   },
 
   // ── ScrollView content ──────────────────────────────────────────────────────
