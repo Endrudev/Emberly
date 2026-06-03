@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -7,11 +7,22 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAppStore } from '@/store/useAppStore';
 import { ActivityRow } from '@/ui/components/ActivityRow';
+import { CircularProgress } from '@/ui/components/CircularProgress';
 import { TAB_BAR_SPACE } from './_layout';
 import { parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak } from '@/domain/streaks';
 import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
+
+// ── Header height constants (dp) ─────────────────────────────────────────────
+// Circle card: paddingVertical 15×2 + content ~62 ≈ 92, round up
+const CIRCLE_H = 96;
+// Bar card: paddingVertical 12×2 + (label 13 + gap 10 + bar 6) ≈ 51, round up
+const BAR_H    = 56;
+// Over how many scroll-px the transition runs
+const TRANS    = 70;
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 type ViewMode = 'today' | 'weekly' | 'monthly' | 'overall';
 
@@ -28,6 +39,27 @@ export default function HomeScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
 
+  // ── Scroll-driven header animation ────────────────────────────────────────
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerH = scrollY.interpolate({
+    inputRange:  [0, TRANS],
+    outputRange: [CIRCLE_H, BAR_H],
+    extrapolate: 'clamp',
+  });
+  // Circle fades out in the first 70% of the transition
+  const circleOpacity = scrollY.interpolate({
+    inputRange:  [0, TRANS * 0.65],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  // Bar fades in from 30% to 100% of the transition
+  const barOpacity = scrollY.interpolate({
+    inputRange:  [TRANS * 0.3, TRANS],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   // ── Theme ─────────────────────────────────────────────────────────────────
   const paperTheme = useTheme();
   const isDark = paperTheme.dark;
@@ -36,6 +68,7 @@ export default function HomeScreen() {
   const textPrimary = isDark ? '#F2F2F7' : '#1A1A1A';
   const textMuted   = isDark ? '#8E8E93' : '#999999';
   const textSec     = isDark ? '#ABABAB' : '#666666';
+  const cardBg      = isDark ? 'rgba(45,181,74,0.22)' : COLORS.primary;
 
   // ── Store ─────────────────────────────────────────────────────────────────
   const activities       = useAppStore((s) => s.activities);
@@ -119,28 +152,66 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* ── Sticky progress card — always visible, outside ScrollView ── */}
-      {weekProgress.plannedCount > 0 ? (
-        <View style={[
-          styles.stickyCard,
-          isDark && { shadowOpacity: 0, elevation: 0, backgroundColor: 'rgba(45,181,74,0.22)' },
-        ]}>
-          <View style={styles.stickyHeader}>
-            <Text style={styles.stickyLabel}>{t.home.thisWeekLabel}</Text>
-            <Text style={styles.stickyCount}>
-              {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
-              {'  '}
-              <Text style={styles.stickyPct}>{progressPct}%</Text>
-            </Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressPct}%` as `${number}%` }]} />
-          </View>
-        </View>
-      ) : null}
+      {/* ── Animated header zone ────────────────────────────────────────────────
+        *  Both cards are position:absolute inside this Animated.View.
+        *  Height shrinks from CIRCLE_H → BAR_H as the user scrolls down.
+        *  overflow:hidden clips the taller circle card once height < CIRCLE_H.
+        ─────────────────────────────────────────────────────────────────────── */}
+      {weekProgress.plannedCount > 0 && (
+        <Animated.View style={[styles.headerZone, { height: headerH }]}>
+
+          {/* ── State A: big circle progress card ── */}
+          <Animated.View style={[
+            styles.card, styles.circleCard,
+            { backgroundColor: cardBg, opacity: circleOpacity },
+          ]}>
+            <CircularProgress
+              size={56}
+              strokeWidth={6}
+              progress={progressRatio}
+              color="#FFFFFF"
+              trackColor="rgba(255,255,255,0.30)"
+            >
+              <Text style={styles.circlePct}>{progressPct}%</Text>
+            </CircularProgress>
+
+            <View style={styles.circleText}>
+              <Text style={styles.heroLabel}>{t.home.thisWeekLabel}</Text>
+              <Text style={styles.heroCount}>
+                {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
+              </Text>
+              <Text style={styles.heroMeta}>{t.home.completedLabel}</Text>
+            </View>
+          </Animated.View>
+
+          {/* ── State B: compact bar ── */}
+          <Animated.View style={[
+            styles.card, styles.barCard,
+            { backgroundColor: cardBg, opacity: barOpacity },
+          ]}>
+            <View style={styles.barHeader}>
+              <Text style={styles.heroLabel}>{t.home.thisWeekLabel}</Text>
+              <Text style={styles.barCount}>
+                {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
+                {'  '}
+                <Text style={styles.barPct}>{progressPct}%</Text>
+              </Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progressPct}%` as `${number}%` }]} />
+            </View>
+          </Animated.View>
+
+        </Animated.View>
+      )}
 
       {/* ── Scrollable activities ── */}
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+        scrollEventThrottle={16}
         style={{ flex: 1, backgroundColor: BG }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
@@ -179,7 +250,7 @@ export default function HomeScreen() {
             <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
           </View>
         ) : null}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* ── FAB ── */}
       <Pressable
@@ -229,40 +300,83 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bold,
   },
 
-  // ── Sticky progress card ───────────────────────────────────────────────────
-  stickyCard: {
-    backgroundColor: COLORS.primary,
+  // ── Animated header zone ───────────────────────────────────────────────────
+  headerZone: {
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+
+  // Base card — shared by both states
+  card: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 10,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.22,
     shadowRadius: 8,
     elevation: 6,
   },
-  stickyHeader: {
+
+  // State A: circle layout (row)
+  circleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    gap: 16,
   },
-  stickyLabel: {
+  circleText: { flex: 1 },
+  circlePct: {
+    fontSize: 15,
+    fontFamily: FONTS.extraBold,
+    color: '#FFFFFF',
+    letterSpacing: -0.30,
+  },
+  heroLabel: {
     fontSize: 11,
     fontFamily: FONTS.bold,
     color: 'rgba(255,255,255,0.75)',
     letterSpacing: 0.88,
     textTransform: 'uppercase',
+    marginBottom: 2,
   },
-  stickyCount: {
+  heroCount: {
+    fontSize: 23,
+    fontFamily: FONTS.extraBold,
+    color: '#FFFFFF',
+    letterSpacing: -0.46,
+    lineHeight: 27,
+  },
+  heroMeta: {
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+    color: 'rgba(255,255,255,0.68)',
+    marginTop: 2,
+  },
+
+  // State B: bar layout (column)
+  barCard: {
+    flexDirection: 'column',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  barHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  barCount: {
     fontSize: 14,
     fontFamily: FONTS.extraBold,
     color: '#FFFFFF',
     letterSpacing: -0.28,
   },
-  stickyPct: {
+  barPct: {
     fontSize: 12,
     fontFamily: FONTS.semiBold,
     color: 'rgba(255,255,255,0.70)',
@@ -313,16 +427,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.bold,
-    marginBottom: 8,
-  },
-  emptyBody: {
-    fontSize: 14,
-    fontFamily: FONTS.semiBold,
-    textAlign: 'center',
-  },
+  emptyTitle: { fontSize: 18, fontFamily: FONTS.bold, marginBottom: 8 },
+  emptyBody:  { fontSize: 14, fontFamily: FONTS.semiBold, textAlign: 'center' },
 
   // ── FAB ──────────────────────────────────────────────────────────────────────
   fab: {
