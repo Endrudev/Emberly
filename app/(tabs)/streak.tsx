@@ -9,7 +9,7 @@ import { useAppTheme } from '@/ui/useAppTheme';
 import { CircularProgress } from '@/ui/components/CircularProgress';
 import { computeCurrentDailyStreak, toActivityForStreak } from '@/domain/streaks';
 import { todayIso as todayIsoFn } from '@/domain/week';
-import { COLORS } from '@/ui/theme';
+import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
 const STREAK_COLOR = '#FF8C42';
@@ -151,9 +151,9 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: TAB_BAR_SPACE + 20 },
   pageTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: FONTS.extraBold,
     marginBottom: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.56,
   },
   circleSection: {
     alignItems: 'center',
@@ -174,28 +174,29 @@ const styles = StyleSheet.create({
   flameEmoji: { fontSize: 28, marginBottom: 2 },
   streakCount: {
     fontSize: 42,
-    fontWeight: '900',
+    fontFamily: FONTS.extraBold,
     lineHeight: 48,
   },
   streakLabel: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: FONTS.semiBold,
   },
   badgeProgress: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     marginTop: 20,
     textAlign: 'center',
   },
   keepGoing: {
     fontSize: 13,
+    fontFamily: FONTS.semiBold,
     marginTop: 4,
     textAlign: 'center',
   },
   tiersTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    fontFamily: FONTS.extraBold,
+    letterSpacing: 0.96,
     marginBottom: 12,
   },
   tiersCard: {
@@ -225,10 +226,11 @@ const styles = StyleSheet.create({
   tierInfo: { flex: 1 },
   tierName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: FONTS.semiBold,
   },
   tierRange: {
     fontSize: 12,
+    fontFamily: FONTS.semiBold,
     marginTop: 2,
   },
   achievedBadge: {

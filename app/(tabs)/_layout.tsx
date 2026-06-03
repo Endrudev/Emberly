@@ -5,7 +5,7 @@ import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from 'react-native-paper';
-import { COLORS } from '@/ui/theme';
+import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 import {
   HomeTabIcon,
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
 
   tabLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontFamily: FONTS.bold,
     color: COLORS.primary,
     letterSpacing: -0.1,
   },

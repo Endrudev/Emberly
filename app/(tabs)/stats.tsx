@@ -14,7 +14,7 @@ import {
   toActivityForStreak,
 } from '@/domain/streaks';
 import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn } from '@/domain/week';
-import { COLORS } from '@/ui/theme';
+import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
 export default function StatsScreen() {
@@ -134,9 +134,9 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: TAB_BAR_SPACE + 20 },
   pageTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: FONTS.extraBold,
     marginBottom: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.56,
   },
   summaryCard: {
     flexDirection: 'row',
@@ -153,17 +153,18 @@ const styles = StyleSheet.create({
   },
   summaryPct: {
     fontSize: 16,
-    fontWeight: '800',
+    fontFamily: FONTS.extraBold,
     color: COLORS.primary,
   },
   summaryText: { flex: 1 },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     marginBottom: 4,
   },
   summaryDetail: {
     fontSize: 13,
+    fontFamily: FONTS.semiBold,
     lineHeight: 18,
   },
   card: {
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
   cardHeader: { marginBottom: 12 },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     marginBottom: 12,
   },
   habitRow: {
@@ -195,8 +196,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 5,
   },
-  habitName: { fontSize: 14, fontWeight: '600' },
-  habitPct:  { fontSize: 14, fontWeight: '700' },
+  habitName: { fontSize: 14, fontFamily: FONTS.semiBold },
+  habitPct:  { fontSize: 14, fontFamily: FONTS.bold },
   progressTrack: {
     height: 8,
     borderRadius: 4,

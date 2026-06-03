@@ -27,7 +27,7 @@ export function useAppTheme(): AppThemeColors {
   const { dark: isDark } = useTheme();
   return {
     isDark,
-    BG:             isDark ? '#1C1C1E' : '#F7F7F7',
+    BG:             isDark ? '#1C1C1E' : '#ECEDE8',
     surface:        isDark ? '#2C2C2E' : '#FFFFFF',
     text:           isDark ? '#F2F2F7' : '#1A1A1A',
     textSecondary:  isDark ? '#ABABAB' : '#666666',

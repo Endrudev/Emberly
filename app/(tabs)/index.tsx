@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -13,7 +13,7 @@ import { CircularProgress } from '@/ui/components/CircularProgress';
 import { TAB_BAR_SPACE } from './_layout';
 import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak } from '@/domain/streaks';
-import { COLORS } from '@/ui/theme';
+import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
 type ViewMode = 'today' | 'weekly' | 'monthly' | 'overall';
@@ -31,14 +31,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('weekly');
 
-  // ── Theme — dark mode adaptations ────────────────────────────────────────
+  // ── Theme ─────────────────────────────────────────────────────────────────
   const paperTheme = useTheme();
   const isDark = paperTheme.dark;
 
-  const BG          = isDark ? '#1C1C1E' : '#FAF8F5';
+  const BG          = isDark ? '#1C1C1E' : '#ECEDE8';
   const textPrimary = isDark ? '#F2F2F7' : '#1A1A1A';
-  const textMuted   = isDark ? '#8E8E93' : '#AAAAAA';
+  const textMuted   = isDark ? '#8E8E93' : '#999999';
   const textSec     = isDark ? '#ABABAB' : '#666666';
+  const groupCardBg = isDark ? '#2C2C2E' : '#FFFFFF';
 
   // ── Store ─────────────────────────────────────────────────────────────────
   const activities       = useAppStore((s) => s.activities);
@@ -107,11 +108,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: BG }]}>
 
-      {/* ── Page title (stejný styl jako ostatní taby) ── */}
+      {/* ── Page title ── */}
       <Text style={[styles.pageTitle, { color: textPrimary }]}>{t.tabs.habits}</Text>
 
-      {/* ── Period tabs ── */}
-      <View style={[styles.modeTabsWrap, { backgroundColor: BG }]}>
+      {/* ── Period filter tabs ── */}
+      <View style={styles.modeTabsWrap}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -138,105 +139,101 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      <FlatList
-        data={activities}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={[styles.listContent, { backgroundColor: BG }]}
-        style={{ backgroundColor: BG }}
+      {/* ── Main scrollable content ── */}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: BG }}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+      >
+        {/* ── Summary card — solid green ── */}
+        {weekProgress.plannedCount > 0 ? (
+          <View style={styles.summaryCard}>
+            <CircularProgress
+              size={56}
+              strokeWidth={6}
+              progress={progressRatio}
+              color="#FFFFFF"
+              trackColor="rgba(255,255,255,0.30)"
+            >
+              <Text style={styles.summaryPct}>{progressPct}%</Text>
+            </CircularProgress>
 
-        ListHeaderComponent={
+            <View style={styles.summaryText}>
+              <Text style={styles.summaryWeekLabel}>{t.home.thisWeekLabel}</Text>
+              <Text style={styles.summaryCount}>
+                {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
+              </Text>
+              <Text style={styles.summaryMeta}>
+                {t.home.completedLabel}
+                {isCurrentWeek && daysLeftInWeek > 0
+                  ? ` · 🔥 ${t.home.daysLeftShort(daysLeftInWeek)}`
+                  : ` · ${weekLabel}`}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* ── Week navigation ── */}
+        <View style={styles.weekNav}>
+          <Pressable
+            onPress={() => useAppStore.getState().goToPreviousWeek()}
+            hitSlop={10}
+            style={styles.navBtn}
+          >
+            <MaterialCommunityIcons name="chevron-left" size={18} color={textSec} />
+          </Pressable>
+          <Pressable onPress={() => useAppStore.getState().goToCurrentWeek()} hitSlop={10}>
+            <Text style={[styles.weekNavLabel, { color: textSec }]}>
+              {isCurrentWeek ? t.home.thisWeek : weekLabel}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => useAppStore.getState().goToNextWeek()}
+            hitSlop={10}
+            style={styles.navBtn}
+          >
+            <MaterialCommunityIcons name="chevron-right" size={18} color={textSec} />
+          </Pressable>
+        </View>
+
+        {/* ── Section header + grouped activity card ── */}
+        {activities.length > 0 ? (
           <>
-            {/* ── Summary card — solid green ── */}
-            {weekProgress.plannedCount > 0 ? (
-              <View style={styles.summaryCard}>
-                <CircularProgress
-                  size={76}
-                  strokeWidth={7}
-                  progress={progressRatio}
-                  color="#FFFFFF"
-                  trackColor="rgba(255,255,255,0.30)"
-                >
-                  <Text style={styles.summaryPct}>{progressPct}%</Text>
-                </CircularProgress>
-
-                <View style={styles.summaryText}>
-                  <Text style={styles.summaryWeekLabel}>{t.home.thisWeekLabel}</Text>
-                  <View style={styles.summaryCountRow}>
-                    <Text style={styles.summaryCount}>
-                      {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
-                    </Text>
-                    <Text style={styles.summaryDone}> {t.home.completedLabel}</Text>
-                  </View>
-                  <Text style={styles.summaryWeekInfo}>
-                    {isCurrentWeek && daysLeftInWeek > 0
-                      ? `🔥 ${t.home.daysLeftShort(daysLeftInWeek)}`
-                      : weekLabel}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-
-            {/* ── Week navigation ── */}
-            <View style={styles.weekNav}>
-              <Pressable
-                onPress={() => useAppStore.getState().goToPreviousWeek()}
-                hitSlop={10}
-                style={styles.navBtn}
-              >
-                <MaterialCommunityIcons name="chevron-left" size={18} color={textSec} />
-              </Pressable>
-              <Pressable onPress={() => useAppStore.getState().goToCurrentWeek()} hitSlop={10}>
-                <Text style={[styles.weekNavLabel, { color: textSec }]}>
-                  {isCurrentWeek ? t.home.thisWeek : weekLabel}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => useAppStore.getState().goToNextWeek()}
-                hitSlop={10}
-                style={styles.navBtn}
-              >
-                <MaterialCommunityIcons name="chevron-right" size={18} color={textSec} />
-              </Pressable>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: textMuted }]}>
+                {t.home.habitsSection}
+              </Text>
+              <Text style={[styles.sectionCount, { color: textMuted }]}>
+                {t.home.activeCount(activities.length)}
+              </Text>
             </View>
 
-            {/* ── "VAŠE NÁVYKY  X aktivní" ── */}
-            {activities.length > 0 ? (
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: textMuted }]}>
-                  {t.home.habitsSection}
-                </Text>
-                <Text style={[styles.sectionCount, { color: textMuted }]}>
-                  {t.home.activeCount(activities.length)}
-                </Text>
-              </View>
-            ) : null}
+            {/* Single grouped card containing all activity rows */}
+            <View style={[styles.groupCard, { backgroundColor: groupCardBg }]}>
+              {activities.map((item, index) => (
+                <ActivityRow
+                  key={item.id}
+                  activity={item}
+                  weekDates={currentWeekDates}
+                  todayIso={today}
+                  completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
+                  currentStreak={activityStreaks.get(item.id) ?? 0}
+                  onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
+                  onLongPress={() => router.push(`/activity/${item.id}`)}
+                  isDark={isDark}
+                  isLast={index === activities.length - 1}
+                />
+              ))}
+            </View>
           </>
-        }
-
-        ListEmptyComponent={
-          loaded ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🎯</Text>
-              <Text style={[styles.emptyTitle, { color: textPrimary }]}>{t.home.appTitle}</Text>
-              <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
-            </View>
-          ) : null
-        }
-
-        renderItem={({ item }) => (
-          <ActivityRow
-            activity={item}
-            weekDates={currentWeekDates}
-            todayIso={today}
-            completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
-            currentStreak={activityStreaks.get(item.id) ?? 0}
-            onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
-            onLongPress={() => router.push(`/activity/${item.id}`)}
-            isDark={isDark}
-          />
-        )}
-      />
+        ) : loaded ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🎯</Text>
+            <Text style={[styles.emptyTitle, { color: textPrimary }]}>{t.home.appTitle}</Text>
+            <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
+          </View>
+        ) : null}
+      </ScrollView>
 
       {/* ── FAB ── */}
       <Pressable
@@ -255,16 +252,17 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
 
+  // ── Page title ─────────────────────────────────────────────────────────────
   pageTitle: {
     fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontFamily: FONTS.extraBold,
+    letterSpacing: -0.56,     // -0.02em × 28
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 6,
   },
 
-  // ── Period tabs ──────────────────────────────────────────────────────────────
+  // ── Period filter tabs ──────────────────────────────────────────────────────
   modeTabsWrap: { paddingBottom: 8 },
   modeTabsInner: {
     paddingHorizontal: 16,
@@ -277,13 +275,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   modeTabActive: { backgroundColor: COLORS.primaryLight },
-  modeTabLabel: { fontSize: 14, fontWeight: '500' },
-  modeTabLabelActive: { fontWeight: '700' },
+  modeTabLabel: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,   // 600 neaktivní
+  },
+  modeTabLabelActive: {
+    fontFamily: FONTS.bold,       // 700 aktivní
+  },
 
-  // ── FlatList ─────────────────────────────────────────────────────────────────
+  // ── FlatList content ────────────────────────────────────────────────────────
   listContent: {
-    paddingBottom: TAB_BAR_SPACE + 70,
     paddingTop: 4,
+    paddingBottom: TAB_BAR_SPACE + 70,
   },
 
   // ── Summary card ─────────────────────────────────────────────────────────────
@@ -294,9 +297,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 4,
-    borderRadius: 20,
-    padding: 20,
-    gap: 20,
+    borderRadius: 22,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    gap: 16,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.30,
@@ -304,40 +308,35 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   summaryPct: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 15,
+    fontFamily: FONTS.extraBold,
     color: '#FFFFFF',
+    letterSpacing: -0.30,         // -0.02em × 15
   },
   summaryText: { flex: 1 },
   summaryWeekLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     color: 'rgba(255,255,255,0.75)',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  summaryCountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    letterSpacing: 0.88,          // 0.08em × 11
+    textTransform: 'uppercase',
+    marginBottom: 3,
   },
   summaryCount: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 23,
+    fontFamily: FONTS.extraBold,
     color: '#FFFFFF',
-    letterSpacing: -0.5,
+    letterSpacing: -0.46,         // -0.02em × 23
+    lineHeight: 27,
   },
-  summaryDone: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.90)',
-  },
-  summaryWeekInfo: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
+  summaryMeta: {
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+    color: 'rgba(255,255,255,0.70)',
+    marginTop: 2,
   },
 
-  // ── Week nav ─────────────────────────────────────────────────────────────────
+  // ── Week navigation ─────────────────────────────────────────────────────────
   weekNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,7 +344,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
   },
-  weekNavLabel: { fontSize: 13, fontWeight: '500' },
+  weekNavLabel: {
+    fontSize: 13,
+    fontFamily: FONTS.semiBold,
+  },
   navBtn: { padding: 4 },
 
   // ── Section header ────────────────────────────────────────────────────────────
@@ -353,16 +355,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 4,
+    paddingHorizontal: 22,
+    paddingTop: 6,
     paddingBottom: 8,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
+    fontSize: 12,
+    fontFamily: FONTS.extraBold,
+    letterSpacing: 0.96,          // 0.08em × 12
+    textTransform: 'uppercase',
   },
-  sectionCount: { fontSize: 12, fontWeight: '500' },
+  sectionCount: {
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+  },
+
+  // ── Grouped activity card ──────────────────────────────────────────────────
+  groupCard: {
+    borderRadius: 22,
+    marginHorizontal: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  },
 
   // ── Empty state ──────────────────────────────────────────────────────────────
   empty: {
@@ -372,8 +390,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  emptyBody: { fontSize: 14, textAlign: 'center' },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.bold,
+    marginBottom: 8,
+  },
+  emptyBody: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+  },
 
   // ── FAB ──────────────────────────────────────────────────────────────────────
   fab: {

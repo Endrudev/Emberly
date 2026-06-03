@@ -152,23 +152,55 @@ Babel plugin `react-native-reanimated/plugin` interně dělá `require('react-na
 `app/onboarding.tsx` se zobrazí při prvním spuštění. Stav uložen v `useSettingsStore`
 (Zustand persist → AsyncStorage). Výběr aktivit v onboardingu vytvoří seed aktivity v DB.
 
-### Design systém — Home screen (R2, "Habit Radar" mockup)
-Domovská obrazovka (`app/(tabs)/index.tsx`) byla přepracována podle designového mockupu:
+### Typografie — DM Sans (R3)
+Font: **DM Sans** (`@expo-google-fonts/dm-sans`), načítán v `app/_layout.tsx` přes `useFonts`.
+`FONTS` export v `src/ui/theme.ts`:
+```typescript
+export const FONTS = {
+  semiBold:  'DMSans_600SemiBold',   // weight 600
+  bold:      'DMSans_700Bold',       // weight 700
+  extraBold: 'DMSans_800ExtraBold',  // weight 800
+} as const;
+```
+Paper theme používá `configureFonts({ config: { fontFamily: FONTS.semiBold } as any })` jako základ.
+
+**Typografická tabulka (home screen):**
+| Prvek | Family | Size | LetterSpacing |
+|---|---|---|---|
+| Page title | extraBold | 28 | -0.56 |
+| Hero label (TENTO TÝDEN) | bold | 11 | +0.88 (uppercase) |
+| Hero číslo 24/28 | extraBold | 23 | -0.46 |
+| Hero % v kroužku | extraBold | 15 | -0.30 |
+| Section label (VAŠE NÁVYKY) | extraBold | 12 | +0.96 (uppercase) |
+| Název návyku | bold | 16.5 | -0.165 |
+| Streak text | semiBold | 12.5 | — |
+| Freq pill | semiBold | 11.5 | — |
+| Aktivní tab | bold | 14 | — |
+| Neaktivní tab | semiBold | 14 | — |
+| Den v týdnu | semiBold/bold | 10.5 | — |
+
+### Design systém — Home screen (R2/R3)
+Domovská obrazovka (`app/(tabs)/index.tsx`) — refaktorováno na ScrollView (z FlatList):
 
 **Vizuální tokeny:**
-- Pozadí obrazovky: `#FAF8F5` (teplá krémová, ne šedá `#F7F7F7`)
-- Header: zelený hamburger (`COLORS.primary`) + "Habit **Radar**" (tmavá+zelená dual-color) + ☀️ v `#FFF3D4` kroužku
-- Tab filtry: Today / Weekly / Monthly / Overall (anglicky v design tokenech)
+- Pozadí obrazovky: `#ECEDE8` (teplá šedozelená)
+- Tab filtry: Today / Weekly / Monthly / Overall
 - Summary karta: **plná zelená** (`COLORS.primary`), bílý SVG kroužek (progress), veškerý text bílý
-- Sekce header: "VAŠE NÁVYKY" vlevo + "X aktivní" vpravo (malá šedá písmena, letterSpacing)
+- Sekce header: "VAŠE NÁVYKY" vlevo + "X aktivní" vpravo
 
-**ActivityRow:**
-- Karta: bílá (`#FFFFFF`), `borderRadius: 16`, subtle shadow (`elevation: 2`)
-- Ikona aktivity: **čtvercová** (`50×50`, `borderRadius: 14`), solid barva aktivity (ne pastel)
-- Layout: `[ikona] | [název\n🔥 streak] | [Everyday pill]`
-- Tag: `#F0F0F0` pozadí, `borderRadius: 20`, šedý text
+**Summary karta:**
+- `borderRadius: 22`, `paddingVertical: 15`, `paddingHorizontal: 18`, `gap: 16`
+- Kroužek `size: 56`, `strokeWidth: 6`
 
-**DayCheckbox:** kruhy zvětšeny z 30 → **34px**
+**ActivityRow (R3 — grouped card):**
+- Aktivity jsou v **jedné bílé kartě** (`borderRadius: 22`, shadow `elevation: 2`)
+- `ActivityRow` nemá vlastní card — je transparentní row uvnitř `groupCard`
+- Odděleny hairline separátorem `rgba(0,0,0,0.06)` (tmavý: `rgba(255,255,255,0.06)`)
+- Badge: **42×42**, `borderRadius: 13`, solid barva aktivity
+- Row padding: `paddingVertical: 14`, `paddingHorizontal: 16`
+- Prop `isLast?: boolean` — poslední řádek bez separátoru
+
+**DayCheckbox:** kruhy **24px** (z 34px), label 10.5px
 
 **Tab bar (floating pill):**
 - `TAB_PILL_HEIGHT = 80`, `TAB_BAR_SPACE = 100`
@@ -199,6 +231,7 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 [x] 8.  Onboarding (3-krokový flow, výběr aktivit, AsyncStorage persistence)
 [x] R.  Redesign UI (nový design systém, 4 taby, pastelové karty, streak tier systém)
 [x] R2. Home screen redesign (Habit Radar mockup) — viz sekce "Design systém" níže
+[x] R3. DM Sans font + typography tokens + grouped activity card + #ECEDE8 BG
 [ ] 9.  Persistentní notifikace (Android)
 [ ] 10. Export/Import JSON
 [ ] 11. Nastavení (funkční — theme, week start, streak goal)

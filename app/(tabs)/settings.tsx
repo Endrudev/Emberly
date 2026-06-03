@@ -10,7 +10,7 @@ import { cs as dateFnsCs } from 'date-fns/locale';
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useAppTheme } from '@/ui/useAppTheme';
-import { COLORS } from '@/ui/theme';
+import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
 
 // ─── Reusable settings row ────────────────────────────────────────────────────
@@ -236,9 +236,9 @@ const styles = StyleSheet.create({
   scroll: { padding: 20, paddingBottom: TAB_BAR_SPACE + 20 },
   pageTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: FONTS.extraBold,
     marginBottom: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.56,
   },
   profileCard: {
     flexDirection: 'row',
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  profileName: { fontSize: 16, fontWeight: '700' },
-  profileSince: { fontSize: 12, marginTop: 2 },
+  profileName: { fontSize: 16, fontFamily: FONTS.bold },
+  profileSince: { fontSize: 12, fontFamily: FONTS.semiBold, marginTop: 2 },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    fontFamily: FONTS.extraBold,
+    letterSpacing: 0.96,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -300,6 +300,6 @@ const styles = StyleSheet.create({
   },
   rowIconEmoji: { fontSize: 18 },
   rowLabel: { flex: 1 },
-  rowText:  { fontSize: 15, fontWeight: '500' },
-  rowValue: { fontSize: 13, marginTop: 1 },
+  rowText:  { fontSize: 15, fontFamily: FONTS.semiBold },
+  rowValue: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: 1 },
 });

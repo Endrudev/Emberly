@@ -1,10 +1,17 @@
-import { MD3DarkTheme, MD3LightTheme, type MD3Theme } from 'react-native-paper';
+import { configureFonts, MD3DarkTheme, MD3LightTheme, type MD3Theme } from 'react-native-paper';
+
+// ── Font families (loaded via @expo-google-fonts/dm-sans) ───────────────────
+export const FONTS = {
+  semiBold:  'DMSans_600SemiBold',
+  bold:      'DMSans_700Bold',
+  extraBold: 'DMSans_800ExtraBold',
+} as const;
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 export const COLORS = {
   primary: '#2DB54A',
   primaryLight: '#E8F7EB',
-  background: '#F7F7F7',
+  background: '#ECEDE8',
   surface: '#FFFFFF',
   text: '#1A1A1A',
   textSecondary: '#666666',
@@ -15,8 +22,13 @@ export const COLORS = {
   orangeLight: '#FFF0E8',
 } as const;
 
+// Base font config — sets DM Sans SemiBold as default for all Paper Text variants
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const paperFontConfig = { fontFamily: FONTS.semiBold } as any;
+
 export const lightTheme: MD3Theme = {
   ...MD3LightTheme,
+  fonts: configureFonts({ config: paperFontConfig }),
   colors: {
     ...MD3LightTheme.colors,
     primary: COLORS.primary,
@@ -30,6 +42,7 @@ export const lightTheme: MD3Theme = {
 
 export const darkTheme: MD3Theme = {
   ...MD3DarkTheme,
+  fonts: configureFonts({ config: paperFontConfig }),
   colors: {
     ...MD3DarkTheme.colors,
     primary: '#4ECC66',

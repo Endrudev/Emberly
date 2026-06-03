@@ -5,6 +5,12 @@ import { ActivityIndicator, PaperProvider, Text } from 'react-native-paper';
 import { StyleSheet, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+  DMSans_800ExtraBold,
+} from '@expo-google-fonts/dm-sans';
 
 import { useDbInit } from '@/db/useDbInit';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -16,11 +22,17 @@ export default function RootLayout() {
   const { ready, error } = useDbInit();
   const router = useRouter();
 
+  const [fontsLoaded] = useFonts({
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    DMSans_800ExtraBold,
+  });
+
   const resolvedScheme =
     settings.theme === 'system' ? scheme : settings.theme === 'dark' ? 'dark' : 'light';
   const theme = resolvedScheme === 'dark' ? darkTheme : lightTheme;
 
-  const isLoading = !settings._hasHydrated || !ready;
+  const isLoading = !settings._hasHydrated || !ready || !fontsLoaded;
 
   useEffect(() => {
     if (isLoading || error) return;

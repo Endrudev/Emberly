@@ -13,8 +13,9 @@ interface IconProps {
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 export function HomeTabIcon({ color, size = 24 }: IconProps) {
+  const scaledSize = size * 0.9;
   return (
-    <Svg width={size} height={size} viewBox="0 0 45 45">
+    <Svg width={scaledSize} height={scaledSize} viewBox="0 0 45 45">
       <Path
         fill={color}
         d="M17.1277 38.95V33.2168C17.1277 31.7533 18.3228 30.5668 19.7971 30.5668H25.1861C25.8941 30.5668 26.5731 30.846 27.0737 31.343C27.5743 31.8399 27.8555 32.514 27.8555 33.2168V38.95C27.851 39.5585 28.0914 40.1435 28.5232 40.5753C28.955 41.0071 29.5426 41.25 30.1555 41.25H33.8322C35.5493 41.2544 37.1977 40.5803 38.4134 39.3765C39.6292 38.1727 40.3125 36.5381 40.3125 34.8334V18.5004C40.3125 17.1234 39.6976 15.8172 38.6337 14.9338L26.1263 5.01725C23.9506 3.27855 20.8333 3.33469 18.7226 5.15059L6.50065 14.9338C5.38639 15.7912 4.72041 17.1012 4.6875 18.5004V34.8168C4.6875 38.3697 7.58884 41.25 11.1678 41.25H14.7605C16.0335 41.25 17.0681 40.2304 17.0773 38.9667L17.1277 38.95Z"
@@ -26,8 +27,9 @@ export function HomeTabIcon({ color, size = 24 }: IconProps) {
 // ─── Stats / Bar chart ────────────────────────────────────────────────────────
 // viewBox 0 0 45 43 (slightly shorter)
 export function StatsTabIcon({ color, size = 24 }: IconProps) {
+  const scaledSize = size * 0.82;
   return (
-    <Svg width={size} height={size} viewBox="0 0 45 43">
+    <Svg width={scaledSize} height={scaledSize} viewBox="0 0 45 43">
       <Path
         fill={color}
         fillRule="evenodd"

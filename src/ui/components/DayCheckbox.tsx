@@ -4,6 +4,7 @@ import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { t } from '@/i18n/cs';
+import { FONTS } from '@/ui/theme';
 import type { DayOfWeek } from '@/domain/types';
 
 interface DayCheckboxProps {
@@ -35,11 +36,10 @@ function DayCheckboxImpl({
   const boxBg = completed ? color : '#FFFFFF';
   const boxBorder = completed ? color : scheduled ? color : '#DDDDDD';
   const boxBorderWidth = completed ? 0 : scheduled ? 2 : 1;
-  const checkColor = '#FFFFFF';
 
   // Day label style
   const labelColor = isToday ? color : '#999999';
-  const labelBg = isToday ? `${color}18` : 'transparent'; // very light tint for today
+  const labelBg = isToday ? `${color}18` : 'transparent';
 
   return (
     <View style={styles.container}>
@@ -50,7 +50,7 @@ function DayCheckboxImpl({
             styles.label,
             {
               color: labelColor,
-              fontWeight: isToday ? '700' : '500',
+              fontFamily: isToday ? FONTS.bold : FONTS.semiBold,
             },
           ]}
         >
@@ -76,7 +76,7 @@ function DayCheckboxImpl({
         ]}
       >
         {completed ? (
-          <MaterialCommunityIcons name="check" size={15} color={checkColor} />
+          <MaterialCommunityIcons name="check" size={11} color="#FFFFFF" />
         ) : null}
       </Pressable>
     </View>
@@ -89,21 +89,21 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     flex: 1,
-    gap: 5,
+    gap: 6,
   },
   labelWrap: {
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 3,
     paddingVertical: 2,
   },
   label: {
-    fontSize: 10,
+    fontSize: 10.5,
     lineHeight: 14,
   },
   circle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

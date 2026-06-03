@@ -20,6 +20,7 @@
     "android:usb": "npm run adb:setup && expo start --localhost"
   },
   "dependencies": {
+    "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "date-fns": "^4.1.0",
