@@ -39,7 +39,6 @@ export default function HomeScreen() {
   const textPrimary = isDark ? '#F2F2F7' : '#1A1A1A';
   const textMuted   = isDark ? '#8E8E93' : '#999999';
   const textSec     = isDark ? '#ABABAB' : '#666666';
-  const groupCardBg = isDark ? '#2C2C2E' : '#FFFFFF';
 
   // ── Store ─────────────────────────────────────────────────────────────────
   const activities       = useAppStore((s) => s.activities);
@@ -196,7 +195,7 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* ── Section header + grouped activity card ── */}
+        {/* ── Section header + individual activity cards ── */}
         {activities.length > 0 ? (
           <>
             <View style={styles.sectionHeader}>
@@ -208,23 +207,19 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            {/* Single grouped card containing all activity rows */}
-            <View style={[styles.groupCard, { backgroundColor: groupCardBg }]}>
-              {activities.map((item, index) => (
-                <ActivityRow
-                  key={item.id}
-                  activity={item}
-                  weekDates={currentWeekDates}
-                  todayIso={today}
-                  completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
-                  currentStreak={activityStreaks.get(item.id) ?? 0}
-                  onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
-                  onLongPress={() => router.push(`/activity/${item.id}`)}
-                  isDark={isDark}
-                  isLast={index === activities.length - 1}
-                />
-              ))}
-            </View>
+            {activities.map((item) => (
+              <ActivityRow
+                key={item.id}
+                activity={item}
+                weekDates={currentWeekDates}
+                todayIso={today}
+                completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
+                currentStreak={activityStreaks.get(item.id) ?? 0}
+                onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
+                onLongPress={() => router.push(`/activity/${item.id}`)}
+                isDark={isDark}
+              />
+            ))}
           </>
         ) : loaded ? (
           <View style={styles.empty}>
@@ -368,18 +363,6 @@ const styles = StyleSheet.create({
   sectionCount: {
     fontSize: 12,
     fontFamily: FONTS.semiBold,
-  },
-
-  // ── Grouped activity card ──────────────────────────────────────────────────
-  groupCard: {
-    borderRadius: 22,
-    marginHorizontal: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
   },
 
   // ── Empty state ──────────────────────────────────────────────────────────────

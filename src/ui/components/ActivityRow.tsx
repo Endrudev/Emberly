@@ -16,10 +16,8 @@ interface ActivityRowProps {
   currentStreak?: number;
   onTogglePress: (dateIso: string) => void;
   onLongPress?: () => void;
-  /** Adapts text/separator colours to dark theme. */
+  /** Adapts card surface + text colours to dark theme. */
   isDark?: boolean;
-  /** When true, the bottom hairline separator is hidden. */
-  isLast?: boolean;
 }
 
 function ActivityRowImpl({
@@ -31,15 +29,14 @@ function ActivityRowImpl({
   onTogglePress,
   onLongPress,
   isDark = false,
-  isLast = false,
 }: ActivityRowProps) {
   const scheduledSet = useMemo(() => new Set(activity.scheduledDays), [activity.scheduledDays]);
 
   // Dynamic colour tokens
-  const nameColor    = isDark ? '#F2F2F7' : '#1A1A1A';
-  const tagBg        = isDark ? '#3A3A3C' : '#F0F0F0';
-  const tagColor     = isDark ? '#ABABAB' : '#888888';
-  const separatorBg  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const cardBg   = isDark ? '#2C2C2E' : '#FFFFFF';
+  const nameColor = isDark ? '#F2F2F7' : '#1A1A1A';
+  const tagBg    = isDark ? '#3A3A3C' : '#F0F0F0';
+  const tagColor = isDark ? '#ABABAB' : '#888888';
 
   // Schedule tag: "Everyday" or abbreviated days list
   const scheduleLabel = useMemo(() => {
@@ -48,79 +45,79 @@ function ActivityRowImpl({
   }, [activity.scheduledDays]);
 
   return (
-    <View>
-      <Pressable
-        onLongPress={onLongPress}
-        delayLongPress={400}
-        android_ripple={{ color: `${activity.color}18` }}
-        style={styles.row}
-        accessibilityRole="button"
-        accessibilityLabel={activity.name}
-      >
-        {/* ── Header row: icon | name+streak | tag ── */}
-        <View style={styles.headerRow}>
-          {/* Square badge with solid activity color */}
-          <View style={[styles.badge, { backgroundColor: activity.color }]}>
-            <Text style={styles.badgeEmoji}>{activity.emoji}</Text>
-          </View>
-
-          {/* Name + streak */}
-          <View style={styles.nameBlock}>
-            <Text style={[styles.name, { color: nameColor }]} numberOfLines={1}>
-              {activity.name}
-            </Text>
-            {currentStreak > 0 ? (
-              <Text style={styles.streakText}>
-                🔥 {t.home.nDays(currentStreak)}
-              </Text>
-            ) : (
-              <Text style={styles.streakTextEmpty}> </Text>
-            )}
-          </View>
-
-          {/* Schedule tag pill */}
-          <View style={[styles.tagPill, { backgroundColor: tagBg }]}>
-            <Text style={[styles.tagText, { color: tagColor }]} numberOfLines={1}>
-              {scheduleLabel}
-            </Text>
-          </View>
+    <Pressable
+      onLongPress={onLongPress}
+      delayLongPress={400}
+      android_ripple={{ color: `${activity.color}18` }}
+      style={[styles.card, { backgroundColor: cardBg }]}
+      accessibilityRole="button"
+      accessibilityLabel={activity.name}
+    >
+      {/* ── Header row: badge | name+streak | tag ── */}
+      <View style={styles.headerRow}>
+        {/* Square badge with solid activity color */}
+        <View style={[styles.badge, { backgroundColor: activity.color }]}>
+          <Text style={styles.badgeEmoji}>{activity.emoji}</Text>
         </View>
 
-        {/* ── Day checkboxes ── */}
-        <View style={styles.daysRow}>
-          {ALL_DAYS.map((day: DayOfWeek) => {
-            const dateIso = weekDates[day];
-            if (!dateIso) return null;
-            return (
-              <DayCheckbox
-                key={day}
-                day={day}
-                color={activity.color}
-                completed={completedByDate.has(dateIso)}
-                scheduled={scheduledSet.has(day)}
-                isToday={dateIso === todayIso}
-                onPress={() => onTogglePress(dateIso)}
-              />
-            );
-          })}
+        {/* Name + streak */}
+        <View style={styles.nameBlock}>
+          <Text style={[styles.name, { color: nameColor }]} numberOfLines={1}>
+            {activity.name}
+          </Text>
+          {currentStreak > 0 ? (
+            <Text style={styles.streakText}>
+              🔥 {t.home.nDays(currentStreak)}
+            </Text>
+          ) : (
+            <Text style={styles.streakTextEmpty}> </Text>
+          )}
         </View>
-      </Pressable>
 
-      {/* Hairline separator — hidden for last row */}
-      {!isLast && (
-        <View style={[styles.separator, { backgroundColor: separatorBg }]} />
-      )}
-    </View>
+        {/* Schedule tag pill */}
+        <View style={[styles.tagPill, { backgroundColor: tagBg }]}>
+          <Text style={[styles.tagText, { color: tagColor }]} numberOfLines={1}>
+            {scheduleLabel}
+          </Text>
+        </View>
+      </View>
+
+      {/* ── Day checkboxes ── */}
+      <View style={styles.daysRow}>
+        {ALL_DAYS.map((day: DayOfWeek) => {
+          const dateIso = weekDates[day];
+          if (!dateIso) return null;
+          return (
+            <DayCheckbox
+              key={day}
+              day={day}
+              color={activity.color}
+              completed={completedByDate.has(dateIso)}
+              scheduled={scheduledSet.has(day)}
+              isToday={dateIso === todayIso}
+              onPress={() => onTogglePress(dateIso)}
+            />
+          );
+        })}
+      </View>
+    </Pressable>
   );
 }
 
 export const ActivityRow = memo(ActivityRowImpl);
 
 const styles = StyleSheet.create({
-  // Row — no card background; parent grouped card provides it
-  row: {
+  card: {
+    borderRadius: 22,
+    marginHorizontal: 16,
+    marginVertical: 5,
     paddingVertical: 14,
     paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   headerRow: {
@@ -180,9 +177,5 @@ const styles = StyleSheet.create({
   daysRow: {
     flexDirection: 'row',
     gap: 0,
-  },
-
-  separator: {
-    height: StyleSheet.hairlineWidth,
   },
 });
