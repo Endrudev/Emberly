@@ -55,20 +55,21 @@ export const darkTheme: MD3Theme = {
 };
 
 // ── Activity colour palette ─────────────────────────────────────────────────
-// Each entry: { accent: vivid hex, pastel: card-background tint }
+// Muted palette (S≈55-68 %, L≈48-58 %) — pleasant, non-garish badge colours.
+// Each entry: { accent: badge bg, pastel: light card-background tint }
 export const activityPalette = [
-  { accent: '#4AABF5', pastel: '#E8F4FE' }, // blue
-  { accent: '#FF8C42', pastel: '#FFF0E8' }, // orange
-  { accent: '#9B7FFF', pastel: '#F0EEFF' }, // purple
-  { accent: '#FF6B9D', pastel: '#FFE8F4' }, // pink
-  { accent: '#2DB54A', pastel: '#E8F7EB' }, // green
-  { accent: '#FFB800', pastel: '#FFF8E0' }, // yellow
-  { accent: '#FF5555', pastel: '#FFE8E8' }, // red
-  { accent: '#14B8A6', pastel: '#E0F7F5' }, // teal
-  { accent: '#F97316', pastel: '#FEF0E8' }, // deep orange
-  { accent: '#A855F7', pastel: '#F5EEFF' }, // violet
-  { accent: '#06B6D4', pastel: '#E0F5FA' }, // cyan
-  { accent: '#64748B', pastel: '#F0F2F5' }, // slate
+  { accent: '#4D8FC0', pastel: '#E5EFF7' }, // steel blue
+  { accent: '#D97038', pastel: '#FAF0E5' }, // terracotta orange
+  { accent: '#7862C8', pastel: '#ECEAF8' }, // dusty purple
+  { accent: '#C45878', pastel: '#F8EAF0' }, // muted rose
+  { accent: '#2DB54A', pastel: '#E8F7EB' }, // brand green
+  { accent: '#C89020', pastel: '#FAF2E0' }, // golden amber
+  { accent: '#C84848', pastel: '#F8E8E8' }, // soft red
+  { accent: '#2A9882', pastel: '#E0F4F0' }, // sage teal
+  { accent: '#CC6228', pastel: '#FAEDE5' }, // burnt sienna
+  { accent: '#7840C0', pastel: '#EEE8F8' }, // plum violet
+  { accent: '#1898AA', pastel: '#E0F2F6' }, // ocean cyan
+  { accent: '#6A7898', pastel: '#ECEEF4' }, // blue-slate
 ] as const;
 
 /** Backward-compat: flat list of accent colours (used in ActivityForm picker). */
@@ -77,12 +78,23 @@ export const activityColors = activityPalette.map((p) => p.accent) as string[];
 /** Map accent → pastel (includes legacy colours from before the redesign). */
 const PASTEL_MAP: Record<string, string> = {
   ...Object.fromEntries(activityPalette.map((p) => [p.accent, p.pastel])),
-  // legacy colours that may already exist in user DBs
+  // legacy v0.1 saturated palette (may exist in user DBs)
+  '#4AABF5': '#E8F4FE',
+  '#FF8C42': '#FFF0E8',
+  '#9B7FFF': '#F0EEFF',
+  '#FF6B9D': '#FFE8F4',
+  '#FFB800': '#FFF8E0',
+  '#FF5555': '#FFE8E8',
+  '#14B8A6': '#E0F7F5',
+  '#F97316': '#FEF0E8',
+  '#A855F7': '#F5EEFF',
+  '#06B6D4': '#E0F5FA',
+  '#64748B': '#F0F2F5',
+  // older legacy colours
   '#EF4444': '#FFE8E8',
   '#F59E0B': '#FFF8E8',
   '#FBBF24': '#FFFBE8',
   '#10B981': '#E8FBF4',
-  '#06B6D4': '#E0F8FC',
   '#3B82F6': '#EBF3FF',
   '#6366F1': '#EEEEFF',
   '#8B5CF6': '#F0EBFF',
