@@ -7,9 +7,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAppStore } from '@/store/useAppStore';
 import { ActivityRow } from '@/ui/components/ActivityRow';
+import { TodayActivityRow } from '@/ui/components/TodayActivityRow';
 import { CircularProgress } from '@/ui/components/CircularProgress';
 import { TAB_BAR_SPACE } from './_layout';
-import { parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
+import { dowOf, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak } from '@/domain/streaks';
 import { COLORS, FONTS } from '@/ui/theme';
 import { t } from '@/i18n/cs';
@@ -24,20 +25,18 @@ const TRANS    = 70;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ViewMode = 'today' | 'weekly' | 'monthly' | 'overall';
+type ViewMode = 'today' | 'weekly';
 
 const VIEW_MODES: { key: ViewMode; label: string }[] = [
-  { key: 'today',   label: t.home.viewToday   },
-  { key: 'weekly',  label: t.home.viewWeekly  },
-  { key: 'monthly', label: t.home.viewMonthly },
-  { key: 'overall', label: t.home.viewOverall },
+  { key: 'today',  label: t.home.viewToday  },
+  { key: 'weekly', label: t.home.viewWeekly },
 ];
 
 const EMPTY_SET: ReadonlySet<string> = new Set();
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>('weekly');
+  const [viewMode, setViewMode] = useState<ViewMode>('today');
 
   // ── Scroll-driven header animation ────────────────────────────────────────
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -118,6 +117,42 @@ export default function HomeScreen() {
     return map;
   }, [completions]);
 
+  // ── Today-mode data ──────────────────────────────────────────────────────
+  const todayDow = useMemo(() => dowOf(new Date()), []);
+
+  const todayActivities = useMemo(
+    () => activities.filter((a) => a.scheduledDays.includes(todayDow)),
+    [activities, todayDow],
+  );
+
+  const todayCompletedCount = useMemo(
+    () =>
+      todayActivities.reduce(
+        (n, a) => n + ((completionsByActivity.get(a.id)?.has(today) ?? false) ? 1 : 0),
+        0,
+      ),
+    [todayActivities, completionsByActivity, today],
+  );
+
+  const todayPlannedCount = todayActivities.length;
+  const todayRatio =
+    todayPlannedCount > 0 ? todayCompletedCount / todayPlannedCount : 0;
+  const todayPct = Math.round(todayRatio * 100);
+  const todayLeft = Math.max(0, todayPlannedCount - todayCompletedCount);
+
+  // ── Header data (mode-dependent) ──────────────────────────────────────────
+  const isToday = viewMode === 'today';
+  const headerVisible = isToday ? todayPlannedCount > 0 : weekProgress.plannedCount > 0;
+  const headerLabel  = isToday ? t.home.todayLabel : t.home.thisWeekLabel;
+  const headerCount  = isToday
+    ? t.home.completedCount(todayCompletedCount, todayPlannedCount)
+    : t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount);
+  const headerRatio  = isToday ? todayRatio : progressRatio;
+  const headerPct    = isToday ? todayPct   : progressPct;
+  const headerMeta   = isToday
+    ? (todayLeft > 0 ? `🔥 ${t.home.habitsLeftToday(todayLeft)}` : t.home.allDoneToday)
+    : t.home.completedLabel;
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: BG }]}>
 
@@ -157,7 +192,7 @@ export default function HomeScreen() {
         *  Height shrinks from CIRCLE_H → BAR_H as the user scrolls down.
         *  overflow:hidden clips the taller circle card once height < CIRCLE_H.
         ─────────────────────────────────────────────────────────────────────── */}
-      {weekProgress.plannedCount > 0 && (
+      {headerVisible && (
         // headerZone is always green — both child cards are transparent.
         // This prevents the white flash that occurs when two semi-transparent
         // coloured layers are composited on top of the page background.
@@ -172,38 +207,34 @@ export default function HomeScreen() {
             <CircularProgress
               size={56}
               strokeWidth={6}
-              progress={progressRatio}
+              progress={headerRatio}
               color="#FFFFFF"
               trackColor="rgba(255,255,255,0.30)"
             >
-              <Text style={styles.circlePct}>{progressPct}%</Text>
+              <Text style={styles.circlePct}>{headerPct}%</Text>
             </CircularProgress>
 
             <View style={styles.circleText}>
-              <Text style={styles.heroLabel}>{t.home.thisWeekLabel}</Text>
-              <Text style={styles.heroCount}>
-                {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
-              </Text>
-              <Text style={styles.heroMeta}>{t.home.completedLabel}</Text>
+              <Text style={styles.heroLabel}>{headerLabel}</Text>
+              <Text style={styles.heroCount}>{headerCount}</Text>
+              <Text style={styles.heroMeta}>{headerMeta}</Text>
             </View>
           </Animated.View>
 
           {/* ── State B: compact bar ── */}
           <Animated.View style={[styles.card, styles.barCard, { opacity: barOpacity }]}>
             <View style={styles.barHeader}>
-              <Text style={styles.heroLabel}>{t.home.thisWeekLabel}</Text>
+              <Text style={styles.heroLabel}>{headerLabel}</Text>
               {/* Sibling Texts — avoids nested-Text rendering quirks in RN */}
               <View style={styles.barRight}>
-                <Text style={styles.barCount}>
-                  {t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount)}
-                </Text>
-                <Text style={styles.barPct}>{progressPct}%</Text>
+                <Text style={styles.barCount}>{headerCount}</Text>
+                <Text style={styles.barPct}>{headerPct}%</Text>
               </View>
             </View>
             <View style={styles.progressTrack}>
               {/* No borderRadius on fill — at 1–4% width the rounded ends overlap
                   and the fill disappears. Parent overflow:hidden provides the clip. */}
-              <View style={[styles.progressFill, { width: `${progressPct}%` as `${number}%` }]} />
+              <View style={[styles.progressFill, { width: `${headerPct}%` as `${number}%` }]} />
             </View>
           </Animated.View>
 
@@ -229,24 +260,47 @@ export default function HomeScreen() {
                 {t.home.habitsSection}
               </Text>
               <Text style={[styles.sectionCount, { color: textMuted }]}>
-                {t.home.activeCount(activities.length)}
+                {t.home.activeCount(isToday ? todayPlannedCount : activities.length)}
               </Text>
             </View>
 
             {/* ── Individual activity cards ── */}
-            {activities.map((item) => (
-              <ActivityRow
-                key={item.id}
-                activity={item}
-                weekDates={currentWeekDates}
-                todayIso={today}
-                completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
-                currentStreak={activityStreaks.get(item.id) ?? 0}
-                onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
-                onLongPress={() => router.push(`/activity/${item.id}`)}
-                isDark={isDark}
-              />
-            ))}
+            {isToday ? (
+              todayActivities.length > 0 ? (
+                todayActivities.map((item) => (
+                  <TodayActivityRow
+                    key={item.id}
+                    activity={item}
+                    completed={completionsByActivity.get(item.id)?.has(today) ?? false}
+                    currentStreak={activityStreaks.get(item.id) ?? 0}
+                    onTogglePress={() => { void toggleCompletion(item.id, today); }}
+                    onLongPress={() => router.push(`/activity/${item.id}`)}
+                    isDark={isDark}
+                  />
+                ))
+              ) : (
+                <View style={styles.empty}>
+                  <Text style={styles.emptyEmoji}>🌤️</Text>
+                  <Text style={[styles.emptyBody, { color: textSec }]}>
+                    {t.home.noHabitsToday}
+                  </Text>
+                </View>
+              )
+            ) : (
+              activities.map((item) => (
+                <ActivityRow
+                  key={item.id}
+                  activity={item}
+                  weekDates={currentWeekDates}
+                  todayIso={today}
+                  completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
+                  currentStreak={activityStreaks.get(item.id) ?? 0}
+                  onTogglePress={(dateIso) => { void toggleCompletion(item.id, dateIso); }}
+                  onLongPress={() => router.push(`/activity/${item.id}`)}
+                  isDark={isDark}
+                />
+              ))
+            )}
           </>
         ) : loaded ? (
           <View style={styles.empty}>

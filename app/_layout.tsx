@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, PaperProvider, Text } from 'react-native-paper';
-import { StyleSheet, useColorScheme, View } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -47,23 +47,10 @@ export default function RootLayout() {
         <PaperProvider theme={theme}>
           <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
 
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen
-              name="activity/new"
-              options={{ presentation: 'modal', headerShown: true, title: 'Nová aktivita' }}
-            />
-            <Stack.Screen
-              name="activity/[id]"
-              options={{ presentation: 'modal', headerShown: true, title: 'Upravit aktivitu' }}
-            />
-          </Stack>
-
           {error ? (
             <View
               style={{
-                ...StyleSheet.absoluteFillObject,
+                flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: 24,
@@ -75,9 +62,13 @@ export default function RootLayout() {
               </Text>
             </View>
           ) : isLoading ? (
+            // Block screen mount until fonts + DB + persisted settings are ready.
+            // Mounting <Stack> early causes Home to lay out with fallback font
+            // metrics; cached dimensions then persist after fonts swap in,
+            // breaking spacing until a manual refresh.
             <View
               style={{
-                ...StyleSheet.absoluteFillObject,
+                flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.colors.background,
@@ -85,7 +76,20 @@ export default function RootLayout() {
             >
               <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
-          ) : null}
+          ) : (
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen
+                name="activity/new"
+                options={{ presentation: 'modal', headerShown: true, title: 'Nová aktivita' }}
+              />
+              <Stack.Screen
+                name="activity/[id]"
+                options={{ presentation: 'modal', headerShown: true, title: 'Upravit aktivitu' }}
+              />
+            </Stack>
+          )}
         </PaperProvider>
       </GestureHandlerRootView>
     </SafeAreaProvider>
