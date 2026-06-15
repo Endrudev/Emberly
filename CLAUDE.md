@@ -4,6 +4,29 @@
 Mobilní appka pro sledování týdenních aktivit a budování návyků.
 Primárně Android, cross-platform codebase (iOS path open, nevyžaduje eject).
 
+## Obsidian vault — dokumentace projektu
+Kompletní dokumentace projektu (produkt, architektura, design, provoz, myšlení) žije v Obsidian vaultu:
+**`C:\Users\ondra\Desktop\_obsidianProjects\Mission-Tracker\`**
+
+Hub note (rozcestník pro vše): `00-index.md`
+
+Struktura vaultu:
+- `product/` — vize, persony, business rules, glossary, user journeys
+- `architecture/` — tech stack, state management, navigace
+- `database/` — schema, migrace
+- `domain/` — typy, konvence, streak logika
+- `design/` — design systém, principy, design reference (screenshoty), component inventory
+- `screens/` — home, onboarding, activity form, stats, streak screen
+- `dev/` — dev setup, testing strategy, debugging playbook
+- `widgets/` — Android widget plán
+- `thinking/` — open questions, lessons learned, backlog (nápady)
+
+**Pravidla pro práci s vaultem:**
+- Vault je expandovaná forma dokumentace — CLAUDE.md zůstává SSOT pro technická pravidla
+- Při konfliktu mezi vaultem a CLAUDE.md vyhrává CLAUDE.md
+- Nové poznámky piš přes `Write` tool na absolutní cestu (MCP obsidian server má bug při zápisu do podsložek — node se zasekne)
+- Dodržuj konvence existujících poznámek: frontmatter `tags` + `last_updated`, sekce oddělené `---`, `## Viz také` s wikilinks na konci
+
 ## Jak spustit
 ```bash
 npm install --legacy-peer-deps
@@ -214,10 +237,21 @@ Domovská obrazovka (`app/(tabs)/index.tsx`) — refaktorováno na ScrollView (z
   - Každá přijímá `{ color: string; size: number }` — barva se přepíná centrálně v `_layout.tsx`
   - `MaterialCommunityIcons` již není potřeba pro tab bar
 
+### Android widget (react-native-android-widget)
+Home screen widget v `src/widget/` (MissionWidget.tsx layout, widgetData.ts DB agregátor, widgetTaskHandler.ts headless task). Běží jako **Headless JS** v app procesu → přímý SQLite přístup.
+- **Velikost: app.json + `android/.../xml/widgetprovider_missionwidget.xml` MUSÍ být v sync.** Prebuild generuje XML z app.json — úprava jen XML se po rebuildu vrátí. Aktuálně 4×3 (`targetCellWidth 4`, `targetCellHeight 3`).
+- **Horizontální scroll nejde** (RemoteViews) → návyky stránkované šipkami (`clickAction WIDGET_PAGE`, stránka přes `clickActionData`, stateless).
+- **Plynulé animace nejdou** (RemoteViews) — wow efekty patří do appky. Viz vault `widgets/widget-animations-research.md`.
+- **Rychlé ladění layoutu:** dev obrazovka `app/widget-preview.tsx` (`WidgetPreview` = pixel-identický náhled) + `adb screencap`, bez rebuildů. Rebuild jen při změně velikosti.
+- **Sekce potřebují `width: 'match_parent'`** — LinearLayout je jinak nechá wrap_content/vlevo.
+- Kompletní dokumentace: vault `widgets/android-widget-plan.md`.
+
 ### Firewall po Docker/Hyper-V instalaci
 Instalace Docker Desktop povoluje Hyper-V a resetuje Windows Firewall výjimky.
 Bez pravidla pro `node.exe` na portech 8081-8083 telefon nemůže stáhnout bundle.
 Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše).
+**Rychlá náhrada bez admin práv:** USB tunel `adb reverse tcp:8081 tcp:8081` + spustit app přes
+`missiontracker://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`.
 
 ## Stav implementace
 ```

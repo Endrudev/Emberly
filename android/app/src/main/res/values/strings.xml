@@ -1,0 +1,5 @@
+<resources>
+  <string name="app_name">Mission Tracker</string>
+  <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
+  <string name="widget_missionwidget_description" translatable="false">Dnešní aktivity a streak přehled</string>
+</resources>

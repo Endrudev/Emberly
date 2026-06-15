@@ -24,6 +24,7 @@ ios/Pods/
 android/.gradle/
 android/app/build/
 android/build/
+android/local.properties
 
 # Metro
 .metro-health-check*

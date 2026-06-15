@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, PaperProvider, Text } from 'react-native-paper';
@@ -13,6 +14,14 @@ import {
 } from '@expo-google-fonts/dm-sans';
 
 import { useDbInit } from '@/db/useDbInit';
+import { widgetTaskHandler } from '@/widget/widgetTaskHandler';
+
+// Register widget task handler at module level (before React mounts).
+// On non-Android platforms react-native-android-widget is a no-op.
+if (Platform.OS === 'android') {
+  const { registerWidgetTaskHandler } = require('react-native-android-widget');
+  registerWidgetTaskHandler(widgetTaskHandler);
+}
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { darkTheme, lightTheme } from '@/ui/theme';
 

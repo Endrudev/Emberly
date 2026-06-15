@@ -110,6 +110,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         ),
       });
     }
+    // Fire-and-forget — widget update runs async after store is updated
+    import('@/widget/updateWidget').then(({ updateMissionWidget }) =>
+      updateMissionWidget(),
+    );
     return isNowCompleted;
   },
 }));

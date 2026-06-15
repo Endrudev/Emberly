@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "obsidian": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "obsidian-mcp",
+        "C:\\Users\\ondra\\Desktop\\_obsidianProjects\\Mission-Tracker"
+      ]
+    }
+  }
+}

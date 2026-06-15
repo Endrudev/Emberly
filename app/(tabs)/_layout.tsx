@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
 
   tabLabel: {
     fontSize: 12,
-    fontFamily: FONTS.bold,
+    fontFamily: FONTS.extraBold,
     color: COLORS.primary,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
 });

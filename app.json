@@ -37,6 +37,27 @@
           "enableFTS": false,
           "useSQLCipher": false
         }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "MissionWidget",
+              "label": "Mission Tracker",
+              "description": "Dnešní aktivity a streak přehled",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
+              "minWidth": "300dp",
+              "minHeight": "210dp",
+              "maxWidth": "440dp",
+              "maxHeight": "480dp",
+              "updatePeriodMillis": 1800000,
+              "resizableHorizontal": true,
+              "resizableVertical": true
+            }
+          ]
+        }
       ]
     ],
     "experiments": {
