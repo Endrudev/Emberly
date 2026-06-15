@@ -70,6 +70,17 @@ const lighten = (hex: string, amt: number) => mix(hex, '#FFFFFF', amt);
 const darken = (hex: string, amt: number) => mix(hex, '#000000', amt);
 const pale = (hex: string) => mix(hex, '#FFFFFF', 0.84);
 
+// ── SVG fire icon (StreakTabIcon path, same design as tab bar) ────────────────
+
+function buildFireSvg(color: string): string {
+  return (
+    `<svg viewBox="0 0 45 45" xmlns="http://www.w3.org/2000/svg">` +
+    `<path fill="${color}" stroke="${color}" stroke-width="1" ` +
+    `d="M22.5 43.125C26.2296 43.125 29.8065 41.6434 32.4437 39.0062C35.0809 36.369 36.5625 32.7921 36.5625 29.0625C36.5625 27.4388 36.1312 25.8806 35.625 24.4312C32.4994 27.5194 30.1256 29.0625 28.5 29.0625C35.9906 15.9375 31.875 10.3125 20.625 2.8125C21.5625 12.1875 15.3825 16.4512 12.8662 18.8194C10.8137 20.75 9.38856 23.2528 8.77552 26.0031C8.16248 28.7535 8.38985 31.6245 9.42814 34.2441C10.4664 36.8637 12.2678 39.1109 14.5986 40.6945C16.9294 42.278 19.6822 43.1248 22.5 43.125ZM23.8312 9.81563C29.9081 14.9719 29.9381 18.9787 25.2431 27.2044C23.8162 29.7037 25.6219 32.8125 28.5 32.8125C29.79 32.8125 31.095 32.4375 32.4731 31.6969C32.0646 33.24 31.3035 34.6672 30.2497 35.8661C29.1958 37.065 27.8781 38.0029 26.4001 38.606C24.9222 39.2091 23.3244 39.4608 21.7327 39.3414C20.1409 39.222 18.5986 38.7347 17.2271 37.9179C15.8557 37.1012 14.6926 35.9771 13.8294 34.6344C12.9662 33.2917 12.4265 31.7669 12.2528 30.1802C12.079 28.5934 12.276 26.988 12.8282 25.4903C13.3804 23.9926 14.2728 22.6436 15.435 21.5494C15.6712 21.3281 16.8694 20.265 16.9219 20.2181C17.7169 19.5056 18.3712 18.8737 19.0181 18.1819C21.3244 15.7106 22.9819 12.9694 23.8294 9.81563H23.8312Z"/>` +
+    `</svg>`
+  );
+}
+
 // ── SVG gradient arc for streak ring ──────────────────────────────────────────
 
 function buildStreakSvg(progress: number): string {
@@ -160,12 +171,12 @@ function StreakSection({ data }: Props) {
             justifyContent: 'center',
           }}
         >
-          <TextWidget text="🔥" style={{ fontSize: 20 }} />
+          <SvgWidget svg={buildFireSvg(C.orange)} style={{ width: 28, height: 28 }} />
           <TextWidget
             text={String(data.currentStreak)}
             style={{ fontSize: 29, fontWeight: 'bold', color: C.textPrimary }}
           />
-          <TextWidget text="dní" style={{ fontSize: 11, color: C.textSecondary }} />
+          {/* <TextWidget text="dní" style={{ fontSize: 11, color: C.textSecondary }} /> */}
         </FlexWidget>
       </OverlapWidget>
 
@@ -191,12 +202,12 @@ function StreakSection({ data }: Props) {
 
         <TextWidget
           text={headline}
-          style={{ fontSize: 20, color: C.textPrimary, fontWeight: 'bold' }}
+          style={{ fontSize: 21, color: C.textPrimary, fontWeight: 'bold' }}
           maxLines={1}
         />
         <TextWidget
           text={subline}
-          style={{ fontSize: 13, color: C.textSecondary, marginTop: 4 }}
+          style={{ fontSize: 14, color: C.textSecondary, fontWeight: 'bold', marginTop: 4 }}
           maxLines={2}
           truncate="END"
         />
@@ -225,8 +236,10 @@ function StreakSection({ data }: Props) {
 
 // ── Activity grid — čtvercové dlaždice + bar nad každým návykem ─────────────────
 
-const TILE = 58; // čtverec: stejná šířka i výška pro všechny návyky
+const TILE = 58;
 const BADGE = 22;
+const BADGE_EXT = Math.round(BADGE / 2); // 11 — přesah badge za roh dlaždice
+const TILE_SLOT = TILE + BADGE_EXT;       // 69 — šířka slotu vč. badge overflow
 
 function ActivityGrid({
   activities,
@@ -370,12 +383,12 @@ function ActivityTile({
 
   return (
     <FlexWidget
-      style={{ alignItems: 'center', width: TILE }}
+      style={{ alignItems: 'flex-start', width: TILE_SLOT }}
       clickAction="TOGGLE_ACTIVITY"
       clickActionData={{ activityId: activity.id, date: todayIso, page }}
       accessibilityLabel={`${activity.name}: ${done ? 'splněno' : 'nesplněno'}`}
     >
-      {/* Bar přesně nad dlaždicí, stejně široký jako dlaždice */}
+      {/* Bar — stejně široký jako dlaždice, zarovnaný vlevo */}
       <FlexWidget
         style={{
           width: TILE,
@@ -386,8 +399,9 @@ function ActivityTile({
         }}
       />
 
-      {/* Čtvercová dlaždice */}
-      <OverlapWidget style={{ width: TILE, height: TILE }}>
+      {/* OverlapWidget přesahuje o BADGE_EXT doprava a dolů — badge tak vyčnívá za roh */}
+      <OverlapWidget style={{ width: TILE_SLOT, height: TILE_SLOT }}>
+        {/* Dlaždice TILE×TILE v levém horním rohu OverlapWidget */}
         <FlexWidget
           style={{
             width: TILE,
@@ -409,15 +423,14 @@ function ActivityTile({
           <TextWidget text={activity.emoji} style={{ fontSize: 28 }} />
         </FlexWidget>
 
-        {/* Zelený ✓ odznak — overlay v pravém dolním rohu, neořezaný */}
+        {/* Badge overlay TILE_SLOT×TILE_SLOT — badge v pravém dolním rohu přesahuje dlaždici o BADGE_EXT */}
         {done && (
           <FlexWidget
             style={{
-              width: TILE,
-              height: TILE,
+              width: TILE_SLOT,
+              height: TILE_SLOT,
               alignItems: 'flex-end',
               justifyContent: 'flex-end',
-              padding: 4,
             }}
           >
             <FlexWidget
@@ -443,12 +456,13 @@ function ActivityTile({
 
       {/* Popisek */}
       <TextWidget
-        text={activity.name.length > 8 ? activity.name.slice(0, 8) + '…' : activity.name}
+        text={activity.name.length > 7 ? activity.name.slice(0, 7) + '…' : activity.name}
         style={{
-          fontSize: 11.5,
+          width: TILE,
+          fontSize: 12,
           color: done ? C.textPrimary : C.textTertiary,
-          fontWeight: done ? 'bold' : 'normal',
-          marginTop: 8,
+          fontWeight: 'bold',
+          marginTop: 5,
           textAlign: 'center',
         }}
         maxLines={1}
