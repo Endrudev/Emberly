@@ -202,12 +202,12 @@ function StreakSection({ data }: Props) {
 
         <TextWidget
           text={headline}
-          style={{ fontSize: 21, color: C.textPrimary, fontWeight: 'bold' }}
+          style={{ fontSize: 24, color: C.textPrimary, fontWeight: 'bold' }}
           maxLines={1}
         />
         <TextWidget
           text={subline}
-          style={{ fontSize: 14, color: C.textSecondary, fontWeight: 'bold', marginTop: 4 }}
+          style={{ fontSize: 16, color: C.textSecondary, fontWeight: 'bold', marginTop: 4 }}
           maxLines={2}
           truncate="END"
         />
