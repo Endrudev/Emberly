@@ -287,12 +287,12 @@ function ActivityGrid({
         <FlexWidget style={{ flex: 1 }} />
         {totalPages > 1 && (
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <PageArrow label="‹" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
+            <PageArrow label="<" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
             <TextWidget
               text={`${page + 1}/${totalPages}`}
               style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 'bold', marginLeft: 10, marginRight: 10 }}
             />
-            <PageArrow label="›" targetPage={page + 1} enabled={page < totalPages - 1} todayIso={todayIso} />
+            <PageArrow label=">" targetPage={page + 1} enabled={page < totalPages - 1} todayIso={todayIso} />
           </FlexWidget>
         )}
       </FlexWidget>
@@ -335,13 +335,13 @@ function PageArrow({
         style={{
           width: 30,
           height: 30,
-          borderRadius: 15,
-          backgroundColor: C.track,
+          borderRadius: 10,
+          backgroundColor: '#F0F2F5',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <TextWidget text={label} style={{ fontSize: 18, color: C.white, fontWeight: 'bold' }} />
+        <TextWidget text={label} style={{ fontSize: 16, color: C.textTertiary, fontWeight: 'bold' }} />
       </FlexWidget>
     );
   }
@@ -351,7 +351,7 @@ function PageArrow({
       style={{
         width: 30,
         height: 30,
-        borderRadius: 15,
+        borderRadius: 10,
         backgroundColor: C.greenPale,
         alignItems: 'center',
         justifyContent: 'center',
@@ -359,7 +359,7 @@ function PageArrow({
       clickAction="WIDGET_PAGE"
       clickActionData={{ page: targetPage, date: todayIso }}
     >
-      <TextWidget text={label} style={{ fontSize: 18, color: C.green, fontWeight: 'bold' }} />
+      <TextWidget text={label} style={{ fontSize: 16, color: C.green, fontWeight: 'bold' }} />
     </FlexWidget>
   );
 }
@@ -524,12 +524,12 @@ function ActivityGrid4x2({
         <FlexWidget style={{ flex: 1 }} />
         {totalPages > 1 && (
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <PageArrow label="‹" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
+            <PageArrow label="<" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
             <TextWidget
               text={`${page + 1}/${totalPages}`}
               style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 'bold', marginLeft: 10, marginRight: 10 }}
             />
-            <PageArrow label="›" targetPage={page + 1} enabled={page < totalPages - 1} todayIso={todayIso} />
+            <PageArrow label=">" targetPage={page + 1} enabled={page < totalPages - 1} todayIso={todayIso} />
           </FlexWidget>
         )}
       </FlexWidget>
