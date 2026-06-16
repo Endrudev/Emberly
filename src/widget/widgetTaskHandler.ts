@@ -2,7 +2,7 @@ import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
 import { completionRepo } from '@/data/completionRepo';
-import { MissionWidget } from './MissionWidget';
+import { MissionWidget, MissionWidget4x2 } from './MissionWidget';
 import { getCachedWidgetState, getCelebrationRemainingMs, getWidgetData } from './widgetData';
 import type { WidgetData } from './widgetTypes';
 
@@ -14,28 +14,36 @@ function applyOptimisticToggle(cached: WidgetData, activityId: number, page: num
   return { ...cached, activities, page, allCompletedToday };
 }
 
+function getWidgetComponent(widgetName: string) {
+  return widgetName === 'MissionWidget4x2' ? MissionWidget4x2 : MissionWidget;
+}
+
 async function renderAndAutoDismiss(
   renderWidget: WidgetTaskHandlerProps['renderWidget'],
   page: number,
+  widgetName: string,
 ): Promise<void> {
   const data = await getWidgetData(page);
-  renderWidget(React.createElement(MissionWidget, { data }));
+  const Component = getWidgetComponent(widgetName);
+  renderWidget(React.createElement(Component, { data }));
   if (data.allCompletedToday) {
     const remaining = await getCelebrationRemainingMs();
     if (remaining > 0) {
       await new Promise<void>((resolve) => setTimeout(resolve, remaining + 300));
       const normalData = await getWidgetData(0);
-      renderWidget(React.createElement(MissionWidget, { data: normalData }));
+      const Component = getWidgetComponent(widgetName);
+      renderWidget(React.createElement(Component, { data: normalData }));
     }
   }
 }
 
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<void> {
+  const widgetName = props.widgetInfo.widgetName;
   switch (props.widgetAction) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
     case 'WIDGET_RESIZED': {
-      await renderAndAutoDismiss(props.renderWidget, 0);
+      await renderAndAutoDismiss(props.renderWidget, 0, widgetName);
       break;
     }
 
@@ -55,12 +63,13 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<
         const cached = await getCachedWidgetState();
         if (cached && cached.todayIso === clickData.date) {
           const optimistic = applyOptimisticToggle(cached, clickData.activityId, page);
-          props.renderWidget(React.createElement(MissionWidget, { data: optimistic }));
+          const Component = getWidgetComponent(widgetName);
+          props.renderWidget(React.createElement(Component, { data: optimistic }));
         }
         await completionRepo.toggle(clickData.activityId, clickData.date);
       }
       // Finální re-render s přesnými daty z DB (aktualizuje i streak, cache, celebration timer)
-      await renderAndAutoDismiss(props.renderWidget, page);
+      await renderAndAutoDismiss(props.renderWidget, page, widgetName);
       break;
     }
 

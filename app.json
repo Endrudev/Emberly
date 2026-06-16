@@ -55,6 +55,20 @@
               "updatePeriodMillis": 1800000,
               "resizableHorizontal": true,
               "resizableVertical": true
+            },
+            {
+              "name": "MissionWidget4x2",
+              "label": "Mission Tracker (kompakt)",
+              "description": "Dnešní aktivity a streak — kompaktní verze",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "minWidth": "300dp",
+              "minHeight": "140dp",
+              "maxWidth": "440dp",
+              "maxHeight": "320dp",
+              "updatePeriodMillis": 1800000,
+              "resizableHorizontal": true,
+              "resizableVertical": false
             }
           ]
         }

@@ -466,6 +466,137 @@ function ActivityTile({
   );
 }
 
+// ── 4×2 compact widget ────────────────────────────────────────────────────────
+
+export function MissionWidget4x2({ data }: Props) {
+  if (data.allCompletedToday) return <CelebrationWidget data={data} />;
+  return (
+    <FlexWidget
+      style={{
+        flex: 1,
+        height: 'match_parent',
+        width: 'match_parent',
+        backgroundColor: C.card,
+        borderRadius: 30,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        justifyContent: 'space-around',
+      }}
+    >
+      <StreakSection data={data} />
+      <ActivityGrid4x2
+        activities={data.activities}
+        todayIso={data.todayIso}
+        page={data.page}
+        totalPages={data.totalPages}
+      />
+    </FlexWidget>
+  );
+}
+
+function ActivityGrid4x2({
+  activities,
+  todayIso,
+  page,
+  totalPages,
+}: {
+  activities: WidgetActivityData[];
+  todayIso: string;
+  page: number;
+  totalPages: number;
+}) {
+  if (activities.length === 0) {
+    return (
+      <FlexWidget style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 12, width: 'match_parent' }}>
+        <TextWidget text="Dnes žádné aktivity 🎉" style={{ fontSize: 14, color: C.textSecondary }} />
+      </FlexWidget>
+    );
+  }
+
+  const slots: (WidgetActivityData | null)[] = [...activities];
+  while (slots.length < WIDGET_PAGE_SIZE) slots.push(null);
+
+  return (
+    <FlexWidget style={{ flexDirection: 'column', width: 'match_parent' }}>
+      {/* Header: DNES vlevo, stránkování vpravo */}
+      <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', alignItems: 'center', marginBottom: 8 }}>
+        <TextWidget text="DNES" style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold' }} />
+        <FlexWidget style={{ flex: 1 }} />
+        {totalPages > 1 && (
+          <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <PageArrow label="‹" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
+            <TextWidget
+              text={`${page + 1}/${totalPages}`}
+              style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 'bold', marginLeft: 10, marginRight: 10 }}
+            />
+            <PageArrow label="›" targetPage={page + 1} enabled={page < totalPages - 1} todayIso={todayIso} />
+          </FlexWidget>
+        )}
+      </FlexWidget>
+      {/* Dlaždice bez barů */}
+      <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', justifyContent: 'space-between' }}>
+        {slots.map((activity, i) =>
+          activity ? (
+            <ActivityTile4x2 key={String(activity.id)} activity={activity} todayIso={todayIso} page={page} />
+          ) : (
+            <FlexWidget key={`ph${i}`} style={{ width: TILE, height: 1 }} />
+          ),
+        )}
+      </FlexWidget>
+    </FlexWidget>
+  );
+}
+
+function ActivityTile4x2({
+  activity,
+  todayIso,
+  page,
+}: {
+  activity: WidgetActivityData;
+  todayIso: string;
+  page: number;
+}) {
+  const done = activity.isCompleted;
+
+  return (
+    <FlexWidget
+      style={{ alignItems: 'center', width: TILE }}
+      clickAction="TOGGLE_ACTIVITY"
+      clickActionData={{ activityId: activity.id, date: todayIso, page }}
+      accessibilityLabel={`${activity.name}: ${done ? 'splněno' : 'nesplněno'}`}
+    >
+      <FlexWidget
+        style={{
+          width: TILE,
+          height: TILE,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: done ? C.green : pale(activity.color),
+        }}
+      >
+        {done ? (
+          <TextWidget text="✓" style={{ fontSize: 30, color: C.white, fontWeight: 'bold' }} />
+        ) : (
+          <TextWidget text={activity.emoji} style={{ fontSize: 28 }} />
+        )}
+      </FlexWidget>
+      <TextWidget
+        text={activity.name.length > 7 ? activity.name.slice(0, 7) + '…' : activity.name}
+        style={{
+          width: TILE,
+          fontSize: 12,
+          color: done ? C.textPrimary : C.textTertiary,
+          fontWeight: 'bold',
+          marginTop: 5,
+          textAlign: 'center',
+        }}
+        maxLines={1}
+      />
+    </FlexWidget>
+  );
+}
+
 // ── Day tracker ───────────────────────────────────────────────────────────────
 
 function DayTracker({ weekDays }: { weekDays: WidgetWeekDay[] }) {

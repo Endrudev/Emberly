@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
 import { WidgetPreview } from 'react-native-android-widget';
 
-import { MissionWidget } from '@/widget/MissionWidget';
+import { MissionWidget, MissionWidget4x2 } from '@/widget/MissionWidget';
 import {
   WIDGET_PAGE_SIZE,
   type WidgetActivityData,
@@ -40,8 +40,9 @@ const BASE = {
 
 const W = 360;
 const H = 342; // 4×3 widget — Samsung buňka ≈ 114dp × 3 = 342dp
+const H2 = 228; // 4×2 widget — Samsung buňka ≈ 114dp × 2 = 228dp
 
-function PreviewBlock({ label, activities }: { label: string; activities: WidgetActivityData[] }) {
+function usePreviewState(activities: WidgetActivityData[]) {
   const [page, setPage] = useState(0);
   const [completed, setCompleted] = useState<Set<number>>(
     () => new Set(activities.filter((a) => a.isCompleted).map((a) => a.id)),
@@ -50,10 +51,7 @@ function PreviewBlock({ label, activities }: { label: string; activities: Widget
   const acts = activities.map((a) => ({ ...a, isCompleted: completed.has(a.id) }));
   const totalPages = Math.max(1, Math.ceil(acts.length / WIDGET_PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
-  const pageActivities = acts.slice(
-    safePage * WIDGET_PAGE_SIZE,
-    safePage * WIDGET_PAGE_SIZE + WIDGET_PAGE_SIZE,
-  );
+  const pageActivities = acts.slice(safePage * WIDGET_PAGE_SIZE, safePage * WIDGET_PAGE_SIZE + WIDGET_PAGE_SIZE);
 
   const data: WidgetData = {
     ...BASE,
@@ -75,16 +73,25 @@ function PreviewBlock({ label, activities }: { label: string; activities: Widget
     }
   };
 
+  return { data, onClick };
+}
+
+function PreviewBlock({ label, activities }: { label: string; activities: WidgetActivityData[] }) {
+  const { data, onClick } = usePreviewState(activities);
   return (
     <>
       <Text style={{ color: '#fff', fontSize: 12, marginTop: 8 }}>{label}</Text>
-      <WidgetPreview
-        renderWidget={() => <MissionWidget data={data} />}
-        onClick={onClick}
-        width={W}
-        height={H}
-        showBorder
-      />
+      <WidgetPreview renderWidget={() => <MissionWidget data={data} />} onClick={onClick} width={W} height={H} showBorder />
+    </>
+  );
+}
+
+function PreviewBlock4x2({ label, activities }: { label: string; activities: WidgetActivityData[] }) {
+  const { data, onClick } = usePreviewState(activities);
+  return (
+    <>
+      <Text style={{ color: '#fff', fontSize: 12, marginTop: 8 }}>{label}</Text>
+      <WidgetPreview renderWidget={() => <MissionWidget4x2 data={data} />} onClick={onClick} width={W} height={H2} showBorder />
     </>
   );
 }
@@ -97,6 +104,8 @@ export default function WidgetPreviewScreen() {
     >
       <PreviewBlock label="8 návyků @ 4×3 (stránkování)" activities={ALL_ACTIVITIES} />
       <PreviewBlock label="5 návyků @ 4×3 (běžné)" activities={ALL_ACTIVITIES.slice(0, 5)} />
+      <PreviewBlock4x2 label="8 návyků @ 4×2 (stránkování)" activities={ALL_ACTIVITIES} />
+      <PreviewBlock4x2 label="5 návyků @ 4×2 (běžné)" activities={ALL_ACTIVITIES.slice(0, 5)} />
     </ScrollView>
   );
 }
