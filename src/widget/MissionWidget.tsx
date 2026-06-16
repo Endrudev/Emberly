@@ -271,7 +271,33 @@ function ActivityGrid({
 
   return (
     <FlexWidget style={{ flexDirection: 'column', width: 'match_parent', alignItems: 'center' }}>
-      {/* Řádek čtvercových dlaždic (aktuální stránka) */}
+      {/* Header: DNES vlevo, stránkování vpravo */}
+      <FlexWidget
+        style={{
+          flexDirection: 'row',
+          width: 'match_parent',
+          alignItems: 'center',
+          marginBottom: 8,
+        }}
+      >
+        <TextWidget
+          text="DNES"
+          style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold' }}
+        />
+        <FlexWidget style={{ flex: 1 }} />
+        {totalPages > 1 && (
+          <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <PageArrow label="‹" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
+            <TextWidget
+              text={`${page + 1}/${totalPages}`}
+              style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 'bold', marginLeft: 10, marginRight: 10 }}
+            />
+            <PageArrow label="›" targetPage={page + 1} enabled={page < totalPages - 1} todayIso={todayIso} />
+          </FlexWidget>
+        )}
+      </FlexWidget>
+
+      {/* Řádek čtvercových dlaždic */}
       <FlexWidget
         style={{ flexDirection: 'row', width: 'match_parent', justifyContent: 'space-between' }}
       >
@@ -288,37 +314,6 @@ function ActivityGrid({
           ),
         )}
       </FlexWidget>
-
-      {/* Stránkování šipkami — jen když je víc než jedna stránka */}
-      {totalPages > 1 && (
-        <FlexWidget
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 'match_parent',
-            marginTop: 12,
-          }}
-        >
-          <PageArrow label="‹" targetPage={page - 1} enabled={page > 0} todayIso={todayIso} />
-          <TextWidget
-            text={`${page + 1}/${totalPages}`}
-            style={{
-              fontSize: 12.5,
-              color: C.textSecondary,
-              fontWeight: 'bold',
-              marginLeft: 16,
-              marginRight: 16,
-            }}
-          />
-          <PageArrow
-            label="›"
-            targetPage={page + 1}
-            enabled={page < totalPages - 1}
-            todayIso={todayIso}
-          />
-        </FlexWidget>
-      )}
     </FlexWidget>
   );
 }
