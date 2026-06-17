@@ -468,6 +468,42 @@ function ActivityTile({
 
 // ── 4×2 compact widget ────────────────────────────────────────────────────────
 
+const TILE_4X2 = 50;
+
+function StreakSection4x2({ data }: Props) {
+  const headline = data.currentStreak > 0 ? 'Nejdelší série!' : 'Začni sérii dnes!';
+  const subline =
+    data.daysToNextBadge === 0
+      ? `Odznak „${data.nextBadgeTarget}" získán! 🏆`
+      : `Ještě ${data.daysToNextBadge} dny do odznaku „${data.nextBadgeTarget}"`;
+
+  return (
+    <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
+      <OverlapWidget style={{ width: 88, height: 88 }}>
+        <SvgWidget svg={buildStreakSvg(data.progressToNextBadge)} style={{ width: 88, height: 88 }} />
+        <FlexWidget style={{ width: 88, height: 88, alignItems: 'center', justifyContent: 'center' }}>
+          <SvgWidget svg={buildFireSvg(C.orange)} style={{ width: 22, height: 22 }} />
+          <TextWidget text={String(data.currentStreak)} style={{ fontSize: 25, fontWeight: 'bold', color: C.textPrimary }} />
+        </FlexWidget>
+      </OverlapWidget>
+      <FlexWidget style={{ flex: 1, marginLeft: 12 }}>
+        {SHOW_PERSONAL_RECORD && data.isPersonalRecord && (
+          <FlexWidget style={{ backgroundColor: C.peachBg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 4, width: 'wrap_content', marginBottom: 6 }}>
+            <TextWidget text="🎉 Osobní rekord" style={{ color: C.peachText, fontSize: 11, fontWeight: 'bold' }} />
+          </FlexWidget>
+        )}
+        <TextWidget text={headline} style={{ fontSize: 19, color: C.textPrimary, fontWeight: 'bold' }} maxLines={1} />
+        <TextWidget text={subline} style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold', marginTop: 3 }} maxLines={2} truncate="END" />
+        {SHOW_SHIELD && (
+          <FlexWidget style={{ backgroundColor: C.blueBg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 4, width: 'wrap_content', marginTop: 6 }}>
+            <TextWidget text="📦 Ochrana série 1×" style={{ color: C.blueText, fontSize: 11, fontWeight: 'bold' }} />
+          </FlexWidget>
+        )}
+      </FlexWidget>
+    </FlexWidget>
+  );
+}
+
 export function MissionWidget4x2({ data }: Props) {
   if (data.allCompletedToday) return <CelebrationWidget data={data} />;
   return (
@@ -483,7 +519,7 @@ export function MissionWidget4x2({ data }: Props) {
         justifyContent: 'space-around',
       }}
     >
-      <StreakSection data={data} />
+      <StreakSection4x2 data={data} />
       <ActivityGrid4x2
         activities={data.activities}
         todayIso={data.todayIso}
@@ -539,7 +575,7 @@ function ActivityGrid4x2({
           activity ? (
             <ActivityTile4x2 key={String(activity.id)} activity={activity} todayIso={todayIso} page={page} />
           ) : (
-            <FlexWidget key={`ph${i}`} style={{ width: TILE, height: 1 }} />
+            <FlexWidget key={`ph${i}`} style={{ width: TILE_4X2, height: 1 }} />
           ),
         )}
       </FlexWidget>
@@ -560,32 +596,32 @@ function ActivityTile4x2({
 
   return (
     <FlexWidget
-      style={{ alignItems: 'center', width: TILE }}
+      style={{ alignItems: 'center', width: TILE_4X2 }}
       clickAction="TOGGLE_ACTIVITY"
       clickActionData={{ activityId: activity.id, date: todayIso, page }}
       accessibilityLabel={`${activity.name}: ${done ? 'splněno' : 'nesplněno'}`}
     >
       <FlexWidget
         style={{
-          width: TILE,
-          height: TILE,
-          borderRadius: 18,
+          width: TILE_4X2,
+          height: TILE_4X2,
+          borderRadius: 15,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: done ? C.green : pale(activity.color),
         }}
       >
         {done ? (
-          <TextWidget text="✓" style={{ fontSize: 30, color: C.white, fontWeight: 'bold' }} />
+          <TextWidget text="✓" style={{ fontSize: 25, color: C.white, fontWeight: 'bold' }} />
         ) : (
-          <TextWidget text={activity.emoji} style={{ fontSize: 28 }} />
+          <TextWidget text={activity.emoji} style={{ fontSize: 23 }} />
         )}
       </FlexWidget>
       <TextWidget
         text={activity.name.length > 7 ? activity.name.slice(0, 7) + '…' : activity.name}
         style={{
-          width: TILE,
-          fontSize: 12,
+          width: TILE_4X2,
+          fontSize: 11,
           color: done ? C.textPrimary : C.textTertiary,
           fontWeight: 'bold',
           marginTop: 5,
