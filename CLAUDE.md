@@ -20,6 +20,7 @@ Struktura vaultu:
 - `dev/` — dev setup, testing strategy, debugging playbook
 - `widgets/` — Android widget plán
 - `thinking/` — open questions, lessons learned, backlog (nápady)
+- `marketing/` — produktová analýza, naming, ASO, kanály, taktiky, launch timeline (hub: `00-marketing-index.md`)
 
 **Pravidla pro práci s vaultem:**
 - Vault je expandovaná forma dokumentace — CLAUDE.md zůstává SSOT pro technická pravidla
@@ -203,7 +204,12 @@ Paper theme používá `configureFonts({ config: { fontFamily: FONTS.semiBold } 
 | Den v týdnu | semiBold/bold | 10.5 | — |
 
 ### Design systém — Home screen (R2/R3)
-Domovská obrazovka (`app/(tabs)/index.tsx`) — refaktorováno na ScrollView (z FlatList):
+Domovská obrazovka (`app/(tabs)/index.tsx`) — seznam návyků je **virtualizovaný `Reanimated.FlatList`**
+(`renderItem` + `ListHeaderComponent` pro sekci + `ListEmptyComponent` pro prázdné stavy).
+Pozn.: historicky byl ScrollView (kvůli grouped card), ale kvůli sekání scrollu ve Weekly
+(stovky `DayCheckbox` view + transform vrstva přes celý obsah) jsme se vrátili k FlatListu.
+Kolabující hlavička je **absolutní overlay** posouvaný `translateY` (čistě transform, žádná
+per-frame layout animace `height`) — scroll-driven přes `useAnimatedScrollHandler` na UI threadu.
 
 **Vizuální tokeny:**
 - Pozadí obrazovky: `#ECEDE8` (teplá šedozelená)
@@ -223,7 +229,7 @@ Domovská obrazovka (`app/(tabs)/index.tsx`) — refaktorováno na ScrollView (z
 - Row padding: `paddingVertical: 14`, `paddingHorizontal: 16`
 - Prop `isLast?: boolean` — poslední řádek bez separátoru
 
-**DayCheckbox:** kruhy **24px** (z 34px), label 10.5px
+**DayCheckbox:** kruhy **28px** (z 34px → 24px → 28px), label 10.5px, zatržítko 14px
 
 **Tab bar (floating pill):**
 - `TAB_PILL_HEIGHT = 80`, `TAB_BAR_SPACE = 100`

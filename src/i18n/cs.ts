@@ -11,6 +11,9 @@ export const cs = {
     yes: 'Ano',
     no: 'Ne',
     loading: 'Načítám…',
+    dbError: (message: string) => `Chyba databáze: ${message}`,
+    options: 'Možnosti',
+    done: 'Hotovo',
   },
   tabs: {
     habits: 'Aktivity',
@@ -109,6 +112,7 @@ export const cs = {
     keepGoing: 'Pokračuj — nerozlamuj řetěz.',
     noStreak: 'Začni dnes!',
     noStreakSub: 'Odškrtni svou první aktivitu a rozehraj streak.',
+    maxReached: '🏆 Dosáhl jsi maximum!',
     tiersTitle: 'ÚROVNĚ STREAKU',
     youreHere: 'Jsi tady',
     tiers: [
@@ -151,6 +155,10 @@ export const cs = {
     themeLight: 'Světlé',
     themeDark: 'Tmavé',
     firstDayOfWeek: 'První den v týdnu',
+    language: 'Jazyk',
+    languageAuto: 'Automaticky',
+    languageCz: 'Čeština',
+    languageEn: 'English',
   },
   onboarding: {
     skip: 'Přeskočit',
@@ -165,6 +173,16 @@ export const cs = {
     step3Subtitle: 'Vyber pár na začátek – přidat další můžeš kdykoli.',
     step3Button: 'Pokračovat',
     step3Counter: (n: number) => `${n} vybraných · lze změnit kdykoliv`,
+    presetHabits: {
+      walk: 'Chůze',
+      run: 'Běh',
+      water: 'Voda',
+      exercise: 'Cvičení',
+      reading: 'Čtení',
+      meditation: 'Meditace',
+      sleep: 'Spánek',
+      healthyFood: 'Zdravé jídlo',
+    },
   },
   notification: {
     channelName: 'Stav Mission Tracker',
@@ -177,5 +195,4 @@ export const cs = {
   },
 } as const;
 
-export const t = cs;
 export type Translation = typeof cs;

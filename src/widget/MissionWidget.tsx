@@ -8,6 +8,7 @@ import {
 
 import { WIDGET_PAGE_SIZE } from './widgetTypes';
 import type { WidgetActivityData, WidgetData, WidgetWeekDay } from './widgetTypes';
+import { widgetStrings, type WidgetLang } from './widgetI18n';
 
 // ── Feature flags ─────────────────────────────────────────────────────────────
 // "Ochrana série" je plánovaná placená funkce. V designu je vidět, takže ji
@@ -123,6 +124,7 @@ export function MissionWidget({ data }: Props) {
 function NormalWidget({ data }: Props) {
   return (
     <FlexWidget
+      clickAction="OPEN_APP"
       style={{
         flex: 1,
         height: 'match_parent',
@@ -140,6 +142,7 @@ function NormalWidget({ data }: Props) {
         todayIso={data.todayIso}
         page={data.page}
         totalPages={data.totalPages}
+        lang={data.lang}
       />
       <DayTracker weekDays={data.weekDays} />
     </FlexWidget>
@@ -149,11 +152,12 @@ function NormalWidget({ data }: Props) {
 // ── Streak section ────────────────────────────────────────────────────────────
 
 function StreakSection({ data }: Props) {
-  const headline = data.currentStreak > 0 ? 'Nejdelší série!' : 'Začni sérii dnes!';
+  const S = widgetStrings[data.lang];
+  const headline = S.streakHeadline(data.currentStreak);
   const subline =
     data.daysToNextBadge === 0
-      ? `Odznak „${data.nextBadgeTarget}" získán! 🏆`
-      : `Ještě ${data.daysToNextBadge} dny do odznaku „${data.nextBadgeTarget}"`;
+      ? S.badgeEarned(data.nextBadgeTarget)
+      : S.daysToBadge(data.daysToNextBadge, data.nextBadgeTarget);
 
   return (
     <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
@@ -194,7 +198,7 @@ function StreakSection({ data }: Props) {
             }}
           >
             <TextWidget
-              text="🎉 Osobní rekord"
+              text={S.personalRecordBadge}
               style={{ color: C.peachText, fontSize: 12.5, fontWeight: 'bold' }}
             />
           </FlexWidget>
@@ -224,7 +228,7 @@ function StreakSection({ data }: Props) {
             }}
           >
             <TextWidget
-              text="📦 Ochrana série 1×"
+              text={S.streakShield}
               style={{ color: C.blueText, fontSize: 12.5, fontWeight: 'bold' }}
             />
           </FlexWidget>
@@ -246,19 +250,23 @@ function ActivityGrid({
   todayIso,
   page,
   totalPages,
+  lang,
 }: {
   activities: WidgetActivityData[];
   todayIso: string;
   page: number;
   totalPages: number;
+  lang: WidgetLang;
 }) {
+  const S = widgetStrings[lang];
+
   if (activities.length === 0) {
     return (
       <FlexWidget
         style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 16, width: 'match_parent' }}
       >
         <TextWidget
-          text="Dnes žádné aktivity 🎉"
+          text={S.noActivitiesToday}
           style={{ fontSize: 14, color: C.textSecondary }}
         />
       </FlexWidget>
@@ -281,7 +289,7 @@ function ActivityGrid({
         }}
       >
         <TextWidget
-          text="DNES"
+          text={S.today}
           style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold' }}
         />
         <FlexWidget style={{ flex: 1 }} />
@@ -308,6 +316,7 @@ function ActivityGrid({
               activity={activity}
               todayIso={todayIso}
               page={page}
+              lang={lang}
             />
           ) : (
             <FlexWidget key={`ph${i}`} style={{ width: TILE, height: 1 }} />
@@ -368,11 +377,14 @@ function ActivityTile({
   activity,
   todayIso,
   page,
+  lang,
 }: {
   activity: WidgetActivityData;
   todayIso: string;
   page: number;
+  lang: WidgetLang;
 }) {
+  const S = widgetStrings[lang];
   const color = activity.color;
   const done = activity.isCompleted;
 
@@ -381,7 +393,7 @@ function ActivityTile({
       style={{ alignItems: 'flex-start', width: TILE_SLOT }}
       clickAction="TOGGLE_ACTIVITY"
       clickActionData={{ activityId: activity.id, date: todayIso, page }}
-      accessibilityLabel={`${activity.name}: ${done ? 'splněno' : 'nesplněno'}`}
+      accessibilityLabel={`${activity.name}: ${done ? S.completed : S.notCompleted}`}
     >
       {/* Bar — stejně široký jako dlaždice, zarovnaný vlevo */}
       <FlexWidget
@@ -471,11 +483,12 @@ function ActivityTile({
 const TILE_4X2 = 50;
 
 function StreakSection4x2({ data }: Props) {
-  const headline = data.currentStreak > 0 ? 'Nejdelší série!' : 'Začni sérii dnes!';
+  const S = widgetStrings[data.lang];
+  const headline = S.streakHeadline(data.currentStreak);
   const subline =
     data.daysToNextBadge === 0
-      ? `Odznak „${data.nextBadgeTarget}" získán! 🏆`
-      : `Ještě ${data.daysToNextBadge} dny do odznaku „${data.nextBadgeTarget}"`;
+      ? S.badgeEarned(data.nextBadgeTarget)
+      : S.daysToBadge(data.daysToNextBadge, data.nextBadgeTarget);
 
   return (
     <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
@@ -489,14 +502,14 @@ function StreakSection4x2({ data }: Props) {
       <FlexWidget style={{ flex: 1, marginLeft: 12 }}>
         {SHOW_PERSONAL_RECORD && data.isPersonalRecord && (
           <FlexWidget style={{ backgroundColor: C.peachBg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 4, width: 'wrap_content', marginBottom: 6 }}>
-            <TextWidget text="🎉 Osobní rekord" style={{ color: C.peachText, fontSize: 11, fontWeight: 'bold' }} />
+            <TextWidget text={S.personalRecordBadge} style={{ color: C.peachText, fontSize: 11, fontWeight: 'bold' }} />
           </FlexWidget>
         )}
         <TextWidget text={headline} style={{ fontSize: 19, color: C.textPrimary, fontWeight: 'bold' }} maxLines={1} />
         <TextWidget text={subline} style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold', marginTop: 3 }} maxLines={2} truncate="END" />
         {SHOW_SHIELD && (
           <FlexWidget style={{ backgroundColor: C.blueBg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 4, width: 'wrap_content', marginTop: 6 }}>
-            <TextWidget text="📦 Ochrana série 1×" style={{ color: C.blueText, fontSize: 11, fontWeight: 'bold' }} />
+            <TextWidget text={S.streakShield} style={{ color: C.blueText, fontSize: 11, fontWeight: 'bold' }} />
           </FlexWidget>
         )}
       </FlexWidget>
@@ -508,6 +521,7 @@ export function MissionWidget4x2({ data }: Props) {
   if (data.allCompletedToday) return <CelebrationWidget data={data} />;
   return (
     <FlexWidget
+      clickAction="OPEN_APP"
       style={{
         flex: 1,
         height: 'match_parent',
@@ -515,7 +529,7 @@ export function MissionWidget4x2({ data }: Props) {
         backgroundColor: C.card,
         borderRadius: 30,
         paddingHorizontal: 18,
-        paddingVertical: 12,
+        paddingVertical: 9,
         justifyContent: 'space-around',
       }}
     >
@@ -525,6 +539,7 @@ export function MissionWidget4x2({ data }: Props) {
         todayIso={data.todayIso}
         page={data.page}
         totalPages={data.totalPages}
+        lang={data.lang}
       />
     </FlexWidget>
   );
@@ -535,16 +550,20 @@ function ActivityGrid4x2({
   todayIso,
   page,
   totalPages,
+  lang,
 }: {
   activities: WidgetActivityData[];
   todayIso: string;
   page: number;
   totalPages: number;
+  lang: WidgetLang;
 }) {
+  const S = widgetStrings[lang];
+
   if (activities.length === 0) {
     return (
       <FlexWidget style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 12, width: 'match_parent' }}>
-        <TextWidget text="Dnes žádné aktivity 🎉" style={{ fontSize: 14, color: C.textSecondary }} />
+        <TextWidget text={S.noActivitiesToday} style={{ fontSize: 14, color: C.textSecondary }} />
       </FlexWidget>
     );
   }
@@ -556,7 +575,7 @@ function ActivityGrid4x2({
     <FlexWidget style={{ flexDirection: 'column', width: 'match_parent' }}>
       {/* Header: DNES vlevo, stránkování vpravo */}
       <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', alignItems: 'center', marginBottom: 8 }}>
-        <TextWidget text="DNES" style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold' }} />
+        <TextWidget text={S.today} style={{ fontSize: 12, color: C.textSecondary, fontWeight: 'bold' }} />
         <FlexWidget style={{ flex: 1 }} />
         {totalPages > 1 && (
           <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -573,7 +592,7 @@ function ActivityGrid4x2({
       <FlexWidget style={{ flexDirection: 'row', width: 'match_parent', justifyContent: 'space-between' }}>
         {slots.map((activity, i) =>
           activity ? (
-            <ActivityTile4x2 key={String(activity.id)} activity={activity} todayIso={todayIso} page={page} />
+            <ActivityTile4x2 key={String(activity.id)} activity={activity} todayIso={todayIso} page={page} lang={lang} />
           ) : (
             <FlexWidget key={`ph${i}`} style={{ width: TILE_4X2, height: 1 }} />
           ),
@@ -587,11 +606,14 @@ function ActivityTile4x2({
   activity,
   todayIso,
   page,
+  lang,
 }: {
   activity: WidgetActivityData;
   todayIso: string;
   page: number;
+  lang: WidgetLang;
 }) {
+  const S = widgetStrings[lang];
   const done = activity.isCompleted;
 
   return (
@@ -599,7 +621,7 @@ function ActivityTile4x2({
       style={{ alignItems: 'center', width: TILE_4X2 }}
       clickAction="TOGGLE_ACTIVITY"
       clickActionData={{ activityId: activity.id, date: todayIso, page }}
-      accessibilityLabel={`${activity.name}: ${done ? 'splněno' : 'nesplněno'}`}
+      accessibilityLabel={`${activity.name}: ${done ? S.completed : S.notCompleted}`}
     >
       <FlexWidget
         style={{
@@ -682,64 +704,162 @@ function DayTracker({ weekDays }: { weekDays: WidgetWeekDay[] }) {
 // ── Celebration state ─────────────────────────────────────────────────────────
 
 function CelebrationWidget({ data }: Props) {
-  return (
-    <FlexWidget
-      style={{
-        flex: 1,
-        height: 'match_parent',
-        width: 'match_parent',
-        backgroundColor: C.green,
-        borderRadius: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-      clickAction="WIDGET_CLICK"
-      clickActionData={{ date: data.todayIso, page: 0 }}
-    >
-      <TextWidget text="🎉" style={{ fontSize: 48 }} />
-      <TextWidget
-        text="Skvělá práce!"
-        style={{ fontSize: 23, color: C.white, fontWeight: 'bold', marginTop: 8 }}
-      />
-      <TextWidget
-        text="Dnes máš vše splněno"
-        style={{ fontSize: 14, color: C.white, marginTop: 4 }}
-      />
+  const S = widgetStrings[data.lang];
+  const prevStreak = Math.max(0, data.currentStreak - 1);
+  const count = data.totalTodayCount;
 
-      {data.currentStreak > 0 && (
+  if (data.isPersonalRecord) {
+    return (
+      <OverlapWidget style={{ width: 'match_parent', height: 'match_parent' }}>
         <FlexWidget
+          clickAction="OPEN_APP"
+          style={{
+            flex: 1,
+            height: 'match_parent',
+            width: 'match_parent',
+            backgroundColor: C.orange,
+            borderRadius: 30,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 20,
+          }}
+        >
+          <FlexWidget
+            style={{
+              width: 84,
+              height: 84,
+              borderRadius: 42,
+              backgroundColor: C.white,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 14,
+            }}
+          >
+            <TextWidget text="🏆" style={{ fontSize: 40 }} />
+          </FlexWidget>
+          <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <TextWidget text="🔥" style={{ fontSize: 26 }} />
+            <TextWidget
+              text={` ${S.newRecordHeadline(data.currentStreak)}`}
+              style={{ fontSize: 38, fontWeight: 'bold', color: C.white }}
+            />
+          </FlexWidget>
+          <TextWidget
+            text={S.newRecordTitle}
+            style={{ fontSize: 20, fontWeight: 'bold', color: C.white, marginBottom: 5 }}
+          />
+          <TextWidget
+            text={S.newRecordSubtitle(count)}
+            style={{ fontSize: 13, fontWeight: 'bold', color: '#FFFFFFD9' }}
+          />
+        </FlexWidget>
+        <FlexWidget
+          style={{
+            width: 'match_parent',
+            height: 'match_parent',
+            alignItems: 'flex-end',
+            justifyContent: 'flex-start',
+            paddingTop: 14,
+            paddingRight: 14,
+          }}
+        >
+          <FlexWidget
+            clickAction="CELEBRATION_DISMISS"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF40',
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+            }}
+          >
+            <TextWidget text={S.back} style={{ fontSize: 12, fontWeight: 'bold', color: C.white }} />
+          </FlexWidget>
+        </FlexWidget>
+      </OverlapWidget>
+    );
+  }
+
+  return (
+    <OverlapWidget style={{ width: 'match_parent', height: 'match_parent' }}>
+      <FlexWidget
+        clickAction="OPEN_APP"
+        style={{
+          flex: 1,
+          height: 'match_parent',
+          width: 'match_parent',
+          backgroundColor: C.card,
+          borderRadius: 30,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+        }}
+      >
+        <FlexWidget
+          style={{
+            width: 84,
+            height: 84,
+            borderRadius: 42,
+            backgroundColor: C.green,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 16,
+          }}
+        >
+          <TextWidget text="✓" style={{ fontSize: 40, fontWeight: 'bold', color: C.white }} />
+        </FlexWidget>
+        <TextWidget
+          text={S.allDoneTitle}
+          style={{ fontSize: 22, fontWeight: 'bold', color: C.textPrimary, marginBottom: 6 }}
+        />
+        <TextWidget
+          text={S.allDoneSubtitle(count)}
+          style={{ fontSize: 14, fontWeight: 'bold', color: C.textSecondary, marginBottom: 18 }}
+        />
+        {data.currentStreak > 0 && (
+          <FlexWidget
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: C.peachBg,
+              borderRadius: 22,
+              paddingHorizontal: 16,
+              paddingVertical: 9,
+            }}
+          >
+            <TextWidget text="🔥" style={{ fontSize: 16 }} />
+            <TextWidget
+              text={`  ${S.streakProgress(prevStreak, data.currentStreak)}`}
+              style={{ fontSize: 14, fontWeight: 'bold', color: C.peachText }}
+            />
+          </FlexWidget>
+        )}
+      </FlexWidget>
+      <FlexWidget
+        style={{
+          width: 'match_parent',
+          height: 'match_parent',
+          alignItems: 'flex-end',
+          justifyContent: 'flex-start',
+          paddingTop: 14,
+          paddingRight: 14,
+        }}
+      >
+        <FlexWidget
+          clickAction="CELEBRATION_DISMISS"
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            marginTop: 16,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            paddingHorizontal: 16,
-            paddingVertical: 9,
-            borderRadius: 22,
+            backgroundColor: '#00000012',
+            borderRadius: 20,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
           }}
         >
-          <TextWidget text="🔥" style={{ fontSize: 20 }} />
-          <TextWidget
-            text={`  ${String(data.currentStreak)} dní v sérii`}
-            style={{ fontSize: 15, color: C.white, fontWeight: 'bold' }}
-          />
+          <TextWidget text={S.back} style={{ fontSize: 12, fontWeight: 'bold', color: C.textSecondary }} />
         </FlexWidget>
-      )}
-
-      <FlexWidget style={{ flexDirection: 'row', marginTop: 20 }}>
-        {data.weekDays.map((day, i) => (
-          <FlexWidget
-            key={String(i)}
-            style={{
-              width: 9,
-              height: 9,
-              borderRadius: 5,
-              backgroundColor: day.isCompleted ? C.white : 'rgba(255, 255, 255, 0.35)',
-              marginRight: i < 6 ? 7 : 0,
-            }}
-          />
-        ))}
       </FlexWidget>
-    </FlexWidget>
+    </OverlapWidget>
   );
 }

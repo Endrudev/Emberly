@@ -1,22 +1,33 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { CircularProgress } from '@/ui/components/CircularProgress';
+import { CountUpText } from '@/ui/anim/CountUpText';
+import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { computeCurrentDailyStreak, toActivityForStreak } from '@/domain/streaks';
 import { todayIso as todayIsoFn } from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
-import { t } from '@/i18n/cs';
+import { useTranslation } from '@/i18n';
 
 const STREAK_COLOR = '#FF8C42';
 const STREAK_TRACK_LIGHT = '#FFE5CC';
 const STREAK_TRACK_DARK  = '#3D2010';
 
 export default function StreakScreen() {
+  const t = useTranslation();
   const C = useAppTheme();
 
   const activities  = useAppStore((s) => s.activities);
@@ -49,6 +60,27 @@ export default function StreakScreen() {
     return (currentStreak - tierStart) / (nextTier.min - tierStart);
   }, [currentStreak, currentTierIndex, nextTier, tiers]);
 
+  // ── Entrance animations ────────────────────────────────────────────────────
+  const reduceMotion = useReduceMotion();
+
+  // Very subtle flame pulse (scale 1 ↔ 1.05, 2s loop).
+  const flame = useSharedValue(1);
+  useEffect(() => {
+    if (reduceMotion) {
+      flame.value = 1;
+      return;
+    }
+    flame.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 1000 }),
+        withTiming(1, { duration: 1000 }),
+      ),
+      -1,
+      false,
+    );
+  }, [reduceMotion, flame]);
+  const flameStyle = useAnimatedStyle(() => ({ transform: [{ scale: flame.value }] }));
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.BG }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -66,8 +98,14 @@ export default function StreakScreen() {
               trackColor={C.isDark ? STREAK_TRACK_DARK : STREAK_TRACK_LIGHT}
             >
               <View style={styles.circleInner}>
-                <Text style={styles.flameEmoji}>🔥</Text>
-                <Text style={[styles.streakCount, { color: C.text }]}>{currentStreak}</Text>
+                <Animated.View style={flameStyle}>
+                  <Text style={styles.flameEmoji}>🔥</Text>
+                </Animated.View>
+                <CountUpText
+                  value={currentStreak}
+                  duration={800}
+                  style={[styles.streakCount, { color: C.text }]}
+                />
                 <Text style={[styles.streakLabel, { color: C.textSecondary }]}>
                   {t.streakScreen.dayStreak}
                 </Text>
@@ -94,7 +132,7 @@ export default function StreakScreen() {
               </>
             ) : (
               <Text style={[styles.badgeProgress, { color: C.text }]}>
-                🏆 Dosáhl jsi maximum!
+                {t.streakScreen.maxReached}
               </Text>
             )}
           </View>
@@ -111,8 +149,9 @@ export default function StreakScreen() {
             const isLocked   = currentStreak < tier.min;
 
             return (
-              <View
+              <Animated.View
                 key={tier.key}
+                entering={reduceMotion ? undefined : FadeInDown.delay(idx * 50).duration(260)}
                 style={[
                   styles.tierRow,
                   idx < tiers.length - 1 && [styles.tierRowBorder, { borderBottomColor: C.border }],
@@ -136,7 +175,7 @@ export default function StreakScreen() {
                     <Text style={styles.currentBadgeText}>{t.streakScreen.youreHere}</Text>
                   </View>
                 ) : null}
-              </View>
+              </Animated.View>
             );
           })}
         </View>

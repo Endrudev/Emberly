@@ -41,5 +41,12 @@
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_missionwidget"/>
     </receiver>
+    <receiver android:name=".widget.MissionWidget4x2" android:exported="false" android:label="Mission Tracker (kompakt)">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+        <action android:name="com.endru.missiontracker.WIDGET_CLICK"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_missionwidget4x2"/>
+    </receiver>
   </application>
 </manifest>

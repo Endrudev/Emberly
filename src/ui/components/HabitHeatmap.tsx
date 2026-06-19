@@ -1,10 +1,13 @@
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import type { Activity, Completion } from '@/domain/types';
 import { addDays, format, parseISO, startOfWeek } from 'date-fns';
 import { COLORS } from '@/ui/theme';
+import { useReduceMotion } from '@/ui/anim/useReduceMotion';
+import { useTranslation } from '@/i18n';
 
 const CELL_SIZE = 14;
 const CELL_GAP = 3;
@@ -33,6 +36,9 @@ interface HabitHeatmapProps {
 }
 
 export function HabitHeatmap({ activities, completions, todayIso }: HabitHeatmapProps) {
+  const reduceMotion = useReduceMotion();
+  const t = useTranslation();
+
   // Build week grid: WEEK_COUNT weeks ending with current week
   const cells = useMemo(() => {
     const completionSet = new Set(completions.map((c) => `${c.activityId}|${c.date}`));
@@ -87,20 +93,29 @@ export function HabitHeatmap({ activities, completions, todayIso }: HabitHeatmap
     columns.push(cells.slice(w * 7, w * 7 + 7));
   }
 
+  // Forces the grid to remount (replaying the reveal) whenever the underlying
+  // rates actually change — not on every re-render (e.g. tab refocus).
+  const gridKey = useMemo(() => cells.map((c) => c.rate).join(','), [cells]);
+
   return (
     <View>
       <View style={styles.legendRow}>
         <Text variant="labelSmall" style={{ color: COLORS.textSecondary }}>
-          {activeDays} aktivních dní
+          {t.stats.activeDays(activeDays)}
         </Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.grid}>
+        <View key={gridKey} style={styles.grid}>
           {columns.map((week, wIdx) => (
             <View key={wIdx} style={styles.column}>
               {week.map((cell) => (
-                <View
+                <Animated.View
                   key={cell.date}
+                  entering={
+                    reduceMotion
+                      ? undefined
+                      : FadeIn.delay(wIdx * 30).duration(300).withInitialValues({ transform: [{ scale: 0.7 }] })
+                  }
                   style={[
                     styles.cell,
                     {
@@ -117,13 +132,13 @@ export function HabitHeatmap({ activities, completions, todayIso }: HabitHeatmap
       </ScrollView>
       <View style={styles.scaleRow}>
         <Text variant="labelSmall" style={{ color: COLORS.textTertiary }}>
-          Méně
+          {t.stats.less}
         </Text>
         {GREEN_LEVELS.map((c, i) => (
           <View key={i} style={[styles.scaleCell, { backgroundColor: c }]} />
         ))}
         <Text variant="labelSmall" style={{ color: COLORS.textTertiary }}>
-          Více
+          {t.stats.more}
         </Text>
       </View>
     </View>

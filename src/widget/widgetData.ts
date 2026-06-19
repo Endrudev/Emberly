@@ -9,6 +9,7 @@ import {
 } from '@/domain/streaks';
 import { dowOf, mondayOfIso, parseIsoDate, todayIso, weekDates, isDayScheduled, daysToMask } from '@/domain/week';
 import { getNextBadge } from './badgeMilestones';
+import { resolveWidgetLanguage, widgetStrings } from './widgetI18n';
 import {
   WIDGET_PAGE_SIZE,
   type WidgetData,
@@ -16,11 +17,20 @@ import {
   type WidgetWeekDay,
 } from './widgetTypes';
 
-const DAY_LABELS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'] as const;
-
 const CELEBRATION_MS = 8_000;
 const CELEBRATION_KEY = '@widget_celebration';
 const STATE_CACHE_KEY = '@widget_state';
+
+export async function expireCelebration(): Promise<void> {
+  const raw = await AsyncStorage.getItem(CELEBRATION_KEY);
+  if (!raw) return;
+  try {
+    const { date } = JSON.parse(raw) as { date: string };
+    await AsyncStorage.setItem(CELEBRATION_KEY, JSON.stringify({ expires: 0, date }));
+  } catch {
+    await AsyncStorage.removeItem(CELEBRATION_KEY);
+  }
+}
 
 export async function getCelebrationRemainingMs(): Promise<number> {
   const raw = await AsyncStorage.getItem(CELEBRATION_KEY);
@@ -45,6 +55,8 @@ export async function getCachedWidgetState(): Promise<WidgetData | null> {
 
 export async function getWidgetData(page = 0): Promise<WidgetData> {
   const today = todayIso();
+  const lang = await resolveWidgetLanguage();
+  const dayLabels = widgetStrings[lang].dayLabels;
 
   const [allActivities, allCompletions] = await Promise.all([
     activityRepo.listActive(),
@@ -103,17 +115,6 @@ export async function getWidgetData(page = 0): Promise<WidgetData> {
         await AsyncStorage.removeItem(CELEBRATION_KEY);
       }
     }
-  } else {
-    // Pokud uživatel odznačí aktivitu — smaž záznam aby celebration šla znovu
-    const raw = await AsyncStorage.getItem(CELEBRATION_KEY);
-    if (raw) {
-      try {
-        const { date } = JSON.parse(raw) as { date: string };
-        if (date === today) await AsyncStorage.removeItem(CELEBRATION_KEY);
-      } catch {
-        await AsyncStorage.removeItem(CELEBRATION_KEY);
-      }
-    }
   }
 
   // Stránkování návyků (widget nemá horizontální scroll → listujeme šipkami)
@@ -151,7 +152,7 @@ export async function getWidgetData(page = 0): Promise<WidgetData> {
       scheduledForDay.every((a) => completedForDay.has(a.id));
 
     return {
-      label: DAY_LABELS[i]!,
+      label: dayLabels[i]!,
       isCompleted: !isFuture && allScheduledDone,
       isToday,
       isFuture,
@@ -167,9 +168,11 @@ export async function getWidgetData(page = 0): Promise<WidgetData> {
     activities: pageActivities,
     page: safePage,
     totalPages,
+    totalTodayCount: todayActivities.length,
     weekDays,
     todayIso: today,
     allCompletedToday,
+    lang,
   };
 
   void AsyncStorage.setItem(STATE_CACHE_KEY, JSON.stringify(result));

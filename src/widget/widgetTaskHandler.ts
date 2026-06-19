@@ -3,15 +3,15 @@ import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
 import { completionRepo } from '@/data/completionRepo';
 import { MissionWidget, MissionWidget4x2 } from './MissionWidget';
-import { getCachedWidgetState, getCelebrationRemainingMs, getWidgetData } from './widgetData';
+import { expireCelebration, getCachedWidgetState, getCelebrationRemainingMs, getWidgetData } from './widgetData';
 import type { WidgetData } from './widgetTypes';
 
 function applyOptimisticToggle(cached: WidgetData, activityId: number, page: number): WidgetData {
   const activities = cached.activities.map((a) =>
     a.id === activityId ? { ...a, isCompleted: !a.isCompleted } : a,
   );
-  const allCompletedToday = activities.length > 0 && activities.every((a) => a.isCompleted);
-  return { ...cached, activities, page, allCompletedToday };
+  // Celebration je řízena časovačem v getWidgetData — nikdy ji nezobrazuj optimisticky
+  return { ...cached, activities, page, allCompletedToday: false };
 }
 
 function getWidgetComponent(widgetName: string) {
@@ -51,6 +51,12 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps): Promise<
       break;
 
     case 'WIDGET_CLICK': {
+      if (props.clickAction === 'CELEBRATION_DISMISS') {
+        await expireCelebration();
+        await renderAndAutoDismiss(props.renderWidget, 0, widgetName);
+        break;
+      }
+
       const clickData = (props.clickActionData ?? {}) as {
         activityId?: number;
         date?: string;

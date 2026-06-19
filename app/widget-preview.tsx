@@ -58,7 +58,9 @@ function usePreviewState(activities: WidgetActivityData[]) {
     activities: pageActivities,
     page: safePage,
     totalPages,
+    totalTodayCount: acts.length,
     allCompletedToday: acts.length > 0 && acts.every((a) => a.isCompleted),
+    lang: 'cs',
   };
 
   const onClick = ({ clickAction, clickActionData }: { clickAction: string; clickActionData?: any }) => {

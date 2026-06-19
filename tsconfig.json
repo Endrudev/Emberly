@@ -6,7 +6,6 @@
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": false,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

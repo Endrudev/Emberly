@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { t } from '@/i18n/cs';
+import { useTranslation } from '@/i18n';
 import { FONTS } from '@/ui/theme';
 import type { DayOfWeek } from '@/domain/types';
 
@@ -18,6 +18,9 @@ interface DayCheckboxProps {
   onPress: () => void;
 }
 
+// Static checkbox (weekly grid). No toggle animation by design — the dense
+// 7-per-row grid stays cheap to mount/scroll; the animated pop lives only on
+// the single Today checkbox (TodayActivityRow).
 function DayCheckboxImpl({
   day,
   completed,
@@ -27,36 +30,34 @@ function DayCheckboxImpl({
   disabled,
   onPress,
 }: DayCheckboxProps) {
+  const t = useTranslation();
   const label = t.days.abbr[day];
 
-  // Checkbox style:
-  // - completed  → filled with accent colour, white check
-  // - scheduled  → white with accent border
-  // - unscheduled → light gray, thin border
-  const boxBg = completed ? color : '#FFFFFF';
-  const boxBorder = completed ? color : scheduled ? color : '#DDDDDD';
-  const boxBorderWidth = completed ? 0 : scheduled ? 2 : 1;
+  // Border colour carries the meaning, not just opacity:
+  // - completed  → filled, no border
+  // - scheduled  → accent colour outline (this day is part of the plan)
+  // - unscheduled → faint neutral gray outline (habit isn't set for this day),
+  //   further dimmed by the Pressable's opacity below. Still tappable — a tap
+  //   logs a "bonus" completion outside the plan.
+  const boxBorder = completed ? color : scheduled ? color : '#E2E2E2';
+  const boxBorderWidth = completed ? 0 : scheduled ? 1.5 : 1;
 
-  // Day label style
   const labelColor = isToday ? color : '#999999';
-  const labelBg = isToday ? `${color}18` : 'transparent';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isToday && { backgroundColor: `${color}14` }]}>
       {/* Day label */}
-      <View style={[styles.labelWrap, { backgroundColor: labelBg }]}>
-        <Text
-          style={[
-            styles.label,
-            {
-              color: labelColor,
-              fontFamily: isToday ? FONTS.bold : FONTS.semiBold,
-            },
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
+      <Text
+        style={[
+          styles.label,
+          {
+            color: labelColor,
+            fontFamily: isToday ? FONTS.bold : FONTS.semiBold,
+          },
+        ]}
+      >
+        {label}
+      </Text>
 
       {/* Circular checkbox */}
       <Pressable
@@ -64,20 +65,23 @@ function DayCheckboxImpl({
         disabled={disabled}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: completed, disabled }}
-        accessibilityLabel={`${t.days.long[day]}${completed ? ', splněno' : ''}`}
+        accessibilityLabel={`${t.days.long[day]}${completed ? `, ${t.home.completedLabel}` : ''}`}
         style={({ pressed }) => [
-          styles.circle,
-          {
-            backgroundColor: boxBg,
-            borderColor: boxBorder,
-            borderWidth: boxBorderWidth,
-            opacity: pressed ? 0.7 : scheduled || completed ? 1 : 0.45,
-          },
+          { opacity: pressed ? 0.7 : scheduled || completed ? 1 : 0.7 },
         ]}
       >
-        {completed ? (
-          <MaterialCommunityIcons name="check" size={11} color="#FFFFFF" />
-        ) : null}
+        <View
+          style={[
+            styles.circle,
+            {
+              backgroundColor: completed ? color : 'transparent',
+              borderColor: boxBorder,
+              borderWidth: boxBorderWidth,
+            },
+          ]}
+        >
+          {completed ? <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" /> : null}
+        </View>
       </Pressable>
     </View>
   );
@@ -90,20 +94,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     gap: 6,
-  },
-  labelWrap: {
-    borderRadius: 8,
-    paddingHorizontal: 3,
-    paddingVertical: 2,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   label: {
     fontSize: 10.5,
     lineHeight: 14,
   },
   circle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

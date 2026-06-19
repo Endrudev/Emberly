@@ -12,30 +12,34 @@ import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { COLORS, activityPalette } from '@/ui/theme';
-import { t } from '@/i18n/cs';
+import { useTranslation } from '@/i18n';
+import type { Translation } from '@/i18n';
 
-// Preset habits users can pick during onboarding
-const PRESET_HABITS = [
-  { name: 'Chůze', emoji: '🚶', color: activityPalette[0]!.accent },
-  { name: 'Běh', emoji: '🏃', color: activityPalette[2]!.accent },
-  { name: 'Voda', emoji: '💧', color: activityPalette[10]!.accent },
-  { name: 'Cvičení', emoji: '💪', color: activityPalette[1]!.accent },
-  { name: 'Čtení', emoji: '📚', color: activityPalette[4]!.accent },
-  { name: 'Meditace', emoji: '🧘', color: activityPalette[3]!.accent },
-  { name: 'Spánek', emoji: '😴', color: activityPalette[9]!.accent },
-  { name: 'Zdravé jídlo', emoji: '🥗', color: activityPalette[5]!.accent },
+type PresetHabitKey = keyof Translation['onboarding']['presetHabits'];
+
+// Preset habits users can pick during onboarding — name resolved per-language
+// at render time via `presetHabits[key]` so the saved Activity.name matches
+// the active app language, not just the UI label.
+const PRESET_HABITS: { key: PresetHabitKey; emoji: string; color: string }[] = [
+  { key: 'walk', emoji: '🚶', color: activityPalette[0]!.accent },
+  { key: 'run', emoji: '🏃', color: activityPalette[2]!.accent },
+  { key: 'water', emoji: '💧', color: activityPalette[10]!.accent },
+  { key: 'exercise', emoji: '💪', color: activityPalette[1]!.accent },
+  { key: 'reading', emoji: '📚', color: activityPalette[4]!.accent },
+  { key: 'meditation', emoji: '🧘', color: activityPalette[3]!.accent },
+  { key: 'sleep', emoji: '😴', color: activityPalette[9]!.accent },
+  { key: 'healthyFood', emoji: '🥗', color: activityPalette[5]!.accent },
 ];
 
-// Mock week preview data for step 2
-const MOCK_ACTIVITIES = [
-  { name: 'Chůze', emoji: '🚶', color: activityPalette[0]!.accent, done: [true, true, true, true, true, true, false] },
-  { name: 'Cvičení', emoji: '💪', color: activityPalette[1]!.accent, done: [true, true, true, true, true, true, false] },
-  { name: 'Meditace', emoji: '🧘', color: activityPalette[3]!.accent, done: [true, true, true, true, false, false, false] },
+// Mock week preview data for step 2 — display-only, never saved.
+const MOCK_ACTIVITIES: { key: PresetHabitKey; emoji: string; color: string; done: boolean[] }[] = [
+  { key: 'walk', emoji: '🚶', color: activityPalette[0]!.accent, done: [true, true, true, true, true, true, false] },
+  { key: 'exercise', emoji: '💪', color: activityPalette[1]!.accent, done: [true, true, true, true, true, true, false] },
+  { key: 'meditation', emoji: '🧘', color: activityPalette[3]!.accent, done: [true, true, true, true, false, false, false] },
 ];
-
-const DAY_LABELS = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
 
 export default function OnboardingScreen() {
+  const t = useTranslation();
   const router = useRouter();
   const createActivity = useAppStore((s) => s.createActivity);
   const completeOnboarding = useSettingsStore((s) => s.completeOnboarding);
@@ -60,7 +64,7 @@ export default function OnboardingScreen() {
         const h = PRESET_HABITS[idx];
         if (!h) continue;
         await createActivity({
-          name: h.name,
+          name: t.onboarding.presetHabits[h.key],
           emoji: h.emoji,
           color: h.color,
           scheduledDays: [0, 1, 2, 3, 4, 5, 6], // every day
@@ -120,12 +124,12 @@ export default function OnboardingScreen() {
           <Text style={styles.subtitle}>{t.onboarding.step2Subtitle}</Text>
           <View style={styles.mockActivities}>
             {MOCK_ACTIVITIES.map((a) => (
-              <View key={a.name} style={[styles.mockCard, { backgroundColor: `${a.color}18` }]}>
+              <View key={a.key} style={[styles.mockCard, { backgroundColor: `${a.color}18` }]}>
                 <View style={styles.mockCardHeader}>
                   <View style={[styles.mockEmojiBubble, { backgroundColor: `${a.color}28` }]}>
                     <Text style={{ fontSize: 20 }}>{a.emoji}</Text>
                   </View>
-                  <Text style={styles.mockCardName}>{a.name}</Text>
+                  <Text style={styles.mockCardName}>{t.onboarding.presetHabits[a.key]}</Text>
                 </View>
                 <View style={styles.mockDays}>
                   {a.done.map((done, i) => (
@@ -166,7 +170,7 @@ export default function OnboardingScreen() {
                 const isSelected = selected.has(idx);
                 return (
                   <Pressable
-                    key={h.name}
+                    key={h.key}
                     onPress={() => toggleHabit(idx)}
                     style={[
                       styles.habitChip,
@@ -175,7 +179,7 @@ export default function OnboardingScreen() {
                   >
                     <Text style={styles.habitChipEmoji}>{h.emoji}</Text>
                     <Text style={[styles.habitChipName, isSelected && { color: h.color }]}>
-                      {h.name}
+                      {t.onboarding.presetHabits[h.key]}
                     </Text>
                     {isSelected ? (
                       <View style={[styles.chipCheck, { backgroundColor: h.color }]}>

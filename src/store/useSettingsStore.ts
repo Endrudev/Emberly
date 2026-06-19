@@ -4,12 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type AppTheme = 'system' | 'light' | 'dark';
 export type WeekStart = 'monday' | 'sunday';
+export type AppLanguage = 'auto' | 'cs' | 'en';
 
 interface SettingsState {
   /** Hydration flag — false until AsyncStorage rehydration finishes. */
   _hasHydrated: boolean;
   onboardingCompleted: boolean;
   theme: AppTheme;
+  language: AppLanguage;
   weekStart: WeekStart;
   /** User display name (initials shown in profile). */
   userName: string;
@@ -21,6 +23,7 @@ interface SettingsState {
   setHasHydrated: (v: boolean) => void;
   completeOnboarding: () => void;
   setTheme: (t: AppTheme) => void;
+  setLanguage: (l: AppLanguage) => void;
   setWeekStart: (w: WeekStart) => void;
   setUserName: (name: string) => void;
   setTrackingSince: (ms: number) => void;
@@ -32,7 +35,8 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       _hasHydrated: false,
       onboardingCompleted: false,
-      theme: 'system',
+      theme: 'light',
+      language: 'auto',
       weekStart: 'monday',
       userName: '',
       trackingSinceMs: null,
@@ -42,6 +46,7 @@ export const useSettingsStore = create<SettingsState>()(
       completeOnboarding: () =>
         set({ onboardingCompleted: true, trackingSinceMs: Date.now() }),
       setTheme: (t) => set({ theme: t }),
+      setLanguage: (l) => set({ language: l }),
       setWeekStart: (w) => set({ weekStart: w }),
       setUserName: (name) => set({ userName: name }),
       setTrackingSince: (ms) => set({ trackingSinceMs: ms }),

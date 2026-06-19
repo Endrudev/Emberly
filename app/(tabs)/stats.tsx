@@ -1,13 +1,21 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { CircularProgress } from '@/ui/components/CircularProgress';
 import { HabitHeatmap } from '@/ui/components/HabitHeatmap';
+import { CountUpText } from '@/ui/anim/CountUpText';
+import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import {
   computeWeekProgress,
   computeActivityStats,
@@ -15,10 +23,43 @@ import {
 } from '@/domain/streaks';
 import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn } from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
-import { t } from '@/i18n/cs';
+import { useTranslation } from '@/i18n';
+
+/** Grows a single "by habit" bar from 0 to its width, staggered by row index. */
+function AnimatedBarFill({
+  pct,
+  delay,
+  color,
+  trackColor,
+  reduceMotion,
+}: {
+  pct: number;
+  delay: number;
+  color: string;
+  trackColor: string;
+  reduceMotion: boolean;
+}) {
+  const width = useSharedValue(reduceMotion ? pct : 0);
+
+  useEffect(() => {
+    width.value = reduceMotion
+      ? pct
+      : withDelay(delay, withTiming(pct, { duration: 500 }));
+  }, [pct, delay, reduceMotion, width]);
+
+  const style = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+
+  return (
+    <View style={[styles.progressTrack, { backgroundColor: trackColor }]}>
+      <Animated.View style={[styles.progressFill, { backgroundColor: color }, style]} />
+    </View>
+  );
+}
 
 export default function StatsScreen() {
+  const t = useTranslation();
   const C = useAppTheme();
+  const reduceMotion = useReduceMotion();
 
   const activities = useAppStore((s) => s.activities);
   const completions = useAppStore((s) => s.completions);
@@ -69,7 +110,7 @@ export default function StatsScreen() {
               color={COLORS.primary}
               trackColor={C.isDark ? 'rgba(45,181,74,0.25)' : '#D4EED9'}
             >
-              <Text style={styles.summaryPct}>{progressPct}%</Text>
+              <CountUpText value={progressPct} suffix="%" style={styles.summaryPct} />
             </CircularProgress>
             <View style={styles.summaryText}>
               <Text style={[styles.summaryTitle, { color: C.text }]}>{summaryLabel}</Text>
@@ -106,13 +147,19 @@ export default function StatsScreen() {
                   <View style={styles.habitInfo}>
                     <View style={styles.habitLabelRow}>
                       <Text style={[styles.habitName, { color: C.text }]}>{activity.name}</Text>
-                      <Text style={[styles.habitPct, { color: activity.color }]}>{pct}%</Text>
-                    </View>
-                    <View style={[styles.progressTrack, { backgroundColor: C.progressTrack }]}>
-                      <View
-                        style={[styles.progressFill, { width: `${pct}%`, backgroundColor: activity.color }]}
+                      <CountUpText
+                        value={pct}
+                        suffix="%"
+                        style={[styles.habitPct, { color: activity.color }]}
                       />
                     </View>
+                    <AnimatedBarFill
+                      pct={pct}
+                      delay={i * 60}
+                      color={activity.color}
+                      trackColor={C.progressTrack}
+                      reduceMotion={reduceMotion}
+                    />
                   </View>
                 </View>
               );

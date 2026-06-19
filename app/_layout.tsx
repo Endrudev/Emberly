@@ -24,12 +24,14 @@ if (Platform.OS === 'android') {
 }
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { darkTheme, lightTheme } from '@/ui/theme';
+import { useTranslation } from '@/i18n';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
   const settings = useSettingsStore();
   const { ready, error } = useDbInit();
   const router = useRouter();
+  const t = useTranslation();
 
   const [fontsLoaded] = useFonts({
     DMSans_600SemiBold,
@@ -67,7 +69,7 @@ export default function RootLayout() {
               }}
             >
               <Text variant="titleMedium" style={{ color: theme.colors.error, textAlign: 'center' }}>
-                Chyba databáze: {error.message}
+                {t.common.dbError(error.message)}
               </Text>
             </View>
           ) : isLoading ? (
@@ -86,16 +88,21 @@ export default function RootLayout() {
               <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           ) : (
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: theme.colors.background },
+              }}
+            >
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="onboarding" />
               <Stack.Screen
                 name="activity/new"
-                options={{ presentation: 'modal', headerShown: true, title: 'Nová aktivita' }}
+                options={{ presentation: 'modal', headerShown: true, title: t.activity.newTitle }}
               />
               <Stack.Screen
                 name="activity/[id]"
-                options={{ presentation: 'modal', headerShown: true, title: 'Upravit aktivitu' }}
+                options={{ presentation: 'modal', headerShown: true, title: t.activity.editTitle }}
               />
             </Stack>
           )}

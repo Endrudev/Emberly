@@ -1,10 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 import { IconButton, Text, useTheme } from 'react-native-paper';
 import { format } from 'date-fns';
-import { cs } from 'date-fns/locale';
 
 import { parseIsoDate } from '@/domain/week';
-import { t } from '@/i18n/cs';
+import { useTranslation, useDateLocale } from '@/i18n';
 
 interface WeekHeaderProps {
   weekStartIso: string;
@@ -22,10 +21,12 @@ export function WeekHeader({
   onJumpToToday,
 }: WeekHeaderProps) {
   const theme = useTheme();
+  const t = useTranslation();
+  const dateLocale = useDateLocale();
   const start = parseIsoDate(weekStartIso);
   const end = parseIsoDate(weekStartIso);
   end.setDate(end.getDate() + 6);
-  const label = `${format(start, 'd. MMM', { locale: cs })} – ${format(end, 'd. MMM', { locale: cs })}`;
+  const label = `${format(start, 'd. MMM', { locale: dateLocale })} – ${format(end, 'd. MMM', { locale: dateLocale })}`;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>

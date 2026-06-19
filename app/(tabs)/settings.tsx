@@ -1,17 +1,17 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { TAB_BAR_SPACE } from './_layout';
 import { Switch, Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { cs as dateFnsCs } from 'date-fns/locale';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { COLORS, FONTS } from '@/ui/theme';
-import { t } from '@/i18n/cs';
+import { useTranslation, useDateLocale } from '@/i18n';
 
 // ─── Reusable settings row ────────────────────────────────────────────────────
 
@@ -71,23 +71,26 @@ function SettingsRow({
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
+  const t = useTranslation();
+  const dateLocale = useDateLocale();
   const C = useAppTheme();
+  const router = useRouter();
   const activities = useAppStore((s) => s.activities);
   const settings   = useSettingsStore();
 
   const trackingSince = useMemo(() => {
     if (settings.trackingSinceMs) {
-      return format(new Date(settings.trackingSinceMs), 'MMM yyyy', { locale: dateFnsCs });
+      return format(new Date(settings.trackingSinceMs), 'MMM yyyy', { locale: dateLocale });
     }
     if (activities.length > 0) {
       const earliest = activities.reduce(
         (min, a) => (a.createdAt < min ? a.createdAt : min),
         activities[0]!.createdAt,
       );
-      return format(new Date(earliest), 'MMM yyyy', { locale: dateFnsCs });
+      return format(new Date(earliest), 'MMM yyyy', { locale: dateLocale });
     }
     return null;
-  }, [settings.trackingSinceMs, activities]);
+  }, [settings.trackingSinceMs, activities, dateLocale]);
 
   const initials = useMemo(() => {
     const name = settings.userName.trim();
@@ -144,21 +147,29 @@ export default function SettingsScreen() {
             icon="🎨"
             iconBg="#F0EEFF"
             label={t.settings.appearance}
-            value={
-              settings.theme === 'dark'
-                ? t.settings.themeDark
-                : settings.theme === 'light'
-                  ? t.settings.themeLight
-                  : t.settings.themeSystem
-            }
+            value={C.isDark ? t.settings.themeDark : t.settings.themeLight}
             showArrow={false}
             right={
               <Switch
-                value={settings.theme === 'dark'}
+                value={C.isDark}
                 onValueChange={(v) => settings.setTheme(v ? 'dark' : 'light')}
                 color={COLORS.primary}
               />
             }
+          />
+          <SettingsRow
+            {...rowProps}
+            icon="🌐"
+            iconBg="#EEF4FF"
+            label={t.settings.language}
+            value={
+              settings.language === 'cs'
+                ? t.settings.languageCz
+                : settings.language === 'en'
+                  ? t.settings.languageEn
+                  : t.settings.languageAuto
+            }
+            onPress={() => router.push('/settings/language')}
           />
           <SettingsRow
             {...rowProps}

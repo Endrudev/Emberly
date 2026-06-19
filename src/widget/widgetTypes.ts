@@ -31,4 +31,8 @@ export interface WidgetData {
   weekDays: WidgetWeekDay[];
   todayIso: string;
   allCompletedToday: boolean;
+  /** Celkový počet návyků naplánovaných na dnes (pro celebration screen). */
+  totalTodayCount: number;
+  /** Jazyk widgetu — odvozen z app nastavení (settings.language) v okamžiku renderu. */
+  lang: 'cs' | 'en';
 }
