@@ -1,10 +1,11 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import type { Activity } from '@/domain/types';
 import { useAppStore } from '@/store/useAppStore';
@@ -19,10 +20,12 @@ import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 import { CountUpText } from '@/ui/anim/CountUpText';
 import { Celebration } from '@/ui/anim/Celebration';
+import { CardConfetti } from '@/ui/anim/CardConfetti';
 import { useCelebrationTrigger } from '@/ui/anim/useCelebrationTrigger';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import ReAnimated, {
   Extrapolation,
+  FadeInDown,
   interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -34,15 +37,42 @@ import ReAnimated, {
 import { tapLight } from '@/ui/anim/haptics';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 
+const SCREEN_W = Dimensions.get('window').width;
+const CARD_W = SCREEN_W - 32;
+
 // ── Header height constants (dp) ─────────────────────────────────────────────
-// Circle card: paddingVertical 15×2 + content ~62 ≈ 92, round up
-const CIRCLE_H = 96;
+// Circle card: paddingVertical 18×2 + ring 84 ≈ 120, round up
+const CIRCLE_H = 124;
 // Bar card: paddingVertical 12×2 + (label 13 + gap 10 + bar 6) ≈ 51, round up
 const BAR_H    = 56;
 // How far the header slides up as it collapses (= height it gives back).
 const COLLAPSE = CIRCLE_H - BAR_H;
 // Gap below the header before the list content starts.
 const HEADER_GAP = 8;
+
+type HeaderTier = 'start' | 'pace' | 'perfect';
+
+/** Diagonal gradient behind the whole header card — pale mint normally,
+ *  warm gold once the day/week is fully done. Clipped by headerZone's own
+ *  `overflow: hidden`, so no separate masking needed. */
+function HeaderGradient({ isPerfect, isDark }: { isPerfect: boolean; isDark: boolean }) {
+  const [from, to] = isPerfect
+    ? ['#FFD66B', '#F2994A']
+    : isDark
+      ? ['#1E2E20', '#16241A']
+      : ['#EAF8EE', '#D2EEDC'];
+  return (
+    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+      <Defs>
+        <LinearGradient id="homeHeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <Stop offset="0%" stopColor={from} />
+          <Stop offset="100%" stopColor={to} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeaderGrad)" />
+    </Svg>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -104,7 +134,6 @@ export default function HomeScreen() {
   const textPrimary = isDark ? '#F2F2F7' : '#1A1A1A';
   const textMuted   = isDark ? '#8E8E93' : '#999999';
   const textSec     = isDark ? '#ABABAB' : '#666666';
-  const cardBg      = isDark ? 'rgba(45,181,74,0.22)' : COLORS.primary;
 
   // ── Store ─────────────────────────────────────────────────────────────────
   const activities       = useAppStore((s) => s.activities);
@@ -185,11 +214,57 @@ export default function HomeScreen() {
   const headerCount  = isToday
     ? t.home.completedCount(todayCompletedCount, todayPlannedCount)
     : t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount);
-  const headerRatio  = isToday ? todayRatio : progressRatio;
-  const headerPct    = isToday ? todayPct   : progressPct;
-  const headerMeta   = isToday
-    ? (todayLeft > 0 ? `🔥 ${t.home.habitsLeftToday(todayLeft)}` : t.home.allDoneToday)
-    : t.home.completedLabel;
+  const headerRatio     = isToday ? todayRatio : progressRatio;
+  const headerPct       = isToday ? todayPct   : progressPct;
+  const headerCompleted = isToday ? todayCompletedCount : weekProgress.completedCount;
+  const headerPlanned   = isToday ? todayPlannedCount   : weekProgress.plannedCount;
+  const headerLeft      = Math.max(0, headerPlanned - headerCompleted);
+  const periodWord = isToday ? t.home.periodToday : t.home.periodThisWeek;
+  const periodNoun = isToday ? t.home.periodDayNoun : t.home.periodWeekNoun;
+
+  const headerTier: HeaderTier =
+    headerPlanned > 0 && headerPct >= 100 ? 'perfect' : headerPct >= 50 ? 'pace' : 'start';
+  const isHeaderPerfect = headerTier === 'perfect';
+
+  const tierEmoji = headerTier === 'pace' ? '🔥' : '🎉';
+  const tierTitle =
+    headerTier === 'perfect'
+      ? t.home.tierPerfectTitle(periodNoun)
+      : headerTier === 'pace'
+        ? t.home.tierPaceTitle
+        : t.home.tierStartTitle;
+
+  const summaryLine = t.home.summaryOfTotal(headerCompleted, headerPlanned, periodWord);
+  const subtextEmoji = isHeaderPerfect ? '🎉' : '🔥';
+  const subtextLine = isHeaderPerfect
+    ? t.home.summaryAllDoneSubtext(periodNoun)
+    : t.home.summaryLeftSubtext(headerLeft, periodNoun);
+
+  const headerTheme = isHeaderPerfect
+    ? {
+        ringColor: '#FFFFFF',
+        ringTrack: 'rgba(255,255,255,0.35)',
+        textPrimary: '#FFFFFF',
+        textSecondary: 'rgba(255,255,255,0.85)',
+        textTertiary: 'rgba(255,255,255,0.7)',
+        pillBg: 'rgba(255,255,255,0.25)',
+        pillText: '#FFFFFF',
+        barTrack: 'rgba(255,255,255,0.3)',
+        barFill: '#FFFFFF',
+        shadowColor: '#F2994A',
+      }
+    : {
+        ringColor: COLORS.primary,
+        ringTrack: isDark ? 'rgba(45,181,74,0.25)' : '#FFFFFF',
+        textPrimary: isDark ? '#F2F2F7' : '#1A1A1A',
+        textSecondary: isDark ? '#ABABAB' : '#5B7A60',
+        textTertiary: isDark ? '#8E8E93' : '#6E8F76',
+        pillBg: isDark ? '#2C2C2E' : '#FFFFFF',
+        pillText: COLORS.primary,
+        barTrack: isDark ? 'rgba(45,181,74,0.25)' : 'rgba(45,181,74,0.18)',
+        barFill: COLORS.primary,
+        shadowColor: COLORS.primary,
+      };
 
   // Stable row callbacks — id is passed as an argument so a single function
   // serves every row. Keeps React.memo on the rows effective: unrelated
@@ -521,46 +596,86 @@ export default function HomeScreen() {
         {headerVisible && (
           <ReAnimated.View style={[
             styles.headerZone,
-            { backgroundColor: cardBg },
+            { shadowColor: headerTheme.shadowColor },
             isDark && { elevation: 0, shadowOpacity: 0 },
             headerZoneAnimStyle,
           ]}>
+            <HeaderGradient isPerfect={isHeaderPerfect} isDark={isDark} />
+            <CardConfetti active={celebrating} width={CARD_W} height={CIRCLE_H} />
 
-            {/* ── State A: big circle progress card (anchored top) ── */}
+            {/* ── State A: ring + tiered message card (anchored top) ── */}
             <ReAnimated.View style={[styles.card, styles.circleCard, circleCardAnimStyle]}>
               <ReAnimated.View style={ringPopStyle}>
                 <CircularProgress
-                  size={56}
-                  strokeWidth={6}
+                  size={84}
+                  strokeWidth={9}
                   progress={headerRatio}
-                  color="#FFFFFF"
-                  trackColor="rgba(255,255,255,0.30)"
+                  color={headerTheme.ringColor}
+                  trackColor={headerTheme.ringTrack}
                 >
-                  <CountUpText value={headerPct} suffix="%" style={styles.circlePct} />
+                  <View style={styles.ringInner}>
+                    <CountUpText
+                      value={headerPct}
+                      suffix="%"
+                      style={[styles.ringPct, { color: headerTheme.textPrimary }]}
+                    />
+                    <Text style={[styles.ringFraction, { color: headerTheme.textTertiary }]}>
+                      {headerCompleted}/{headerPlanned}
+                    </Text>
+                  </View>
                 </CircularProgress>
               </ReAnimated.View>
 
               <View style={styles.circleText}>
-                <Text style={styles.heroLabel}>{headerLabel}</Text>
-                <Text style={styles.heroCount}>{headerCount}</Text>
-                <Text style={styles.heroMeta}>{headerMeta}</Text>
+                <ReAnimated.View
+                  key={headerTier}
+                  entering={reduceMotion ? undefined : FadeInDown.duration(280)}
+                >
+                  <View style={[styles.tierPill, { backgroundColor: headerTheme.pillBg }]}>
+                    <Text
+                      style={[styles.tierPillText, { color: headerTheme.pillText }]}
+                      numberOfLines={2}
+                    >
+                      {tierEmoji} {tierTitle}
+                    </Text>
+                  </View>
+                </ReAnimated.View>
+                <Text style={[styles.summaryLine, { color: headerTheme.textPrimary }]}>
+                  {summaryLine}
+                </Text>
+                <Text style={[styles.summarySubtext, { color: headerTheme.textSecondary }]}>
+                  {subtextEmoji} {subtextLine}
+                </Text>
               </View>
             </ReAnimated.View>
 
             {/* ── State B: compact bar (anchored bottom) ── */}
             <ReAnimated.View style={[styles.barCard, barCardAnimStyle]}>
               <View style={styles.barHeader}>
-                <Text style={styles.heroLabel}>{headerLabel}</Text>
+                <Text style={[styles.heroLabel, { color: headerTheme.textSecondary }]}>
+                  {headerLabel}
+                </Text>
                 {/* Sibling Texts — avoids nested-Text rendering quirks in RN */}
                 <View style={styles.barRight}>
-                  <Text style={styles.barCount}>{headerCount}</Text>
-                  <CountUpText value={headerPct} suffix="%" style={styles.barPct} />
+                  <Text style={[styles.barCount, { color: headerTheme.textPrimary }]}>
+                    {headerCount}
+                  </Text>
+                  <CountUpText
+                    value={headerPct}
+                    suffix="%"
+                    style={[styles.barPct, { color: headerTheme.textTertiary }]}
+                  />
                 </View>
               </View>
-              <View style={styles.progressTrack}>
+              <View style={[styles.progressTrack, { backgroundColor: headerTheme.barTrack }]}>
                 {/* No borderRadius on fill — at 1–4% width the rounded ends overlap
                     and the fill disappears. Parent overflow:hidden provides the clip. */}
-                <View style={[styles.progressFill, { width: `${headerPct}%` as `${number}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${headerPct}%` as `${number}%`, backgroundColor: headerTheme.barFill },
+                  ]}
+                />
               </View>
             </ReAnimated.View>
 
@@ -658,7 +773,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     height: CIRCLE_H,
-    borderRadius: 16,
+    borderRadius: 22,
     overflow: 'hidden',
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
@@ -667,49 +782,74 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
-  // Base card — no background/shadow, those are on headerZone
+  // Base card — no background/shadow, those are on headerZone. Spans the
+  // full headerZone height (top:0..bottom:0) so circleCard's `alignItems:
+  // 'center'` actually centers its content vertically instead of just
+  // hugging the top — otherwise growing CIRCLE_H leaves dead space below.
   card: {
     position: 'absolute',
     top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
   },
 
-  // State A: circle layout (row)
+  // State A: ring + tiered message card (row)
   circleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 18,
     paddingHorizontal: 18,
     gap: 16,
   },
-  circleText: { flex: 1 },
-  circlePct: {
-    fontSize: 15,
+  circleText: { flex: 1, gap: 6 },
+
+  // Ring centre: big "{pct}%" + small "{done}/{total}" fraction beneath.
+  ringInner: { alignItems: 'center' },
+  ringPct: {
+    fontSize: 21,
     fontFamily: FONTS.extraBold,
-    color: '#FFFFFF',
-    letterSpacing: -0.30,
+    letterSpacing: -0.4,
+    lineHeight: 24,
   },
+  ringFraction: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
+    marginTop: -1,
+  },
+
+  // Tiered message pill — narrow on purpose so 2-word titles wrap to two
+  // lines, matching the compact "badge" look from the reference design.
+  tierPill: {
+    alignSelf: 'flex-start',
+    maxWidth: 112,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 2,
+  },
+  tierPillText: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    lineHeight: 17,
+  },
+
+  summaryLine: {
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+    letterSpacing: -0.2,
+  },
+  summarySubtext: {
+    fontSize: 12.5,
+    fontFamily: FONTS.semiBold,
+  },
+
   heroLabel: {
     fontSize: 11,
     fontFamily: FONTS.bold,
-    color: 'rgba(255,255,255,0.75)',
     letterSpacing: 0.88,
     textTransform: 'uppercase',
     marginBottom: 2,
-  },
-  heroCount: {
-    fontSize: 23,
-    fontFamily: FONTS.extraBold,
-    color: '#FFFFFF',
-    letterSpacing: -0.46,
-    lineHeight: 27,
-  },
-  heroMeta: {
-    fontSize: 12,
-    fontFamily: FONTS.semiBold,
-    color: 'rgba(255,255,255,0.68)',
-    marginTop: 2,
   },
 
   // State B: bar layout (column) — anchored to the BOTTOM of the header so it
@@ -737,23 +877,19 @@ const styles = StyleSheet.create({
   barCount: {
     fontSize: 14,
     fontFamily: FONTS.extraBold,
-    color: '#FFFFFF',
     letterSpacing: -0.28,
   },
   barPct: {
     fontSize: 12,
     fontFamily: FONTS.semiBold,
-    color: 'rgba(255,255,255,0.70)',
   },
   progressTrack: {
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
     // No borderRadius — at 1–4 % the rounded ends overlap and the fill
     // visually disappears. The parent's overflow:hidden + borderRadius
     // already clips the left edge cleanly.

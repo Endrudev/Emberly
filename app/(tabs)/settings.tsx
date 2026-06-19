@@ -1,17 +1,21 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { TAB_BAR_SPACE } from './_layout';
-import { Switch, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation, useDateLocale } from '@/i18n';
+import { AnimatedToggle } from '@/ui/components/AnimatedToggle';
+import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
+import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 
 // ─── Reusable settings row ────────────────────────────────────────────────────
 
@@ -105,14 +109,34 @@ export default function SettingsScreen() {
   // Shared props passed to every SettingsRow for dark mode adaptation
   const rowProps = { isDark: C.isDark, border: C.border, rowPressedBg: C.rowPressed };
 
+  // ── Light/dark cross-fade — avoids a hard flash when the theme switches ──
+  const reduceMotion = useReduceMotion();
+  const themeProgress = useSharedValue(C.isDark ? 1 : 0);
+  useEffect(() => {
+    const target = C.isDark ? 1 : 0;
+    themeProgress.value = reduceMotion ? target : withTiming(target, { duration: 250 });
+  }, [C.isDark, reduceMotion, themeProgress]);
+
+  const bgAnimStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(themeProgress.value, [0, 1], ['#ECEDE8', '#1C1C1E']),
+  }));
+  const surfaceAnimStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(themeProgress.value, [0, 1], ['#FFFFFF', '#2C2C2E']),
+  }));
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: C.BG }]}>
+    <SafeAreaView style={styles.safe}>
+      <Animated.View style={[styles.safe, bgAnimStyle]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         <Text style={[styles.pageTitle, { color: C.text }]}>{t.settings.title}</Text>
 
         {/* ── Profile card ── */}
-        <Pressable style={[styles.profileCard, { backgroundColor: C.surface }]} onPress={() => {}}>
+        <AnimatedPressable
+          style={[styles.profileCard, surfaceAnimStyle]}
+          hapticStyle="none"
+          onPress={() => {}}
+        >
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
@@ -127,20 +151,20 @@ export default function SettingsScreen() {
             ) : null}
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={C.isDark ? '#555' : '#CCC'} />
-        </Pressable>
+        </AnimatedPressable>
 
         {/* ── Preferences ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
           {t.settings.preferencesSection}
         </Text>
-        <View style={[styles.section, { backgroundColor: C.surface }]}>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
             icon="🔔"
             iconBg="#FFF0E8"
             label={t.settings.reminders}
             showArrow={false}
-            right={<Switch value={false} onValueChange={() => {}} color={COLORS.primary} />}
+            right={<AnimatedToggle value={false} onValueChange={() => {}} />}
           />
           <SettingsRow
             {...rowProps}
@@ -150,10 +174,9 @@ export default function SettingsScreen() {
             value={C.isDark ? t.settings.themeDark : t.settings.themeLight}
             showArrow={false}
             right={
-              <Switch
+              <AnimatedToggle
                 value={C.isDark}
                 onValueChange={(v) => settings.setTheme(v ? 'dark' : 'light')}
-                color={COLORS.primary}
               />
             }
           />
@@ -180,13 +203,13 @@ export default function SettingsScreen() {
             onPress={() => {}}
             isLast
           />
-        </View>
+        </Animated.View>
 
         {/* ── Goals ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
           {t.settings.goalsSection}
         </Text>
-        <View style={[styles.section, { backgroundColor: C.surface }]}>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
             icon="🔥"
@@ -204,13 +227,13 @@ export default function SettingsScreen() {
             onPress={() => {}}
             isLast
           />
-        </View>
+        </Animated.View>
 
         {/* ── Data ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
           {t.settings.dataSection}
         </Text>
-        <View style={[styles.section, { backgroundColor: C.surface }]}>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow {...rowProps} icon="📤" iconBg="#E8F7EB" label={t.settings.exportData} onPress={() => {}} />
           <SettingsRow {...rowProps} icon="📥" iconBg="#E8F4FE" label={t.settings.importData} onPress={() => {}} />
           <SettingsRow
@@ -221,11 +244,11 @@ export default function SettingsScreen() {
             onPress={() => {}}
             isLast
           />
-        </View>
+        </Animated.View>
 
         {/* ── About ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>
-        <View style={[styles.section, { backgroundColor: C.surface }]}>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
             icon="ℹ️"
@@ -235,9 +258,10 @@ export default function SettingsScreen() {
             showArrow={false}
             isLast
           />
-        </View>
+        </Animated.View>
 
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }

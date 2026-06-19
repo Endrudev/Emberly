@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -30,6 +30,8 @@ interface ActivityRowProps {
   onDelete?: (activityId: number) => void;
   /** Adapts card surface + text colours to dark theme. */
   isDark?: boolean;
+  /** Overrides the card's outer margin — used by the activity form's live preview. */
+  style?: StyleProp<ViewStyle>;
 }
 
 function ActivityRowImpl({
@@ -44,6 +46,7 @@ function ActivityRowImpl({
   onEdit,
   onDelete,
   isDark = false,
+  style,
 }: ActivityRowProps) {
   const t = useTranslation();
   const reduceMotion = useReduceMotion();
@@ -80,7 +83,7 @@ function ActivityRowImpl({
       onLongPress={!editMode && onOpen ? () => onOpen(activity.id) : undefined}
       delayLongPress={400}
       android_ripple={{ color: `${activity.color}18` }}
-      style={[styles.card, { backgroundColor: cardBg }]}
+      style={[styles.card, { backgroundColor: cardBg }, style]}
       accessibilityRole="button"
       accessibilityLabel={activity.name}
     >

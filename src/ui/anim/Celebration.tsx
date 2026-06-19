@@ -19,7 +19,7 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 /** Total overlay lifetime — parent unmounts us after this (spec: ≤ 1.5s). */
 const DURATION = 1500;
 const PIECE_COUNT = 80;
-const FALLBACK_PALETTE = ['#2DB54A', '#FF8C42', '#4AABF5', '#F5C04A', '#E85D9E'];
+export const CONFETTI_FALLBACK_PALETTE = ['#2DB54A', '#FF8C42', '#4AABF5', '#F5C04A', '#E85D9E'];
 
 interface CelebrationProps {
   /** Activity colours used to tint the confetti. */
@@ -30,7 +30,7 @@ interface CelebrationProps {
   onDone: () => void;
 }
 
-interface Piece {
+export interface ConfettiPieceData {
   key: number;
   x: number;
   color: string;
@@ -41,8 +41,36 @@ interface Piece {
   duration: number;
 }
 
+/** Random confetti pieces scattered across `width` — reused by any confetti
+ *  burst (full-screen celebration here, or a smaller scoped one elsewhere). */
+export function makeConfettiPieces(
+  count: number,
+  width: number,
+  palette: string[],
+): ConfettiPieceData[] {
+  const colours = palette.length > 0 ? palette : CONFETTI_FALLBACK_PALETTE;
+  return Array.from({ length: count }, (_, i) => ({
+    key: i,
+    x: Math.random() * width,
+    color: colours[i % colours.length]!,
+    size: 8 + Math.random() * 8,
+    delay: Math.random() * 250,
+    drift: (Math.random() - 0.5) * 160,
+    spin: (Math.random() - 0.5) * 720,
+    duration: DURATION - 250 + Math.random() * 200,
+  }));
+}
+
 // ── Single falling confetti piece ───────────────────────────────────────────
-function ConfettiPiece({ piece }: { piece: Piece }) {
+/** `fallDistance` is how far down the piece travels — full screen height for
+ *  the big celebration, or a small card's height for a scoped burst. */
+export function ConfettiPiece({
+  piece,
+  fallDistance,
+}: {
+  piece: ConfettiPieceData;
+  fallDistance: number;
+}) {
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -55,7 +83,7 @@ function ConfettiPiece({ piece }: { piece: Piece }) {
   const style = useAnimatedStyle(() => {
     const p = progress.value;
     // Fall from above the top edge to just past the bottom.
-    const translateY = -40 + p * (SCREEN_H + 80);
+    const translateY = -40 + p * (fallDistance + 80);
     const translateX = p * piece.drift;
     const rotate = p * piece.spin;
     // Fade out over the last 15% of the fall.
@@ -88,19 +116,9 @@ function ConfettiPiece({ piece }: { piece: Piece }) {
 export function Celebration({ colors, message, onDone }: CelebrationProps) {
   const reduceMotion = useReduceMotion();
 
-  const pieces = useMemo<Piece[]>(() => {
+  const pieces = useMemo<ConfettiPieceData[]>(() => {
     if (reduceMotion) return [];
-    const palette = colors.length > 0 ? colors : FALLBACK_PALETTE;
-    return Array.from({ length: PIECE_COUNT }, (_, i) => ({
-      key: i,
-      x: Math.random() * SCREEN_W,
-      color: palette[i % palette.length]!,
-      size: 8 + Math.random() * 8,
-      delay: Math.random() * 250,
-      drift: (Math.random() - 0.5) * 160,
-      spin: (Math.random() - 0.5) * 720,
-      duration: DURATION - 250 + Math.random() * 200,
-    }));
+    return makeConfettiPieces(PIECE_COUNT, SCREEN_W, colors);
   }, [colors, reduceMotion]);
 
   // Banner: slide+fade in, hold, fade out — driven manually so timing is
@@ -138,7 +156,7 @@ export function Celebration({ colors, message, onDone }: CelebrationProps) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {pieces.map((p) => (
-        <ConfettiPiece key={p.key} piece={p} />
+        <ConfettiPiece key={p.key} piece={p} fallDistance={SCREEN_H} />
       ))}
 
       <Animated.View style={[styles.bannerWrap, bannerStyle]}>

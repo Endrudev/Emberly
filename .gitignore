@@ -44,3 +44,7 @@ src/db/migrations/meta/_journal.json.bak
 
 # Tests
 coverage/
+
+# Trello e-mail integrace (obsahuje tajný board token)
+scripts/trello.local.json
+scripts/_trello_tasks.json

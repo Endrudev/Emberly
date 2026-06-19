@@ -1,20 +1,28 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { ActivityIndicator, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ActivityIndicator, Text } from 'react-native-paper';
 
 import { ActivityForm, type ActivityFormHandle } from '@/ui/components/ActivityForm';
 import { useAppStore } from '@/store/useAppStore';
 import { useTranslation } from '@/i18n';
+import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
+import { COLORS, FONTS } from '@/ui/theme';
+
+const EMPTY_SET: ReadonlySet<string> = new Set();
 
 export default function NewActivityScreen() {
   const t = useTranslation();
-  const theme = useTheme();
   const router = useRouter();
   const createActivity = useAppStore((s) => s.createActivity);
   const formRef = useRef<ActivityFormHandle>(null);
   const [saving, setSaving] = useState(false);
+
+  const today = todayIsoFn();
+  const currentWeekDates = useMemo(
+    () => weekDates(parseIsoDate(mondayOfIso(parseIsoDate(today)))),
+    [today],
+  );
 
   return (
     <>
@@ -27,13 +35,15 @@ export default function NewActivityScreen() {
               disabled={saving}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel={t.common.save}
+              accessibilityLabel={t.common.done}
               style={{ paddingHorizontal: 12 }}
             >
               {saving ? (
-                <ActivityIndicator size={20} />
+                <ActivityIndicator size={18} color={COLORS.primary} />
               ) : (
-                <MaterialCommunityIcons name="check" size={24} color={theme.colors.primary} />
+                <Text style={{ color: COLORS.primary, fontFamily: FONTS.bold, fontSize: 16 }}>
+                  {t.common.done}
+                </Text>
               )}
             </Pressable>
           ),
@@ -41,6 +51,12 @@ export default function NewActivityScreen() {
       />
       <ActivityForm
         ref={formRef}
+        preview={{
+          weekDates: currentWeekDates,
+          todayIso: today,
+          completedByDate: EMPTY_SET,
+          currentStreak: 0,
+        }}
         onSubmittingChange={setSaving}
         onSubmit={async (values) => {
           await createActivity(values);
