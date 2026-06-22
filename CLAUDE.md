@@ -168,13 +168,38 @@ Balíček je v `dependencies` jako `react-native-web@^0.21.0`.
 ⚠️ Verze musí být `0.5.1` — novější (0.9.x) není kompatibilní s reanimated 4.1.7.
 Babel plugin `react-native-reanimated/plugin` interně dělá `require('react-native-worklets/plugin')`.
 
-### Expo Go vs dev build
-- **Expo Go**: funguje pro UI, navigaci, DB, seed data, onboarding
-- **Dev build** (`npx expo run:android`): potřeba pro notification action buttony a plné testování notifikací
+### Animace — žádný spring/bounce na press feedback
+`AnimatedToggle` i `AnimatedPressable` (sdílené napříč appkou) používají na press-out/release
+**`withTiming` + `Easing.out`, ne `withSpring`**. Důvod: nedotlumený spring (`damping`/`stiffness`
+poměr < 1) viditelně "kýval" při každém uvolnění tlačítka. Pokud přidáváš novou animovanou
+komponentu s touch feedbackem, dodržuj stejné pravidlo — smooth ease, žádný overshoot.
 
-### Onboarding flow
-`app/onboarding.tsx` se zobrazí při prvním spuštění. Stav uložen v `useSettingsStore`
-(Zustand persist → AsyncStorage). Výběr aktivit v onboardingu vytvoří seed aktivity v DB.
+### Expo Go vs dev build
+- **Expo Go**: funguje pro UI, navigaci, DB, seed data, onboarding funnel
+- **Dev build** (`npx expo run:android`): potřeba pro notification action buttony, plné testování notifikací a **widget** (`react-native-android-widget`, `widget-pin`)
+- ⚠️ **Custom native moduly v Expo Go = crash při importu, ne při použití.** `react-native-android-widget` (na new architecture) a vlastní `widget-pin` modul dělají `TurboModuleRegistry.getEnforcing(...)`, což vyhodí synchronní chybu **hned při `require`**, ne až při zavolání funkce. Pokud je takový import na top-level nějakého souboru, který se eagerly importuje (typicky `app/_layout.tsx`), spadne **celý root layout při startu appky** — vypadá to jako "appka se nenačte", ne jako chyba konkrétní funkce.
+  **Řešení:** `require()` (ne statický `import`) uvnitř `try/catch`, voláno lazy (až při skutečném použití, ne na modulu top-level). Viz `app/_layout.tsx` (registrace widget task handleru), `src/widget/pinWidget.ts`, `src/ui/components/WidgetShowcasePreview.tsx`.
+
+### Onboarding funnel
+Dlouhý personalizovaný funnel (`app/funnel/` + `src/funnel/`) nahradil starý 3-krokový
+`app/onboarding.tsx`. Step-machine: `FUNNEL_STEPS` pole v `src/funnel/steps/index.ts` určuje
+pořadí obrazovek, `FunnelEngine.tsx` drží aktuální index (persistovaný přes `useFunnelStore`,
+resume po zabití appky), `FunnelScreen.tsx` je sdílená kostra (progress bar + CTA).
+- **Dočasné odpovědi** žijí v `useFunnelStore` (zustand persist), aplikují se na appku
+  (seed návyků, `reminderTime`) až na konci (`applyFunnelAnswers.ts`), pak se store resetuje.
+  Store má vlastní `merge` funkci — při změně tvaru `FunnelAnswers` (nové pole) by jinak starý
+  persistovaný záznam způsobil `undefined.length` crash; merge doplní chybějící klíče z defaultů.
+- **Progress bar přežívá remount mezi kroky** přes modulovou `makeMutable` shared value
+  (`src/funnel/funnelProgress.ts`) — `useSharedValue` uvnitř `FunnelScreen` by se jinak při
+  každém přechodu (i zpět) inicializoval znovu na 0.
+- **Dev-only reset**: Nastavení → "Restartovat onboarding (dev)" (`__DEV__` gated) nastaví
+  `onboardingCompleted = false` a přesměruje na `/funnel` — bez něj je nutné mazat celé úložiště
+  appky, aby šel funnel projít znovu (tlačítko "Resetovat všechna data" maže jen DB, ne tenhle flag).
+- **Emberly assety** (`assets/emberly/*.png`) měly vpečený checkerboard vzor jako opaque pixely
+  (žádný alfa kanál, `mode: RGB`) — vypadalo to jako "průhlednost" v náhledu, ale na zařízení to
+  byl viditelný box. Opraveno flood-fillem od okrajů obrázku (ne barevným prahováním, aby
+  nezmizely izolované bílé highlighty v očích apod.). Při dalším re-exportu z Figmy/AI nástroje
+  zkontrolovat, že frame/artboard nemá fill, a po exportu ověřit `mode` (musí být `RGBA`).
 
 ### Typografie — DM Sans (R3)
 Font: **DM Sans** (`@expo-google-fonts/dm-sans`), načítán v `app/_layout.tsx` přes `useFonts`.
@@ -272,10 +297,13 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 [x] R.  Redesign UI (nový design systém, 4 taby, pastelové karty, streak tier systém)
 [x] R2. Home screen redesign (Habit Radar mockup) — viz sekce "Design systém" níže
 [x] R3. DM Sans font + typography tokens + grouped activity card + #ECEDE8 BG
-[ ] 9.  Persistentní notifikace (Android)
+[x] 9.  Persistentní notifikace (Android) — lokální L1/L2 připomínky (src/notifications/)
+[x] 13. Onboarding funnel (17 obrazovek, 6 fází) — nahradil starý 3-krokový onboarding
+[x] 14. Android home screen widget (4×3 + 4×2) + pin-to-home (widget-pin modul)
 [ ] 10. Export/Import JSON
 [ ] 11. Nastavení (funkční — theme, week start, streak goal)
 [ ] 12. Polish (animace, haptika, a11y)
+[ ] 15. RevenueCat — nahradit placeholder paywall (krok 17 funnelu), monetizace
 ```
 
 ## Časté příkazy
