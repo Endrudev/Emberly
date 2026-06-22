@@ -33,9 +33,11 @@ interface HabitHeatmapProps {
   activities: Activity[];
   completions: Completion[];
   todayIso: string;
+  /** date-fns `weekStartsOn` (0=neděle, 1=pondělí) — určuje, kde sloupce týdnů začínají. */
+  weekStartsOn?: 0 | 1;
 }
 
-export function HabitHeatmap({ activities, completions, todayIso }: HabitHeatmapProps) {
+export function HabitHeatmap({ activities, completions, todayIso, weekStartsOn = 1 }: HabitHeatmapProps) {
   const reduceMotion = useReduceMotion();
   const t = useTranslation();
 
@@ -44,8 +46,8 @@ export function HabitHeatmap({ activities, completions, todayIso }: HabitHeatmap
     const completionSet = new Set(completions.map((c) => `${c.activityId}|${c.date}`));
     const today = parseISO(todayIso);
 
-    // Anchor = Monday of the current week
-    const anchor = startOfWeek(today, { weekStartsOn: 1 });
+    // Anchor = first day of the current week (per weekStartsOn)
+    const anchor = startOfWeek(today, { weekStartsOn });
     // Go back (WEEK_COUNT - 1) weeks
     const gridStart = addDays(anchor, -(WEEK_COUNT - 1) * 7);
 

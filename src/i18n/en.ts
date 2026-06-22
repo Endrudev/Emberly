@@ -148,6 +148,11 @@ export const en = {
     trackingSince: (since: string) => `Tracking since ${since}`,
     preferencesSection: 'PREFERENCES',
     reminders: 'Reminders',
+    reminderTimeLabel: 'Reminder time',
+    streakReminderLabel: 'Watch for an at-risk streak',
+    reminderPermissionDeniedTitle: 'Permission needed',
+    reminderPermissionDeniedBody:
+      'Reminders need notification permission. You can enable it anytime in your phone settings.',
     appearance: 'Appearance',
     appearanceLight: 'Light',
     appearanceDark: 'Dark',
@@ -155,6 +160,9 @@ export const en = {
     weekStartsOn: 'Week starts on',
     monday: 'Monday',
     sunday: 'Sunday',
+    weekStartChangeConfirmTitle: 'Change week start?',
+    weekStartChangeConfirmBody:
+      'Weekly streaks and stats may look different afterwards, since the week boundary shifts. We recommend setting this once, early on, and leaving it alone.',
     goalsSection: 'GOALS',
     streakGoal: 'Streak goal',
     streakGoalDays: (n: number) => `${n} days`,
@@ -168,6 +176,8 @@ export const en = {
     resetData: 'Reset all data',
     resetConfirmTitle: 'Delete all data?',
     resetConfirmBody: 'All activities and history will be permanently deleted.',
+    privacyPolicy: 'Privacy policy',
+    termsOfService: 'Terms of service',
     about: 'About',
     version: 'Version',
     theme: 'Theme',
@@ -180,29 +190,176 @@ export const en = {
     languageCz: 'Čeština',
     languageEn: 'English',
   },
-  onboarding: {
-    skip: 'Skip',
-    step1Title: 'Build habits,\nnot excuses.',
-    step1Subtitle:
-      'Mission Tracker helps you maintain a weekly rhythm — clearly, simply, and with purpose.',
-    step1Button: 'Get started',
-    step2Title: 'Your whole week,\nat a glance.',
-    step2Subtitle: 'Each habit shows the full week. Tap a day to check it off.',
-    step2Button: 'Continue',
-    step3Title: 'What do you want to track?',
-    step3Subtitle: 'Pick a few to start — you can add more anytime.',
-    step3Button: 'Continue',
-    step3Counter: (n: number) => `${n} selected · change anytime`,
-    presetHabits: {
-      walk: 'Walking',
-      run: 'Running',
-      water: 'Water',
-      exercise: 'Exercise',
-      reading: 'Reading',
-      meditation: 'Meditation',
-      sleep: 'Sleep',
-      healthyFood: 'Healthy food',
+  // Local scheduled reminders (daily + streak-at-risk) — in the mascot
+  // Ember's voice. NOT to be confused with `notification` below, which is
+  // the persistent ongoing status notification (different channel, purpose).
+  reminders: {
+    daily: [
+      "🔥 Ember's waiting — check off today!",
+      "Your day isn't done yet. Let's go 💪",
+      'A few minutes and today is in the bag. Ember believes in you 🌱',
+      "Hey, don't forget your habits today!",
+    ],
+    streakRisk: [
+      "🔥 Don't break your streak — today's still open!",
+      'Your streak is waiting — you can still save it today 🔥',
+    ],
+  },
+  // Long personalized onboarding funnel (replaces `onboarding`) — see vault
+  // `screens/onboarding-funnel.md`. Keys filled in incrementally per phase.
+  funnel: {
+    welcome: {
+      title: "Hi, I'm Emberly 🔥",
+      subtitle: 'Come build habits that last.',
+      cta: "Let's go",
     },
+    promise: {
+      title: "Most people quit. You won't.",
+      // TODO social-proof: nahradit reálnými před launchem
+      subtitle: 'People who finish setup keep a 30+ day streak.',
+      cta: 'I want that too',
+    },
+    categoriesStep: {
+      title: 'What do you want to build?',
+      subtitle: 'Pick what matters to you.',
+      cta: 'Continue',
+    },
+    categories: {
+      walking: 'Walking',
+      running: 'Running',
+      reading: 'Reading',
+      meditate: 'Meditate',
+      workout: 'Workout',
+    },
+    blockerStep: {
+      title: "What's stopped you before?",
+      cta: 'Continue',
+    },
+    blockers: {
+      forget: 'I forgot to log my habits',
+      loseMotivation: 'I lost motivation',
+      tooComplicated: 'It was too complicated',
+      stoppedTracking: 'I stopped tracking',
+      noTime: "I didn't have time",
+      noProgress: "I didn't see progress",
+      gaveUpFast: 'I gave up after a few days',
+    },
+    timeStep: {
+      title: 'When should we remind you about your habits?',
+      cta: 'Continue',
+    },
+    timeOptions: {
+      morning: 'Morning (8:00)',
+      afternoon: 'Afternoon (13:00)',
+      evening: 'Evening (19:00)',
+    },
+    habitCountStep: {
+      title: 'How many habits to start with?',
+      cta: 'Continue',
+    },
+    habitCountOptions: {
+      '1-2': '1–2',
+      '3-4': '3–4',
+      '5+': '5+',
+    },
+    goalStep: {
+      title: "What's your main goal?",
+      cta: 'Continue',
+    },
+    goals: {
+      healthier: 'Be healthier',
+      disciplined: 'Be more disciplined',
+      calmer: 'Be calmer',
+      productive: 'Be more productive',
+      fitness: 'Improve fitness',
+      betterRoutine: 'Build a better routine',
+      feelBetter: 'Feel better',
+    },
+    continueButton: 'Continue',
+    howItWorksStep: {
+      title: "It's simple.",
+      subtitle: 'Check the day → your streak grows → Emberly powers up.',
+      step1: 'Check off your habit',
+      step2: 'Watch your streak grow',
+      step3: 'Earn badges',
+    },
+    tierStep: {
+      title: 'Emberly grows with you.',
+      subtitle: 'From spark to legend. Every milestone is a new level.',
+    },
+    widgetStep: {
+      title: 'Keep it in sight.',
+      subtitle: 'Home-screen widget + a map of your effort.',
+    },
+    scienceStep: {
+      title: 'Habits take ~66 days.',
+      subtitle: "We'll guide you through every one.",
+      // TODO social-proof: nahradit reálnými před launchem
+      reviewCount: '12,000+ people already started',
+    },
+    projectionStep: {
+      title: "Here's where you'll be.",
+      subtitle: 'If you stay consistent.',
+      today: 'Today',
+      day30: 'Day 30',
+      day60: 'Day 60',
+      day90: 'Day 90',
+      bigNumber: '90 days 🔥',
+      caption: "Here's where you'll be, if you stick with it.",
+    },
+    pledgeStep: {
+      title: 'Are you in?',
+      subtitle: 'A few minutes a day. Your future self will thank you.',
+      cta: "I'm in 🔥",
+    },
+    notificationsStep: {
+      title: 'Emberly will remind you.',
+      subtitle: (time: string) => `Emberly will remind you at ${time}. No spam.`,
+      cta: 'Enable reminders',
+    },
+    buildingStep: {
+      building: 'Building your plan…',
+      ready: 'Your plan is ready! 🎉',
+    },
+    // Step 17 — PLACEHOLDER paywall (no real payment), replaced by RevenueCat Paywall.
+    paywallStep: {
+      freeTrialBanner: "You won't be charged now",
+      title: 'Unlock all of Ember.',
+      subtitle: '7 days free, then $39.99/year.',
+      valueStreakProtection: 'Streak protection',
+      valueUnlimitedHabits: 'Unlimited habits',
+      valueAllTiers: 'All streak tiers',
+      valueAdvancedStats: 'Advanced stats',
+      yearlyLabel: 'Yearly',
+      yearlyBadge: 'BEST VALUE',
+      yearlyPrice: '$39.99/year',
+      yearlyPricePerMonth: '≈ $3.33/month',
+      monthlyLabel: 'Monthly',
+      monthlyPrice: '$5.99/month',
+      cta: 'Start free trial',
+      restore: 'Restore purchase',
+      restoreNoneFound: 'No subscription found to restore.',
+      // TODO social-proof: nahradit reálnými před launchem
+      socialProof: '12,000+ people joined',
+      closeAccessibilityLabel: 'Close',
+    },
+  },
+  // Widget showcase in Settings + one-time nudge on Home.
+  widget: {
+    settingsRowLabel: 'Home screen widget',
+    showcaseTitle: 'Widget settings',
+    showcaseDescription:
+      "Check off habits right from your phone's home screen — your streak and today's progress stay in view.",
+    variant4x3Label: 'Full (4×3)',
+    variant4x2Label: 'Compact (4×2)',
+    addButton: 'Add',
+    pinFallbackTitle: 'Add the widget manually',
+    pinFallbackBody: 'Long-press your home screen → Widgets → Mission Tracker.',
+    nudgeTitle: '📲 Keep your habits on the home screen',
+    nudgeBody: 'One tap and you can check off habits right from your home screen.',
+    nudgeCta: 'Show me',
+    nudgeDismissAccessibilityLabel: 'Dismiss',
+    previewUnavailableInExpoGo: 'Widget preview is only available in a built app (not in Expo Go).',
   },
   notification: {
     channelName: 'Mission Tracker status',

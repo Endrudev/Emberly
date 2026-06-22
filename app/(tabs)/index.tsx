@@ -9,13 +9,19 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import type { Activity } from '@/domain/types';
 import { useAppStore } from '@/store/useAppStore';
+import { useSettingsStore, weekStartFlag } from '@/store/useSettingsStore';
 import { ActivityRow } from '@/ui/components/ActivityRow';
 import { TodayActivityRow } from '@/ui/components/TodayActivityRow';
 import { CircularProgress } from '@/ui/components/CircularProgress';
 import { ActivityActionSheet } from '@/ui/components/ActivityActionSheet';
 import { TAB_BAR_SPACE } from './_layout';
 import { dowOf, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
-import { computeWeekProgress, computeCurrentActivityStreak, toActivityForStreak } from '@/domain/streaks';
+import {
+  computeWeekProgress,
+  computeCurrentActivityStreak,
+  computeCurrentDailyStreak,
+  toActivityForStreak,
+} from '@/domain/streaks';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 import { CountUpText } from '@/ui/anim/CountUpText';
@@ -64,7 +70,7 @@ function HeaderGradient({ isPerfect, isDark }: { isPerfect: boolean; isDark: boo
   return (
     <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
       <Defs>
-        <LinearGradient id="homeHeaderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <LinearGradient id="homeHeaderGrad" x1="100%" y1="0%" x2="0%" y2="100%">
           <Stop offset="0%" stopColor={from} />
           <Stop offset="100%" stopColor={to} />
         </LinearGradient>
@@ -143,20 +149,40 @@ export default function HomeScreen() {
   const loadAll          = useAppStore((s) => s.loadAll);
   const toggleCompletion = useAppStore((s) => s.toggleCompletion);
   const deleteActivity   = useAppStore((s) => s.deleteActivity);
+  const goToCurrentWeek  = useAppStore((s) => s.goToCurrentWeek);
 
   useEffect(() => {
     if (!loaded) void loadAll();
   }, [loaded, loadAll]);
 
+  // ── Week-start setting — re-anchors week navigation whenever it changes,
+  // including the moment settings finish hydrating from AsyncStorage after
+  // cold boot (the store's initial currentWeekStart is Monday-anchored). ──
+  const weekStartSetting = useSettingsStore((s) => s.weekStart);
+  const weekStartsOn = weekStartFlag(weekStartSetting);
+  const prevWeekStartsOn = useRef(weekStartsOn);
+  useEffect(() => {
+    if (prevWeekStartsOn.current !== weekStartsOn) {
+      prevWeekStartsOn.current = weekStartsOn;
+      goToCurrentWeek(weekStartsOn);
+    }
+  }, [weekStartsOn, goToCurrentWeek]);
+
   const today = todayIsoFn();
   const currentWeekDates = useMemo(
-    () => weekDates(parseIsoDate(currentWeekStart)),
-    [currentWeekStart],
+    () => weekDates(parseIsoDate(currentWeekStart), weekStartsOn),
+    [currentWeekStart, weekStartsOn],
   );
 
   const weekProgress = useMemo(
-    () => computeWeekProgress(activities.map(toActivityForStreak), completions, currentWeekStart),
-    [activities, completions, currentWeekStart],
+    () =>
+      computeWeekProgress(
+        activities.map(toActivityForStreak),
+        completions,
+        currentWeekStart,
+        weekStartsOn,
+      ),
+    [activities, completions, currentWeekStart, weekStartsOn],
   );
 
   const progressRatio =
@@ -183,6 +209,16 @@ export default function HomeScreen() {
     }
     return map;
   }, [completions]);
+
+  // ── Widget nudge — one-time, shown once the user is hooked (daily streak
+  // >= 3), dismissed forever after closing or tapping through. ──────────────
+  const currentDailyStreak = useMemo(
+    () => computeCurrentDailyStreak(activities.map(toActivityForStreak), completions, today),
+    [activities, completions, today],
+  );
+  const widgetNudgeDismissed = useSettingsStore((s) => s.widgetNudgeDismissed);
+  const setWidgetNudgeDismissed = useSettingsStore((s) => s.setWidgetNudgeDismissed);
+  const showWidgetNudge = !widgetNudgeDismissed && currentDailyStreak >= 3;
 
   // ── Today-mode data ──────────────────────────────────────────────────────
   const todayDow = useMemo(() => dowOf(new Date()), []);
@@ -218,7 +254,6 @@ export default function HomeScreen() {
   const headerPct       = isToday ? todayPct   : progressPct;
   const headerCompleted = isToday ? todayCompletedCount : weekProgress.completedCount;
   const headerPlanned   = isToday ? todayPlannedCount   : weekProgress.plannedCount;
-  const headerLeft      = Math.max(0, headerPlanned - headerCompleted);
   const periodWord = isToday ? t.home.periodToday : t.home.periodThisWeek;
   const periodNoun = isToday ? t.home.periodDayNoun : t.home.periodWeekNoun;
 
@@ -235,10 +270,6 @@ export default function HomeScreen() {
         : t.home.tierStartTitle;
 
   const summaryLine = t.home.summaryOfTotal(headerCompleted, headerPlanned, periodWord);
-  const subtextEmoji = isHeaderPerfect ? '🎉' : '🔥';
-  const subtextLine = isHeaderPerfect
-    ? t.home.summaryAllDoneSubtext(periodNoun)
-    : t.home.summaryLeftSubtext(headerLeft, periodNoun);
 
   const headerTheme = isHeaderPerfect
     ? {
@@ -318,6 +349,17 @@ export default function HomeScreen() {
     tapLight();
     setEditMode((v) => !v);
   }, []);
+
+  const handleWidgetNudgeDismiss = useCallback(() => {
+    tapLight();
+    setWidgetNudgeDismissed(true);
+  }, [setWidgetNudgeDismissed]);
+
+  const handleWidgetNudgeCta = useCallback(() => {
+    tapLight();
+    setWidgetNudgeDismissed(true);
+    router.push('/settings/widget');
+  }, [setWidgetNudgeDismissed, router]);
 
   // ── 100% celebration ───────────────────────────────────────────────────────
   const reduceMotion = useReduceMotion();
@@ -537,21 +579,58 @@ export default function HomeScreen() {
           renderItem={renderItem}
           ListHeaderComponent={
             activities.length > 0 ? (
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: textMuted }]}>
-                  {t.home.habitsSection}
-                </Text>
-                <View style={styles.sectionRight}>
-                  <Text style={[styles.sectionCount, { color: textMuted }]}>
-                    {t.home.activeCount(isListToday ? todayPlannedCount : activities.length)}
+              <>
+                {showWidgetNudge ? (
+                  <ReAnimated.View
+                    entering={reduceMotion ? undefined : FadeInDown.duration(280)}
+                    style={[
+                      styles.widgetNudge,
+                      { backgroundColor: isDark ? '#1E2E20' : '#EAF8EE' },
+                    ]}
+                  >
+                    <View style={styles.widgetNudgeTextWrap}>
+                      <Text style={[styles.widgetNudgeTitle, { color: textPrimary }]}>
+                        {t.widget.nudgeTitle}
+                      </Text>
+                      <Text style={[styles.widgetNudgeBody, { color: textSec }]}>
+                        {t.widget.nudgeBody}
+                      </Text>
+                      <AnimatedPressable
+                        hapticStyle="none"
+                        style={styles.widgetNudgeCta}
+                        onPress={handleWidgetNudgeCta}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.widgetNudgeCtaText}>{t.widget.nudgeCta}</Text>
+                      </AnimatedPressable>
+                    </View>
+                    <AnimatedPressable
+                      hapticStyle="none"
+                      hitSlop={8}
+                      onPress={handleWidgetNudgeDismiss}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.widget.nudgeDismissAccessibilityLabel}
+                    >
+                      <MaterialCommunityIcons name="close" size={18} color={textMuted} />
+                    </AnimatedPressable>
+                  </ReAnimated.View>
+                ) : null}
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: textMuted }]}>
+                    {t.home.habitsSection}
                   </Text>
-                  <AnimatedPressable hapticStyle="none" hitSlop={8} onPress={handleToggleEditMode}>
-                    <Text style={[styles.editToggle, { color: COLORS.primary }]}>
-                      {editMode ? t.common.done : t.common.edit}
+                  <View style={styles.sectionRight}>
+                    <Text style={[styles.sectionCount, { color: textMuted }]}>
+                      {t.home.activeCount(isListToday ? todayPlannedCount : activities.length)}
                     </Text>
-                  </AnimatedPressable>
+                    <AnimatedPressable hapticStyle="none" hitSlop={8} onPress={handleToggleEditMode}>
+                      <Text style={[styles.editToggle, { color: COLORS.primary }]}>
+                        {editMode ? t.common.done : t.common.edit}
+                      </Text>
+                    </AnimatedPressable>
+                  </View>
                 </View>
-              </View>
+              </>
             ) : null
           }
           ListEmptyComponent={
@@ -642,9 +721,6 @@ export default function HomeScreen() {
                 </ReAnimated.View>
                 <Text style={[styles.summaryLine, { color: headerTheme.textPrimary }]}>
                   {summaryLine}
-                </Text>
-                <Text style={[styles.summarySubtext, { color: headerTheme.textSecondary }]}>
-                  {subtextEmoji} {subtextLine}
                 </Text>
               </View>
             </ReAnimated.View>
@@ -900,6 +976,44 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 4,
     paddingBottom: TAB_BAR_SPACE + 70,
+  },
+
+  // ── Widget nudge (one-time) ─────────────────────────────────────────────────
+  widgetNudge: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 18,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    padding: 16,
+    gap: 12,
+  },
+  widgetNudgeTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  widgetNudgeTitle: {
+    fontSize: 14.5,
+    fontFamily: FONTS.bold,
+  },
+  widgetNudgeBody: {
+    fontSize: 12.5,
+    fontFamily: FONTS.semiBold,
+    lineHeight: 17,
+  },
+  widgetNudgeCta: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+  },
+  widgetNudgeCtaText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontFamily: FONTS.bold,
   },
 
   // ── Section header ─────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
+  Easing,
   interpolateColor,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -27,9 +27,9 @@ interface AnimatedToggleProps {
 }
 
 /**
- * Drop-in replacement for Paper's <Switch> — knob slides with a spring
- * (rule 1: touch-reactive = spring), track colour cross-fades with a timing
- * (rule 1: colour/fade = timing). Haptic Light on toggle (rule 4).
+ * Drop-in replacement for Paper's <Switch> — knob slide and track colour
+ * both cross-fade on the same timing curve, no spring/bounce. Haptic Light
+ * on toggle (rule 4).
  */
 export function AnimatedToggle({
   value,
@@ -49,7 +49,7 @@ export function AnimatedToggle({
       knobX.value = targetX;
     } else {
       colorProgress.value = withTiming(targetColor, { duration: 180 });
-      knobX.value = withSpring(targetX, { damping: 15, stiffness: 150 });
+      knobX.value = withTiming(targetX, { duration: 180, easing: Easing.out(Easing.cubic) });
     }
   }, [value, reduceMotion, colorProgress, knobX]);
 

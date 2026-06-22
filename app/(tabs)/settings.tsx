@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { TAB_BAR_SPACE } from './_layout';
@@ -7,15 +7,29 @@ import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import * as Notifications from 'expo-notifications';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useAppStore } from '@/store/useAppStore';
-import { useSettingsStore } from '@/store/useSettingsStore';
+import { useSettingsStore, type WeekStart } from '@/store/useSettingsStore';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation, useDateLocale } from '@/i18n';
 import { AnimatedToggle } from '@/ui/components/AnimatedToggle';
+import { SegmentedPill } from '@/ui/components/SegmentedPill';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
+import { success, tapMedium } from '@/ui/anim/haptics';
+import { requestNotificationPermission } from '@/notifications/permissions';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
+
+/** "HH:mm" → Date dnešního dne s daným časem — vstup pro <DateTimePicker>. */
+function timeStringToDate(time: string): Date {
+  const [hourStr, minuteStr] = time.split(':');
+  const date = new Date();
+  date.setHours(Number(hourStr) || 0, Number(minuteStr) || 0, 0, 0);
+  return date;
+}
 
 // ─── Reusable settings row ────────────────────────────────────────────────────
 
@@ -80,7 +94,61 @@ export default function SettingsScreen() {
   const C = useAppTheme();
   const router = useRouter();
   const activities = useAppStore((s) => s.activities);
+  const resetAllData = useAppStore((s) => s.resetAllData);
   const settings   = useSettingsStore();
+
+  const handleResetData = useCallback(() => {
+    tapMedium();
+    Alert.alert(t.settings.resetConfirmTitle, t.settings.resetConfirmBody, [
+      { text: t.common.cancel, style: 'cancel' },
+      {
+        text: t.common.delete,
+        style: 'destructive',
+        onPress: () => {
+          void resetAllData().then(() => success());
+        },
+      },
+    ]);
+  }, [t, resetAllData]);
+
+  const [reminderTimePickerVisible, setReminderTimePickerVisible] = useState(false);
+
+  const handleToggleReminders = useCallback(
+    async (next: boolean) => {
+      if (!next) {
+        settings.setRemindersEnabled(false);
+        return;
+      }
+      const status = await requestNotificationPermission();
+      if (status === Notifications.PermissionStatus.GRANTED) {
+        settings.setRemindersEnabled(true);
+      } else {
+        Alert.alert(
+          t.settings.reminderPermissionDeniedTitle,
+          t.settings.reminderPermissionDeniedBody,
+        );
+      }
+    },
+    [t, settings],
+  );
+
+  const weekStartOptions: { key: WeekStart; label: string }[] = [
+    { key: 'monday', label: t.days.short[0] },
+    { key: 'sunday', label: t.days.short[6] },
+  ];
+
+  const handleChangeWeekStart = useCallback(
+    (next: WeekStart) => {
+      Alert.alert(t.settings.weekStartChangeConfirmTitle, t.settings.weekStartChangeConfirmBody, [
+        { text: t.common.cancel, style: 'cancel' },
+        {
+          text: t.common.confirm,
+          onPress: () => settings.setWeekStart(next),
+        },
+      ]);
+    },
+    [t, settings],
+  );
 
   const trackingSince = useMemo(() => {
     if (settings.trackingSinceMs) {
@@ -164,8 +232,38 @@ export default function SettingsScreen() {
             iconBg="#FFF0E8"
             label={t.settings.reminders}
             showArrow={false}
-            right={<AnimatedToggle value={false} onValueChange={() => {}} />}
+            right={
+              <AnimatedToggle
+                value={settings.remindersEnabled}
+                onValueChange={handleToggleReminders}
+              />
+            }
           />
+          {settings.remindersEnabled ? (
+            <>
+              <SettingsRow
+                {...rowProps}
+                icon="⏰"
+                iconBg="#FFF0E8"
+                label={t.settings.reminderTimeLabel}
+                value={settings.reminderTime}
+                onPress={() => setReminderTimePickerVisible(true)}
+              />
+              <SettingsRow
+                {...rowProps}
+                icon="🔥"
+                iconBg="#FFF0E8"
+                label={t.settings.streakReminderLabel}
+                showArrow={false}
+                right={
+                  <AnimatedToggle
+                    value={settings.streakReminderEnabled}
+                    onValueChange={settings.setStreakReminderEnabled}
+                  />
+                }
+              />
+            </>
+          ) : null}
           <SettingsRow
             {...rowProps}
             icon="🎨"
@@ -196,52 +294,54 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             {...rowProps}
+            icon="📲"
+            iconBg="#E8F7EB"
+            label={t.widget.settingsRowLabel}
+            onPress={() => router.push('/settings/widget')}
+          />
+          <SettingsRow
+            {...rowProps}
             icon="📅"
             iconBg="#E8F4FE"
             label={t.settings.weekStartsOn}
-            value={settings.weekStart === 'monday' ? t.settings.monday : t.settings.sunday}
-            onPress={() => {}}
+            showArrow={false}
+            right={
+              <SegmentedPill
+                options={weekStartOptions}
+                value={settings.weekStart}
+                onChange={handleChangeWeekStart}
+                isDark={C.isDark}
+              />
+            }
             isLast
           />
         </Animated.View>
 
-        {/* ── Goals ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
-          {t.settings.goalsSection}
-        </Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          <SettingsRow
-            {...rowProps}
-            icon="🔥"
-            iconBg="#FFF0E8"
-            label={t.settings.streakGoal}
-            value={t.settings.streakGoalDays(settings.streakGoalDays)}
-            onPress={() => {}}
+        {reminderTimePickerVisible ? (
+          <DateTimePicker
+            value={timeStringToDate(settings.reminderTime)}
+            mode="time"
+            is24Hour
+            onChange={(event, date) => {
+              setReminderTimePickerVisible(false);
+              if (event.type === 'set' && date) {
+                settings.setReminderTime(format(date, 'HH:mm'));
+              }
+            }}
           />
-          <SettingsRow
-            {...rowProps}
-            icon="🎯"
-            iconBg="#FFE8F4"
-            label={t.settings.dailyTarget}
-            value={t.settings.dailyTargetAll}
-            onPress={() => {}}
-            isLast
-          />
-        </Animated.View>
+        ) : null}
 
         {/* ── Data ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
           {t.settings.dataSection}
         </Text>
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          <SettingsRow {...rowProps} icon="📤" iconBg="#E8F7EB" label={t.settings.exportData} onPress={() => {}} />
-          <SettingsRow {...rowProps} icon="📥" iconBg="#E8F4FE" label={t.settings.importData} onPress={() => {}} />
           <SettingsRow
             {...rowProps}
             icon="🗑️"
             iconBg="#FFE8E8"
             label={t.settings.resetData}
-            onPress={() => {}}
+            onPress={handleResetData}
             isLast
           />
         </Animated.View>
@@ -251,13 +351,41 @@ export default function SettingsScreen() {
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
+            icon="🔒"
+            iconBg="#F0F2F5"
+            label={t.settings.privacyPolicy}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+          />
+          <SettingsRow
+            {...rowProps}
+            icon="📄"
+            iconBg="#F0F2F5"
+            label={t.settings.termsOfService}
+            onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
+          />
+          <SettingsRow
+            {...rowProps}
             icon="ℹ️"
             iconBg="#F0F2F5"
             label={t.settings.version}
             value="0.1.0"
             showArrow={false}
-            isLast
+            isLast={!__DEV__}
           />
+          {__DEV__ ? (
+            <SettingsRow
+              {...rowProps}
+              icon="🔁"
+              iconBg="#FFF0E8"
+              label="Restartovat onboarding (dev)"
+              showArrow={false}
+              isLast
+              onPress={() => {
+                settings.resetOnboarding();
+                router.replace('/funnel');
+              }}
+            />
+          ) : null}
         </Animated.View>
 
       </ScrollView>

@@ -5,6 +5,7 @@ import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
 
 import { ActivityForm, type ActivityFormHandle } from '@/ui/components/ActivityForm';
 import { useAppStore } from '@/store/useAppStore';
+import { useSettingsStore, weekStartFlag } from '@/store/useSettingsStore';
 import { activityRepo } from '@/data/activityRepo';
 import type { Activity } from '@/domain/types';
 import { useTranslation } from '@/i18n';
@@ -40,10 +41,11 @@ export default function EditActivityScreen() {
     };
   }, [numericId]);
 
+  const weekStartsOn = weekStartFlag(useSettingsStore((s) => s.weekStart));
   const today = todayIsoFn();
   const currentWeekDates = useMemo(
-    () => weekDates(parseIsoDate(mondayOfIso(parseIsoDate(today)))),
-    [today],
+    () => weekDates(parseIsoDate(mondayOfIso(parseIsoDate(today), weekStartsOn)), weekStartsOn),
+    [today, weekStartsOn],
   );
 
   const ownCompletions = useMemo(
@@ -122,6 +124,7 @@ export default function EditActivityScreen() {
       />
       <ActivityForm
         ref={formRef}
+        weekStartsOn={weekStartsOn}
         activityId={activity.id}
         initial={{
           name: activity.name,

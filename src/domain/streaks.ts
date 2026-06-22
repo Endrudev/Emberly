@@ -8,6 +8,7 @@ import {
   shiftWeek,
   toIsoDate,
   weekDates,
+  type WeekAnchor,
 } from './week';
 import type { Activity, Completion, DayOfWeek, Streak, WeekProgress } from './types';
 import { daysToMask } from './week';
@@ -182,8 +183,9 @@ export function isWeekPerfect(
   activities: readonly ActivityForStreak[],
   completionsIndex: CompletionsIndex,
   weekStartIso: string,
+  weekStartsOn: WeekAnchor = 1,
 ): { perfect: boolean; hasAnyPlanned: boolean } {
-  const days = weekDates(parseIsoDate(weekStartIso));
+  const days = weekDates(parseIsoDate(weekStartIso), weekStartsOn);
   let hasAnyPlanned = false;
   for (const day of days) {
     const status = evaluateDay(activities, completionsIndex, day);
@@ -201,6 +203,7 @@ export function computeCurrentWeeklyStreak(
   activities: readonly ActivityForStreak[],
   completions: readonly Completion[],
   todayIso: string,
+  weekStartsOn: WeekAnchor = 1,
 ): number {
   if (activities.length === 0) return 0;
   const index = indexCompletions(completions);
@@ -208,16 +211,16 @@ export function computeCurrentWeeklyStreak(
     (min, a) => (a.createdAtIso < min ? a.createdAtIso : min),
     activities[0]!.createdAtIso,
   );
-  const earliestMonday = mondayOfIso(parseIsoDate(earliestCreatedAt));
+  const earliestMonday = mondayOfIso(parseIsoDate(earliestCreatedAt), weekStartsOn);
 
-  // Aktuální týden: pokud ještě není uzavřený (neděle ještě nebyla),
-  // bereme předchozí týden jako poslední uzavřený. Pokud je aktuální týden už
-  // dnes-perfektní (všechny dosavadní dny ok), počítáme ho taky.
-  const currentMonday = mondayOfIso(parseIsoDate(todayIso));
+  // Aktuální týden: pokud ještě není uzavřený (poslední den týdne ještě
+  // nenastal), bereme předchozí týden jako poslední uzavřený. Pokud je
+  // aktuální týden už dnes-perfektní (všechny dosavadní dny ok), počítáme ho taky.
+  const currentMonday = mondayOfIso(parseIsoDate(todayIso), weekStartsOn);
 
   // Pokud je aktuální týden už dokonalý (všechny PROŠLÉ naplánované dny ok), počítej ho.
   // Jinak začni od minulého týdne.
-  const currentWeekPartial = isPartialWeekStillOk(activities, index, currentMonday, todayIso);
+  const currentWeekPartial = isPartialWeekStillOk(activities, index, currentMonday, todayIso, weekStartsOn);
   let cursorIso = currentWeekPartial ? currentMonday : shiftWeek(currentMonday, -1);
 
   let streak = 0;
@@ -225,7 +228,7 @@ export function computeCurrentWeeklyStreak(
     if (cursorIso === currentMonday) {
       if (currentWeekPartial) streak += 1;
     } else {
-      const { perfect, hasAnyPlanned } = isWeekPerfect(activities, index, cursorIso);
+      const { perfect, hasAnyPlanned } = isWeekPerfect(activities, index, cursorIso, weekStartsOn);
       if (!hasAnyPlanned) {
         // Týden bez žádné naplánované aktivity neláme streak, ale ani ho neprodlužuje.
         cursorIso = shiftWeek(cursorIso, -1);
@@ -243,6 +246,7 @@ export function computeBestWeeklyStreak(
   activities: readonly ActivityForStreak[],
   completions: readonly Completion[],
   todayIso: string,
+  weekStartsOn: WeekAnchor = 1,
 ): number {
   if (activities.length === 0) return 0;
   const index = indexCompletions(completions);
@@ -250,15 +254,15 @@ export function computeBestWeeklyStreak(
     (min, a) => (a.createdAtIso < min ? a.createdAtIso : min),
     activities[0]!.createdAtIso,
   );
-  const earliestMonday = mondayOfIso(parseIsoDate(earliestCreatedAt));
-  const currentMonday = mondayOfIso(parseIsoDate(todayIso));
+  const earliestMonday = mondayOfIso(parseIsoDate(earliestCreatedAt), weekStartsOn);
+  const currentMonday = mondayOfIso(parseIsoDate(todayIso), weekStartsOn);
 
   let best = 0;
   let current = 0;
   let cursorIso = earliestMonday;
 
   while (cursorIso < currentMonday) {
-    const { perfect, hasAnyPlanned } = isWeekPerfect(activities, index, cursorIso);
+    const { perfect, hasAnyPlanned } = isWeekPerfect(activities, index, cursorIso, weekStartsOn);
     if (!hasAnyPlanned) {
       // Neutral — neresetuje, neprodlužuje.
       cursorIso = shiftWeek(cursorIso, 1);
@@ -273,7 +277,7 @@ export function computeBestWeeklyStreak(
     cursorIso = shiftWeek(cursorIso, 1);
   }
   // Případně přidat aktuální týden, pokud je už teď perfektní v rámci uplynulých dnů.
-  if (isPartialWeekStillOk(activities, index, currentMonday, todayIso)) {
+  if (isPartialWeekStillOk(activities, index, currentMonday, todayIso, weekStartsOn)) {
     current += 1;
     best = Math.max(best, current);
   }
@@ -289,8 +293,9 @@ function isPartialWeekStillOk(
   index: CompletionsIndex,
   weekStartIso: string,
   todayIso: string,
+  weekStartsOn: WeekAnchor = 1,
 ): boolean {
-  const days = weekDates(parseIsoDate(weekStartIso));
+  const days = weekDates(parseIsoDate(weekStartIso), weekStartsOn);
   let hasAnyPlanned = false;
   for (const day of days) {
     if (day > todayIso) break;
@@ -315,12 +320,13 @@ export function computeStreaks(
   activities: readonly ActivityForStreak[],
   completions: readonly Completion[],
   todayIso: string,
+  weekStartsOn: WeekAnchor = 1,
 ): Streak {
   return {
     currentDays: computeCurrentDailyStreak(activities, completions, todayIso),
     bestDays: computeBestDailyStreak(activities, completions, todayIso),
-    currentWeeks: computeCurrentWeeklyStreak(activities, completions, todayIso),
-    bestWeeks: computeBestWeeklyStreak(activities, completions, todayIso),
+    currentWeeks: computeCurrentWeeklyStreak(activities, completions, todayIso, weekStartsOn),
+    bestWeeks: computeBestWeeklyStreak(activities, completions, todayIso, weekStartsOn),
   };
 }
 
@@ -390,9 +396,10 @@ export function computeWeekProgress(
   activities: readonly ActivityForStreak[],
   completions: readonly Completion[],
   weekStartIso: string,
+  weekStartsOn: WeekAnchor = 1,
 ): WeekProgress {
   const index = indexCompletions(completions);
-  const days = weekDates(parseIsoDate(weekStartIso));
+  const days = weekDates(parseIsoDate(weekStartIso), weekStartsOn);
   let planned = 0;
   let completed = 0;
   for (const day of days) {

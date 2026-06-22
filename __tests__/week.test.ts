@@ -5,6 +5,7 @@ import {
   jsDayToDow,
   maskToDays,
   mondayOfIso,
+  orderedDayIndices,
   parseIsoDate,
   shiftWeek,
   toIsoDate,
@@ -70,5 +71,42 @@ describe('week helpers', () => {
   test('toIsoDate handles year boundary', () => {
     expect(toIsoDate(parseIsoDate('2025-12-31'))).toBe('2025-12-31');
     expect(toIsoDate(parseIsoDate('2026-01-01'))).toBe('2026-01-01');
+  });
+
+  describe('Sunday-start week (weekStartsOn = 0)', () => {
+    test('mondayOfIso returns Sunday for any day in week', () => {
+      // 2026-05-28 = čtvrtek, neděle toho týdne = 2026-05-24
+      expect(mondayOfIso(parseIsoDate('2026-05-28'), 0)).toBe('2026-05-24');
+      expect(mondayOfIso(parseIsoDate('2026-05-24'), 0)).toBe('2026-05-24');
+      expect(mondayOfIso(parseIsoDate('2026-05-30'), 0)).toBe('2026-05-24'); // sobota, poslední den týdne
+    });
+
+    test('weekDates returns 7 ISO dates Sun..Sat', () => {
+      const days = weekDates(parseIsoDate('2026-05-28'), 0);
+      expect(days).toEqual([
+        '2026-05-24',
+        '2026-05-25',
+        '2026-05-26',
+        '2026-05-27',
+        '2026-05-28',
+        '2026-05-29',
+        '2026-05-30',
+      ]);
+    });
+
+    test('defaults still behave as Monday-start when weekStartsOn is omitted', () => {
+      expect(mondayOfIso(parseIsoDate('2026-05-28'))).toBe('2026-05-25');
+      expect(weekDates(parseIsoDate('2026-05-28'))[0]).toBe('2026-05-25');
+    });
+  });
+
+  describe('orderedDayIndices', () => {
+    test('Monday-start: Po..Ne (0..6)', () => {
+      expect(orderedDayIndices(1)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    });
+
+    test('Sunday-start: Ne, Po..So (6, 0..5)', () => {
+      expect(orderedDayIndices(0)).toEqual([6, 0, 1, 2, 3, 4, 5]);
+    });
   });
 });

@@ -6,7 +6,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 
 import { success, tapLight, tapMedium } from './haptics';
 
@@ -31,10 +31,10 @@ interface AnimatedPressableProps
 }
 
 /**
- * Pressable wrapper with a subtle press-in/press-out scale (rule 1: spring
- * for touch feedback). The scale lives on an inner Animated.View, not on
- * Pressable itself, so touch/hit-testing and ScrollView gesture handling
- * are unaffected.
+ * Pressable wrapper with a subtle, smooth press-in/press-out scale (no
+ * spring/bounce — see AnimatedToggle.tsx for the same rule). The scale lives
+ * on an inner Animated.View, not on Pressable itself, so touch/hit-testing
+ * and ScrollView gesture handling are unaffected.
  */
 export function AnimatedPressable({
   onPress,
@@ -58,7 +58,10 @@ export function AnimatedPressable({
   }
 
   function handlePressOut(e: GestureResponderEvent) {
-    scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+    // withTiming, ne withSpring — damping:15/stiffness:150 byl underdamped
+    // (poměr ~0.61) a viditelně "kýval" při každém uvolnění. Smooth ease-out,
+    // žádný overshoot.
+    scale.value = withTiming(1, { duration: 180, easing: Easing.out(Easing.cubic) });
     onPressOut?.(e);
   }
 

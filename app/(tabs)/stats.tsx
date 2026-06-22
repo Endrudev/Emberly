@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAppStore } from '@/store/useAppStore';
+import { useSettingsStore, weekStartFlag } from '@/store/useSettingsStore';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { CircularProgress } from '@/ui/components/CircularProgress';
 import { HabitHeatmap } from '@/ui/components/HabitHeatmap';
@@ -21,7 +22,7 @@ import {
   computeActivityStats,
   toActivityForStreak,
 } from '@/domain/streaks';
-import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn } from '@/domain/week';
+import { diffDaysIso, mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 
@@ -63,12 +64,19 @@ export default function StatsScreen() {
 
   const activities = useAppStore((s) => s.activities);
   const completions = useAppStore((s) => s.completions);
+  const weekStartsOn = weekStartFlag(useSettingsStore((s) => s.weekStart));
   const today = todayIsoFn();
-  const currentWeekStart = mondayOfIso(parseIsoDate(today));
+  const currentWeekStart = mondayOfIso(parseIsoDate(today), weekStartsOn);
 
   const weekProgress = useMemo(
-    () => computeWeekProgress(activities.map(toActivityForStreak), completions, currentWeekStart),
-    [activities, completions, currentWeekStart],
+    () =>
+      computeWeekProgress(
+        activities.map(toActivityForStreak),
+        completions,
+        currentWeekStart,
+        weekStartsOn,
+      ),
+    [activities, completions, currentWeekStart, weekStartsOn],
   );
 
   const progressRatio =
@@ -78,9 +86,9 @@ export default function StatsScreen() {
   const progressPct = Math.round(progressRatio * 100);
 
   const daysLeftInWeek = useMemo(() => {
-    const dow = (new Date().getDay() + 6) % 7;
-    return 6 - dow;
-  }, []);
+    const lastDayOfWeek = weekDates(parseIsoDate(today), weekStartsOn)[6]!;
+    return diffDaysIso(today, lastDayOfWeek);
+  }, [today, weekStartsOn]);
 
   const summaryLabel = useMemo(() => {
     if (progressPct >= 100) return t.stats.greatWeek;
@@ -130,7 +138,12 @@ export default function StatsScreen() {
           <View style={styles.cardHeader}>
             <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.last15Weeks}</Text>
           </View>
-          <HabitHeatmap activities={activities} completions={completions} todayIso={today} />
+          <HabitHeatmap
+            activities={activities}
+            completions={completions}
+            todayIso={today}
+            weekStartsOn={weekStartsOn}
+          />
         </View>
 
         {/* By habit */}

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { activityRepo } from '@/data/activityRepo';
 import { completionRepo } from '@/data/completionRepo';
 import type { Activity, Completion, DayOfWeek } from '@/domain/types';
-import { mondayOfIso, parseIsoDate, shiftWeek, todayIso } from '@/domain/week';
+import { mondayOfIso, parseIsoDate, shiftWeek, todayIso, type WeekAnchor } from '@/domain/week';
 
 interface AppState {
   activities: Activity[];
@@ -16,7 +16,8 @@ interface AppState {
   setWeekStart: (iso: string) => void;
   goToPreviousWeek: () => void;
   goToNextWeek: () => void;
-  goToCurrentWeek: () => void;
+  /** Přeskočí na aktuální týden, zarovnaný podle `weekStartsOn` (1=pondělí, 0=neděle). */
+  goToCurrentWeek: (weekStartsOn?: WeekAnchor) => void;
 
   createActivity: (input: {
     name: string;
@@ -35,6 +36,7 @@ interface AppState {
   ) => Promise<Activity>;
   archiveActivity: (id: number) => Promise<void>;
   deleteActivity: (id: number) => Promise<void>;
+  resetAllData: () => Promise<void>;
 
   toggleCompletion: (activityId: number, dateIso: string) => Promise<boolean>;
 }
@@ -62,8 +64,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   goToNextWeek() {
     set({ currentWeekStart: shiftWeek(get().currentWeekStart, 1) });
   },
-  goToCurrentWeek() {
-    set({ currentWeekStart: mondayOfIso(parseIsoDate(todayIso())) });
+  goToCurrentWeek(weekStartsOn = 1) {
+    set({ currentWeekStart: mondayOfIso(parseIsoDate(todayIso()), weekStartsOn) });
   },
 
   async createActivity(input) {
@@ -93,6 +95,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  async resetAllData() {
+    await completionRepo.deleteAll();
+    await activityRepo.deleteAll();
+    set({ activities: [], completions: [] });
+    // .catch — v Expo Go react-native-android-widget neexistuje, import() samotný odmítne.
+    import('@/widget/updateWidget')
+      .then(({ updateMissionWidget }) => updateMissionWidget())
+      .catch(() => {});
+  },
+
   async toggleCompletion(activityId, dateIso) {
     const isNowCompleted = await completionRepo.toggle(activityId, dateIso);
     const current = get().completions;
@@ -110,10 +122,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         ),
       });
     }
-    // Fire-and-forget — widget update runs async after store is updated
-    import('@/widget/updateWidget').then(({ updateMissionWidget }) =>
-      updateMissionWidget(),
-    );
+    // Fire-and-forget — widget update runs async after store is updated.
+    // .catch — v Expo Go react-native-android-widget neexistuje, import() samotný odmítne.
+    import('@/widget/updateWidget')
+      .then(({ updateMissionWidget }) => updateMissionWidget())
+      .catch(() => {});
     return isNowCompleted;
   },
 }));

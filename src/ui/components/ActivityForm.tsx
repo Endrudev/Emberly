@@ -4,6 +4,7 @@ import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import type { Activity, DayOfWeek } from '@/domain/types';
+import { orderedDayIndices, type WeekAnchor } from '@/domain/week';
 import { useTranslation } from '@/i18n';
 import { activityColors, COLORS, FONTS } from '@/ui/theme';
 import { useAppTheme } from '@/ui/useAppTheme';
@@ -70,6 +71,8 @@ interface ActivityFormProps {
   activityId?: number;
   /** Current-week data so the "Náhled" card matches the real list row. */
   preview: ActivityFormPreviewContext;
+  /** date-fns `weekStartsOn` (0=neděle, 1=pondělí) — pořadí dnů v pickeru. */
+  weekStartsOn?: WeekAnchor;
   onSubmit: (values: ActivityFormValues) => Promise<void> | void;
   /** Lets the hosting screen show a spinner in its header save action. */
   onSubmittingChange?: (submitting: boolean) => void;
@@ -82,9 +85,13 @@ interface ActivityFormProps {
  * screen triggers submission imperatively via the forwarded ref.
  */
 export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
-  function ActivityForm({ initial, activityId, preview, onSubmit, onSubmittingChange, onDelete }, ref) {
+  function ActivityForm(
+    { initial, activityId, preview, weekStartsOn = 1, onSubmit, onSubmittingChange, onDelete },
+    ref,
+  ) {
     const t = useTranslation();
     const C = useAppTheme();
+    const displayDays = useMemo(() => orderedDayIndices(weekStartsOn), [weekStartsOn]);
     const [name, setName] = useState(initial?.name ?? '');
     const [emoji, setEmoji] = useState(initial?.emoji ?? POPULAR_EMOJI[0]!);
     const [color, setColor] = useState<string>(initial?.color ?? activityColors[0] ?? '#4AABF5');
@@ -280,7 +287,7 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
           </View>
 
           <View style={styles.daysRow}>
-            {ALL_DAYS_LIST.map((day) => {
+            {displayDays.map((day) => {
               const selected = scheduledDays.includes(day);
               return (
                 <View key={day} style={styles.dayPillWrap}>

@@ -13,8 +13,11 @@ export interface WidgetWeekDay {
   isFuture: boolean;
 }
 
-/** Kolik návyků se vejde na jednu stránku (řádek čtvercových dlaždic). */
+/** Kolik návyků se vejde na jednu stránku (řádek čtvercových dlaždic), 4×3. */
 export const WIDGET_PAGE_SIZE = 5;
+
+/** Kompaktní 4×2 má menší dlaždice → vejde se o jednu víc na stránku. */
+export const WIDGET_PAGE_SIZE_4X2 = 6;
 
 export interface WidgetData {
   currentStreak: number;

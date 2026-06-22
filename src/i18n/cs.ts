@@ -149,6 +149,11 @@ export const cs = {
     trackingSince: (since: string) => `Sleduje od ${since}`,
     preferencesSection: 'PŘEDVOLBY',
     reminders: 'Připomínky',
+    reminderTimeLabel: 'Čas připomínky',
+    streakReminderLabel: 'Hlídat ohrožený streak',
+    reminderPermissionDeniedTitle: 'Bez povolení to nepůjde',
+    reminderPermissionDeniedBody:
+      'Pro připomínky potřebuju povolení k notifikacím. Můžeš ho kdykoliv zapnout v nastavení telefonu.',
     appearance: 'Vzhled',
     appearanceLight: 'Světlé',
     appearanceDark: 'Tmavé',
@@ -156,6 +161,9 @@ export const cs = {
     weekStartsOn: 'Týden začíná v',
     monday: 'Pondělí',
     sunday: 'Neděle',
+    weekStartChangeConfirmTitle: 'Změnit začátek týdne?',
+    weekStartChangeConfirmBody:
+      'Týdenní streaky a statistiky se po změně mohou zobrazit jinak, protože se přepočítá hranice týdne. Doporučujeme nastavit jen jednou, hned na začátku, a pak už neměnit.',
     goalsSection: 'CÍLE',
     streakGoal: 'Cíl streaku',
     streakGoalDays: (n: number) => `${n} dní`,
@@ -169,6 +177,8 @@ export const cs = {
     resetData: 'Resetovat všechna data',
     resetConfirmTitle: 'Smazat všechna data?',
     resetConfirmBody: 'Všechny aktivity a historie budou nenávratně smazány.',
+    privacyPolicy: 'Zásady ochrany soukromí',
+    termsOfService: 'Podmínky použití',
     about: 'O aplikaci',
     version: 'Verze',
     theme: 'Téma',
@@ -181,29 +191,177 @@ export const cs = {
     languageCz: 'Čeština',
     languageEn: 'English',
   },
-  onboarding: {
-    skip: 'Přeskočit',
-    step1Title: 'Buduj návyky,\nne výmluvy.',
-    step1Subtitle:
-      'Mission Tracker ti pomůže udržet týdenní rytmus — přehledně, jasně a se smyslem.',
-    step1Button: 'Začít',
-    step2Title: 'Celý tvůj týden,\nna první pohled.',
-    step2Subtitle: 'Každý návyk zobrazuje celý týden. Klepnutím na den ho odškrtni.',
-    step2Button: 'Pokračovat',
-    step3Title: 'Co chceš sledovat?',
-    step3Subtitle: 'Vyber pár na začátek – přidat další můžeš kdykoli.',
-    step3Button: 'Pokračovat',
-    step3Counter: (n: number) => `${n} vybraných · lze změnit kdykoliv`,
-    presetHabits: {
-      walk: 'Chůze',
-      run: 'Běh',
-      water: 'Voda',
-      exercise: 'Cvičení',
-      reading: 'Čtení',
-      meditation: 'Meditace',
-      sleep: 'Spánek',
-      healthyFood: 'Zdravé jídlo',
+  // Lokální plánované připomínky (denní + streak-at-risk) — hlas maskota
+  // Ember. NEplést s `notification` níže, což je persistentní stavová
+  // notifikace (jiný kanál, jiný účel).
+  reminders: {
+    daily: [
+      '🔥 Ember čeká! Dáš si dnešní návyky?',
+      'Tvůj den ještě není odškrtnutý. Pojď na to 💪',
+      'Pár minut a dnešek je hotový. Ember ti věří 🌱',
+      'Hej, nezapomeň na svoje návyky dnes!',
+    ],
+    streakRisk: [
+      '🔥 Nepřeruš svou sérii! Zbývá dnešek.',
+      'Tvůj streak čeká na tebe — ještě dnes ho zachráníš 🔥',
+    ],
+  },
+  // Dlouhý personalizovaný onboarding funnel (nahrazuje `onboarding`) —
+  // viz vault `screens/onboarding-funnel.md`. Klíče se plní postupně, krok po
+  // kroku, jak přibývají fáze funnelu.
+  funnel: {
+    welcome: {
+      title: 'Ahoj, jsem Emberly 🔥',
+      subtitle: 'Pojď vybudovat návyky, co vydrží.',
+      cta: 'Pojďme na to',
     },
+    promise: {
+      title: 'Většina lidí to vzdá. Ty ne.',
+      // TODO social-proof: nahradit reálnými před launchem
+      subtitle: 'Lidé, co dokončí nastavení, drží sérii 30+ dní.',
+      cta: 'Chci to taky',
+    },
+    categoriesStep: {
+      title: 'Co chceš budovat?',
+      subtitle: 'Vyber, na čem ti záleží.',
+      cta: 'Pokračovat',
+    },
+    categories: {
+      walking: 'Chůze',
+      running: 'Běh',
+      reading: 'Čtení',
+      meditate: 'Meditace',
+      workout: 'Cvičení',
+    },
+    blockerStep: {
+      title: 'Co tě zastavilo?',
+      cta: 'Pokračovat',
+    },
+    blockers: {
+      forget: 'Zapomněl/a jsem si zapisovat návyky',
+      loseMotivation: 'Ztratil/a jsem motivaci',
+      tooComplicated: 'Bylo to moc složité',
+      stoppedTracking: 'Přestal/a jsem je sledovat',
+      noTime: 'Neměl/a jsem čas',
+      noProgress: 'Neviděl/a jsem pokrok',
+      gaveUpFast: 'Vzdal/a jsem to po pár dnech',
+    },
+    timeStep: {
+      title: 'Kdy tě máme upozornit na tvoje návyky?',
+      cta: 'Pokračovat',
+    },
+    timeOptions: {
+      morning: 'Ráno (8:00)',
+      afternoon: 'Odpoledne (13:00)',
+      evening: 'Večer (19:00)',
+    },
+    habitCountStep: {
+      title: 'Kolik návyků chceš začít sledovat?',
+      cta: 'Pokračovat',
+    },
+    habitCountOptions: {
+      '1-2': '1–2',
+      '3-4': '3–4',
+      '5+': '5+',
+    },
+    goalStep: {
+      title: 'Co je tvůj hlavní cíl?',
+      cta: 'Pokračovat',
+    },
+    goals: {
+      healthier: 'Být zdravější',
+      disciplined: 'Být disciplinovanější',
+      calmer: 'Být klidnější',
+      productive: 'Být produktivnější',
+      fitness: 'Zlepšit kondici',
+      betterRoutine: 'Mít lepší rutinu',
+      feelBetter: 'Cítit se líp',
+    },
+    continueButton: 'Pokračovat',
+    howItWorksStep: {
+      title: 'Je to jednoduché.',
+      subtitle: 'Odškrtni den → roste ti série → Emberly sílí.',
+      step1: 'Odškrtni svůj návyk',
+      step2: 'Sleduj, jak ti roste série',
+      step3: 'Získávej odznaky',
+    },
+    tierStep: {
+      title: 'Emberly roste s tebou.',
+      subtitle: 'Od jiskry po legendu. Každý milník = nová úroveň.',
+    },
+    widgetStep: {
+      title: 'Měj to na očích.',
+      subtitle: 'Widget na ploše + mapa tvého úsilí.',
+    },
+    scienceStep: {
+      title: 'Návyk se tvoří ~66 dní.',
+      subtitle: 'Provedeme tě každým z nich.',
+      // TODO social-proof: nahradit reálnými před launchem
+      reviewCount: '12 000+ lidí už začalo',
+    },
+    projectionStep: {
+      title: 'Tady budeš.',
+      subtitle: 'Když zůstaneš konzistentní.',
+      today: 'Dnes',
+      day30: 'Den 30',
+      day60: 'Den 60',
+      day90: 'Den 90',
+      bigNumber: '90 dní 🔥',
+      caption: 'Tady budeš, když vydržíš.',
+    },
+    pledgeStep: {
+      title: 'Jdeš do toho?',
+      subtitle: 'Malý krok každý den. Tvoje budoucí já ti poděkuje.',
+      cta: 'Jdu do toho 🔥',
+    },
+    notificationsStep: {
+      title: 'Emberly se připomene.',
+      subtitle: (time: string) => `Emberly se ti připomene, upozorní tě v ${time}. Žádný spam.`,
+      cta: 'Zapnout připomínky',
+    },
+    buildingStep: {
+      building: 'Připravuju tvůj plán…',
+      ready: 'Tvůj plán je hotový! 🎉',
+    },
+    // Krok 17 — PLACEHOLDER paywall (žádná reálná platba), nahradí RevenueCat Paywall.
+    paywallStep: {
+      freeTrialBanner: 'Teď nic neplatíš',
+      title: 'Odemkni celý Ember.',
+      subtitle: '7 dní zdarma, pak 999 Kč/rok.',
+      valueStreakProtection: 'Ochrana série',
+      valueUnlimitedHabits: 'Neomezené návyky',
+      valueAllTiers: 'Všechny streak tiery',
+      valueAdvancedStats: 'Pokročilé statistiky',
+      yearlyLabel: 'Ročně',
+      yearlyBadge: 'NEJVÝHODNĚJŠÍ',
+      yearlyPrice: '999 Kč/rok',
+      yearlyPricePerMonth: '≈ 83 Kč/měsíc',
+      monthlyLabel: 'Měsíčně',
+      monthlyPrice: '149 Kč/měsíc',
+      cta: 'Vyzkoušet zdarma',
+      restore: 'Obnovit nákup',
+      restoreNoneFound: 'Žádné předplatné k obnovení.',
+      // TODO social-proof: nahradit reálnými před launchem
+      socialProof: 'Připojilo se 12 000+ lidí',
+      closeAccessibilityLabel: 'Zavřít',
+    },
+  },
+  // Showcase widgetu v Nastavení + one-time nudge na Home.
+  widget: {
+    settingsRowLabel: 'Domovský widget',
+    showcaseTitle: 'Nastavení widgetu',
+    showcaseDescription:
+      'Odškrtávej návyky přímo z plochy telefonu — streak i dnešní progress máš pořád na očích.',
+    variant4x3Label: 'Plný (4×3)',
+    variant4x2Label: 'Kompaktní (4×2)',
+    addButton: 'Přidat',
+    pinFallbackTitle: 'Přidej widget ručně',
+    pinFallbackBody: 'Podrž prst na ploše → Widgety → Mission Tracker.',
+    nudgeTitle: '📲 Měj návyky na ploše',
+    nudgeBody: 'Stačí jeden tap a odškrtáváš přímo z domovské obrazovky.',
+    nudgeCta: 'Ukázat',
+    nudgeDismissAccessibilityLabel: 'Zavřít',
+    previewUnavailableInExpoGo: 'Náhled widgetu je dostupný jen v sestavené appce (ne v Expo Go).',
   },
   notification: {
     channelName: 'Stav Mission Tracker',

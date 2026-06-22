@@ -272,4 +272,28 @@ describe('computeWeekProgress', () => {
     expect(progress.completedCount).toBe(7);
     expect(progress.isPerfect).toBe(true);
   });
+
+  test('week boundary depends on weekStartsOn — same data, different result', () => {
+    // Aktivita naplánovaná jen na so+ne; splněna o víkendu 2026-05-23 (so) + 2026-05-24 (ne).
+    const activities = [act(1, [SAT, SUN], '2026-01-01')];
+    const completions = done(1, ['2026-05-23', '2026-05-24']);
+
+    // Pondělí-start: 5-18..5-24 obsahuje OBA naplánované dny → perfektní týden.
+    const mondayWeek = computeWeekProgress(activities, completions, '2026-05-18', 1);
+    expect(mondayWeek.plannedCount).toBe(2);
+    expect(mondayWeek.completedCount).toBe(2);
+    expect(mondayWeek.isPerfect).toBe(true);
+
+    // Neděle-start: stejný víkend se rozpadne do DVOU různých týdnů
+    // (5-17..5-23 a 5-24..5-30) — v každém chybí jeden ze dvou naplánovaných dnů.
+    const sundayWeek1 = computeWeekProgress(activities, completions, '2026-05-17', 0);
+    expect(sundayWeek1.plannedCount).toBe(2);
+    expect(sundayWeek1.completedCount).toBe(1);
+    expect(sundayWeek1.isPerfect).toBe(false);
+
+    const sundayWeek2 = computeWeekProgress(activities, completions, '2026-05-24', 0);
+    expect(sundayWeek2.plannedCount).toBe(2);
+    expect(sundayWeek2.completedCount).toBe(1);
+    expect(sundayWeek2.isPerfect).toBe(false);
+  });
 });

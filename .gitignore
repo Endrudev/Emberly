@@ -26,6 +26,12 @@ android/app/build/
 android/build/
 android/local.properties
 
+# Local Expo modules (modules/*) — vlastní native moduly mají vlastní
+# android/ podsložku s Gradle build výstupem, kterou výše uvedená pravidla
+# nezachytí (jsou zakotvená jen na rootovský android/).
+modules/*/android/.gradle/
+modules/*/android/build/
+
 # Metro
 .metro-health-check*
 

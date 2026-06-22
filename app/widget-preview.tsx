@@ -5,6 +5,7 @@ import { WidgetPreview } from 'react-native-android-widget';
 import { MissionWidget, MissionWidget4x2 } from '@/widget/MissionWidget';
 import {
   WIDGET_PAGE_SIZE,
+  WIDGET_PAGE_SIZE_4X2,
   type WidgetActivityData,
   type WidgetData,
 } from '@/widget/widgetTypes';
@@ -42,16 +43,16 @@ const W = 360;
 const H = 342; // 4×3 widget — Samsung buňka ≈ 114dp × 3 = 342dp
 const H2 = 228; // 4×2 widget — Samsung buňka ≈ 114dp × 2 = 228dp
 
-function usePreviewState(activities: WidgetActivityData[]) {
+function usePreviewState(activities: WidgetActivityData[], pageSize: number = WIDGET_PAGE_SIZE) {
   const [page, setPage] = useState(0);
   const [completed, setCompleted] = useState<Set<number>>(
     () => new Set(activities.filter((a) => a.isCompleted).map((a) => a.id)),
   );
 
   const acts = activities.map((a) => ({ ...a, isCompleted: completed.has(a.id) }));
-  const totalPages = Math.max(1, Math.ceil(acts.length / WIDGET_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(acts.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
-  const pageActivities = acts.slice(safePage * WIDGET_PAGE_SIZE, safePage * WIDGET_PAGE_SIZE + WIDGET_PAGE_SIZE);
+  const pageActivities = acts.slice(safePage * pageSize, safePage * pageSize + pageSize);
 
   const data: WidgetData = {
     ...BASE,
@@ -89,7 +90,7 @@ function PreviewBlock({ label, activities }: { label: string; activities: Widget
 }
 
 function PreviewBlock4x2({ label, activities }: { label: string; activities: WidgetActivityData[] }) {
-  const { data, onClick } = usePreviewState(activities);
+  const { data, onClick } = usePreviewState(activities, WIDGET_PAGE_SIZE_4X2);
   return (
     <>
       <Text style={{ color: '#fff', fontSize: 12, marginTop: 8 }}>{label}</Text>

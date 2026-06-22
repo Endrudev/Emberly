@@ -13,6 +13,12 @@ import sys
 import os
 import json
 import urllib.parse
+
+# Windows konzole (cp1250) jinak hodí UnicodeEncodeError na emoji / „→" ve výpisu
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 import urllib.request
 from urllib.error import HTTPError
 
@@ -77,6 +83,8 @@ def main() -> None:
         print("List nenalezen. Dostupné:", [x["name"] for x in lists])
         sys.exit(1)
 
+    labels = _call("GET", f"/boards/{board_id}/labels", key, token)
+
     print(f"Board: {c.get('board')} ({board_id})")
     print(f"List:  {c.get('list')} ({list_id})\n")
 
@@ -84,9 +92,16 @@ def main() -> None:
     ok = 0
     for t in tasks:
         subject = t["subject"]
+        kwargs = {"idList": list_id, "name": subject, "desc": t.get("body", "")}
+        label_name = t.get("label")
+        if label_name:
+            label_id = find_id(labels, label_name)
+            if label_id:
+                kwargs["idLabels"] = label_id
+            else:
+                print(f"[WARN] label nenalezen: {label_name}")
         try:
-            _call("POST", "/cards", key, token,
-                  idList=list_id, name=subject, desc=t.get("body", ""))
+            _call("POST", "/cards", key, token, **kwargs)
             print(f"[OK]   {subject}")
             ok += 1
         except HTTPError as e:

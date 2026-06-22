@@ -5,6 +5,7 @@ import { ActivityIndicator, Text } from 'react-native-paper';
 
 import { ActivityForm, type ActivityFormHandle } from '@/ui/components/ActivityForm';
 import { useAppStore } from '@/store/useAppStore';
+import { useSettingsStore, weekStartFlag } from '@/store/useSettingsStore';
 import { useTranslation } from '@/i18n';
 import { mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
@@ -18,10 +19,11 @@ export default function NewActivityScreen() {
   const formRef = useRef<ActivityFormHandle>(null);
   const [saving, setSaving] = useState(false);
 
+  const weekStartsOn = weekStartFlag(useSettingsStore((s) => s.weekStart));
   const today = todayIsoFn();
   const currentWeekDates = useMemo(
-    () => weekDates(parseIsoDate(mondayOfIso(parseIsoDate(today)))),
-    [today],
+    () => weekDates(parseIsoDate(mondayOfIso(parseIsoDate(today), weekStartsOn)), weekStartsOn),
+    [today, weekStartsOn],
   );
 
   return (
@@ -51,6 +53,7 @@ export default function NewActivityScreen() {
       />
       <ActivityForm
         ref={formRef}
+        weekStartsOn={weekStartsOn}
         preview={{
           weekDates: currentWeekDates,
           todayIso: today,

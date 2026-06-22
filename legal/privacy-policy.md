@@ -1,0 +1,271 @@
+<!--
+  DRAFT — NENÍ právní poradenství. Před zveřejněním nech zkontrolovat právníkem,
+  zejména pasáže o GDPR a zpracovatelích (RevenueCat, Google). Zdroj pravdy pro
+  fakta o appce: Obsidian vault `dev/legal-compliance.md`.
+
+  DRAFT — NOT legal advice. Have a lawyer review before publishing, especially
+  the GDPR and processor (RevenueCat, Google) sections. Source of truth for
+  facts about the app: Obsidian vault `dev/legal-compliance.md`.
+
+  ⚠️ CHYBÍ: jméno/název provozovatele a kontaktní e-mail (placeholdery
+  [JMÉNO PROVOZOVATELE] / [KONTAKTNÍ E-MAIL] níže) — doplnit před zveřejněním.
+  ⚠️ MISSING: controller name and contact email (placeholders
+  [CONTROLLER NAME] / [CONTACT EMAIL] below) — fill in before publishing.
+-->
+
+# Zásady ochrany soukromí — Mission Tracker
+
+**Účinnost od:** 22. 6. 2026
+
+## 1. Kdo jsme
+
+Mission Tracker je mobilní aplikace pro sledování týdenních aktivit a budování
+návyků. Provozovatelem (správcem osobních údajů) je:
+
+- **[JMÉNO PROVOZOVATELE]**
+- Kontakt: [KONTAKTNÍ E-MAIL]
+
+## 2. Jaká data zpracováváme
+
+### 2.1 Data uložená pouze na vašem zařízení
+Vaše aktivity, jejich historie splnění (completions) a nastavení aplikace
+(téma, jazyk, začátek týdne, cíle streaku, nastavení připomínek) jsou uložena
+**výhradně lokálně** v databázi na vašem telefonu. Nemáme k těmto datům
+přístup, neukládáme je na žádném serveru a nepřenášíme je nikam mimo vaše
+zařízení.
+
+### 2.2 Záloha přes Android Auto Backup
+Android může automaticky zálohovat data aplikace (včetně výše uvedené
+databáze) na váš Google účet (Google Drive), pokud máte tuto funkci
+v telefonu zapnutou. Tuto zálohu provádí a uchovává **Google**, ne my — řídí
+se zásadami ochrany soukromí Google. Zálohu můžete vypnout v nastavení
+zálohování telefonu.
+
+### 2.3 Předplatné (RevenueCat)
+Pro správu předplatného používáme službu **RevenueCat, Inc.** RevenueCat
+zpracovává:
+- historii nákupů (jaký produkt, kdy, status předplatného),
+- identifikátory zařízení/uživatele (anonymní app user ID generované
+  RevenueCat, případně identifikátor zařízení),
+- platební údaje zpracovává přímo **Google Play Billing** — my ani RevenueCat
+  nemáme přístup k číslu vaší platební karty.
+
+Tato data slouží výhradně k ověření a správě vašeho předplatného (entitlements).
+
+### 2.4 Notifikace
+Připomínky jsou plánované **lokálně na zařízení** (expo-notifications). Pro
+jejich zobrazení se nepoužívá žádný push token ani externí notifikační
+služba (FCM) — obsah připomínek nikam neopouští vaše zařízení.
+
+### 2.5 Co NEsbíráme
+Nepoužíváme žádné analytické nástroje, reklamní SDK ani sledovací technologie
+třetích stran. Aplikace nevyžaduje registraci ani přihlášení.
+
+## 3. Účel zpracování
+
+| Data | Účel |
+|---|---|
+| Lokální data aplikace | Fungování appky (sledování návyků) |
+| Auto Backup | Obnova dat při změně/obnově telefonu (na vaše přání, řízeno Googlem) |
+| RevenueCat / nákupní data | Správa a ověření předplatného |
+
+## 4. Právní základ (GDPR čl. 6)
+
+- **Plnění smlouvy** (čl. 6 odst. 1 písm. b) — zpracování nutné k poskytnutí
+  předplacených funkcí (RevenueCat).
+- **Oprávněný zájem** (čl. 6 odst. 1 písm. f) — lokální fungování aplikace,
+  zálohování zařízením/OS.
+
+Nepoužíváme zpracování vyžadující souhlas (žádné marketingové ani analytické
+sledování). Pokud bychom v budoucnu přidali analytiku nebo reklamy, tyto
+zásady aktualizujeme a vyžádáme si odpovídající souhlas.
+
+## 5. Zpracovatelé a třetí strany
+
+- **RevenueCat, Inc.** — zpracování dat o předplatném. RevenueCat má vlastní
+  zásady ochrany soukromí a DPA (Data Processing Agreement).
+- **Google LLC** — Google Play Billing (platby) a Android Auto Backup
+  (zálohování). Řídí se zásadami ochrany soukromí Google.
+
+Žádná data nesdílíme s jinými třetími stranami nad rámec výše uvedených
+zpracovatelů. Data neprodáváme.
+
+## 6. Mezinárodní přenos dat
+
+RevenueCat může zpracovávat data na serverech mimo EU/EHP (např. USA). V
+takovém případě se přenos řídí standardními smluvními doložkami (Standard
+Contractual Clauses) nebo jiným odpovídajícím mechanismem dle GDPR.
+
+## 7. Doba uchování
+
+- Lokální data aplikace: dokud appku nesmažete nebo data manuálně nevymažete
+  v nastavení appky.
+- Údaje o předplatném u RevenueCat: po dobu trvání předplatného a dále po
+  dobu vyžadovanou pro účetní/daňové povinnosti.
+
+## 8. Vaše práva (GDPR)
+
+Máte právo na:
+- přístup ke svým osobním údajům,
+- opravu nepřesných údajů,
+- výmaz („právo být zapomenut"),
+- omezení zpracování,
+- přenositelnost údajů,
+- vznést námitku proti zpracování,
+- podat stížnost u dozorového úřadu (v ČR: Úřad pro ochranu osobních údajů,
+  www.uoou.cz).
+
+Jelikož většina dat je jen na vašem zařízení, smazáním aplikace nebo jejích
+dat (Nastavení → Resetovat všechna data) tato data zmizí. Ohledně dat u
+RevenueCat nás kontaktujte na e-mailu níže.
+
+## 9. Děti
+
+Aplikace **necílí na děti** a vědomě neshromažďuje údaje od dětí mladších 16
+let.
+
+## 10. Zabezpečení
+
+Lokální data jsou uložena v sandboxu aplikace na vašem zařízení, chráněném
+zabezpečením operačního systému Android. Přenos dat k RevenueCat/Google
+probíhá šifrovaně (HTTPS/TLS).
+
+## 11. Změny těchto zásad
+
+Tyto zásady můžeme čas od času aktualizovat — například při přidání nové
+funkce, která zpracovává data jinak. Aktuální verze je vždy dostupná na této
+URL a v aplikaci (Nastavení → O aplikaci).
+
+## 12. Kontakt
+
+Dotazy ohledně ochrany soukromí směřujte na: **[KONTAKTNÍ E-MAIL]**
+
+---
+---
+
+# Privacy Policy — Mission Tracker
+
+**Effective date:** June 22, 2026
+
+## 1. Who we are
+
+Mission Tracker is a mobile app for tracking weekly activities and building
+habits. The data controller is:
+
+- **[CONTROLLER NAME]**
+- Contact: [CONTACT EMAIL]
+
+## 2. What data we process
+
+### 2.1 Data stored only on your device
+Your activities, their completion history, and app settings (theme,
+language, week start, streak goals, reminder settings) are stored
+**exclusively on your device's local database**. We do not have access to
+this data, do not store it on any server, and never transmit it outside
+your device.
+
+### 2.2 Android Auto Backup
+Android may automatically back up app data (including the database above)
+to your Google account (Google Drive) if you have this feature enabled on
+your phone. This backup is performed and stored by **Google**, not us —
+it's governed by Google's own privacy policy. You can disable it in your
+phone's backup settings.
+
+### 2.3 Subscriptions (RevenueCat)
+We use **RevenueCat, Inc.** to manage subscriptions. RevenueCat processes:
+- purchase history (which product, when, subscription status),
+- device/user identifiers (an anonymous app user ID generated by
+  RevenueCat, and/or a device identifier),
+- payment details are handled directly by **Google Play Billing** — neither
+  we nor RevenueCat have access to your card number.
+
+This data is used solely to verify and manage your subscription
+(entitlements).
+
+### 2.4 Notifications
+Reminders are scheduled **locally on your device** (expo-notifications). No
+push token or external push service (FCM) is used to deliver them — reminder
+content never leaves your device.
+
+### 2.5 What we do NOT collect
+We do not use any analytics tools, advertising SDKs, or third-party tracking
+technologies. The app does not require an account or sign-in.
+
+## 3. Purpose of processing
+
+| Data | Purpose |
+|---|---|
+| Local app data | App functionality (habit tracking) |
+| Auto Backup | Data recovery on device change/restore (your choice, managed by Google) |
+| RevenueCat / purchase data | Subscription management and verification |
+
+## 4. Legal basis (GDPR Art. 6)
+
+- **Performance of a contract** (Art. 6(1)(b)) — processing necessary to
+  deliver subscribed features (RevenueCat).
+- **Legitimate interest** (Art. 6(1)(f)) — local app functionality,
+  device/OS-level backup.
+
+We do not use any processing that requires consent (no marketing or
+analytics tracking). If we add analytics or ads in the future, this policy
+will be updated and appropriate consent requested.
+
+## 5. Processors and third parties
+
+- **RevenueCat, Inc.** — subscription data processing. RevenueCat has its
+  own privacy policy and DPA (Data Processing Agreement).
+- **Google LLC** — Google Play Billing (payments) and Android Auto Backup
+  (backups). Governed by Google's privacy policy.
+
+We do not share data with any other third parties beyond the processors
+listed above. We do not sell data.
+
+## 6. International data transfers
+
+RevenueCat may process data on servers outside the EU/EEA (e.g. the US). In
+that case, the transfer is governed by Standard Contractual Clauses or
+another adequate GDPR mechanism.
+
+## 7. Data retention
+
+- Local app data: until you delete the app or manually clear data in app
+  settings.
+- Subscription data at RevenueCat: for the duration of the subscription and
+  as required for accounting/tax obligations afterward.
+
+## 8. Your rights (GDPR)
+
+You have the right to:
+- access your personal data,
+- correct inaccurate data,
+- erasure ("right to be forgotten"),
+- restrict processing,
+- data portability,
+- object to processing,
+- lodge a complaint with a supervisory authority (in the Czech Republic:
+  Office for Personal Data Protection, www.uoou.cz).
+
+Since most data lives only on your device, deleting the app or its data
+(Settings → Reset all data) removes it. For data held by RevenueCat, contact
+us at the email below.
+
+## 9. Children
+
+The app **does not target children** and does not knowingly collect data
+from children under 16.
+
+## 10. Security
+
+Local data is stored within the app's sandbox on your device, protected by
+Android's OS-level security. Data transmitted to RevenueCat/Google is
+encrypted in transit (HTTPS/TLS).
+
+## 11. Changes to this policy
+
+We may update this policy occasionally — for example, when adding a feature
+that processes data differently. The current version is always available at
+this URL and in the app (Settings → About).
+
+## 12. Contact
+
+For privacy questions, contact: **[CONTACT EMAIL]**

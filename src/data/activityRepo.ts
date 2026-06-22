@@ -91,4 +91,8 @@ export const activityRepo = {
   async delete(id: number): Promise<void> {
     await db.delete(activities).where(eq(activities.id, id));
   },
+
+  async deleteAll(): Promise<void> {
+    await db.delete(activities);
+  },
 };

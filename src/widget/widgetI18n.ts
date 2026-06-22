@@ -20,6 +20,20 @@ export async function resolveWidgetLanguage(): Promise<WidgetLang> {
   return code === 'cs' ? 'cs' : 'en';
 }
 
+/** Stejný princip jako jazyk výše — "začátek týdne" čteme přímo z AsyncStorage. */
+export async function resolveWidgetWeekStartsOn(): Promise<0 | 1> {
+  try {
+    const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const weekStart = JSON.parse(raw)?.state?.weekStart as string | undefined;
+      if (weekStart === 'sunday') return 0;
+    }
+  } catch {
+    // ignore — fall back to Monday-start
+  }
+  return 1;
+}
+
 export const widgetStrings = {
   cs: {
     dayLabels: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'] as const,

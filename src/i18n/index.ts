@@ -25,3 +25,16 @@ export function useDateLocale() {
   const language = useSettingsStore((s) => s.language);
   return resolveLanguage(language) === 'cs' ? csDateFns : undefined;
 }
+
+/** Resolved 'cs' | 'en' code (not the translation object) — for places that
+ *  need the language tag itself, e.g. widget mock data (`WidgetData.lang`). */
+export function useResolvedLanguage(): 'cs' | 'en' {
+  const language = useSettingsStore((s) => s.language);
+  return resolveLanguage(language);
+}
+
+/** Non-hook variant for code outside React components (e.g. the notification
+ *  scheduler) — reads the language setting directly from the store. */
+export function getTranslation() {
+  return resolveLanguage(useSettingsStore.getState().language) === 'cs' ? cs : en;
+}

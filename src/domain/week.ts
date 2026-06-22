@@ -38,19 +38,38 @@ export function dowOf(date: Date): DayOfWeek {
   return jsDayToDow(date.getDay());
 }
 
-/** Pondělí daného týdne jako Date (čas vynulovaný na 00:00 lokálně). */
-export function mondayOf(date: Date): Date {
-  return startOfWeek(date, { weekStartsOn: 1 });
+/**
+ * date-fns konvence: 0 = neděle začíná týden, 1 = pondělí začíná týden.
+ * Výchozí hodnota (1) odpovídá historickému chování appky před tím, než
+ * šel "začátek týdne" nastavit — všechny existující callery beze změny
+ * dál počítají s pondělím.
+ */
+export type WeekAnchor = 0 | 1;
+
+/** První den daného týdne jako Date (čas vynulovaný na 00:00 lokálně). */
+export function mondayOf(date: Date, weekStartsOn: WeekAnchor = 1): Date {
+  return startOfWeek(date, { weekStartsOn });
 }
 
-export function mondayOfIso(date: Date): string {
-  return toIsoDate(mondayOf(date));
+export function mondayOfIso(date: Date, weekStartsOn: WeekAnchor = 1): string {
+  return toIsoDate(mondayOf(date, weekStartsOn));
 }
 
-/** Pole 7 ISO dat pondělí–neděle pro daný týden. */
-export function weekDates(weekStart: Date): string[] {
-  const monday = mondayOf(weekStart);
-  return Array.from({ length: 7 }, (_, i) => toIsoDate(addDays(monday, i)));
+/** Pole 7 ISO dat od prvního dne týdne (dle `weekStartsOn`) do posledního. */
+export function weekDates(weekStart: Date, weekStartsOn: WeekAnchor = 1): string[] {
+  const start = mondayOf(weekStart, weekStartsOn);
+  return Array.from({ length: 7 }, (_, i) => toIsoDate(addDays(start, i)));
+}
+
+/**
+ * Pořadí `DayOfWeek` (po=0..ne=6) pro zobrazení v UI podle toho, kterým dnem
+ * týden začíná. Bitmaska `scheduledDaysMask` zůstává vázaná na absolutní
+ * den — tahle funkce ovlivňuje jen vizuální pořadí sloupců/dnů, ne data.
+ */
+export function orderedDayIndices(weekStartsOn: WeekAnchor): DayOfWeek[] {
+  const monStart: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
+  if (weekStartsOn === 1) return monStart;
+  return [6, 0, 1, 2, 3, 4, 5];
 }
 
 export function shiftWeek(weekStartIso: string, delta: number): string {

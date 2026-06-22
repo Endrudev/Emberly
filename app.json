@@ -14,9 +14,14 @@
     "android": {
       "package": "com.endru.missiontracker",
       "permissions": [
-        "POST_NOTIFICATIONS",
-        "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM"
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
       ]
     },
     "web": {
@@ -50,11 +55,10 @@
               "targetCellHeight": 3,
               "minWidth": "300dp",
               "minHeight": "210dp",
-              "maxWidth": "440dp",
-              "maxHeight": "480dp",
+              "maxResizeWidth": "440dp",
+              "maxResizeHeight": "480dp",
               "updatePeriodMillis": 1800000,
-              "resizableHorizontal": true,
-              "resizableVertical": true
+              "resizeMode": "horizontal|vertical"
             },
             {
               "name": "MissionWidget4x2",
@@ -64,16 +68,16 @@
               "targetCellHeight": 2,
               "minWidth": "300dp",
               "minHeight": "140dp",
-              "maxWidth": "440dp",
-              "maxHeight": "320dp",
+              "maxResizeWidth": "440dp",
+              "maxResizeHeight": "320dp",
               "updatePeriodMillis": 1800000,
-              "resizableHorizontal": true,
-              "resizableVertical": false
+              "resizeMode": "horizontal"
             }
           ]
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

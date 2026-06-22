@@ -4,7 +4,11 @@ import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 import { completionRepo } from '@/data/completionRepo';
 import { MissionWidget, MissionWidget4x2 } from './MissionWidget';
 import { expireCelebration, getCachedWidgetState, getCelebrationRemainingMs, getWidgetData } from './widgetData';
-import type { WidgetData } from './widgetTypes';
+import { WIDGET_PAGE_SIZE, WIDGET_PAGE_SIZE_4X2, type WidgetData } from './widgetTypes';
+
+function getPageSize(widgetName: string): number {
+  return widgetName === 'MissionWidget4x2' ? WIDGET_PAGE_SIZE_4X2 : WIDGET_PAGE_SIZE;
+}
 
 function applyOptimisticToggle(cached: WidgetData, activityId: number, page: number): WidgetData {
   const activities = cached.activities.map((a) =>
@@ -23,14 +27,15 @@ async function renderAndAutoDismiss(
   page: number,
   widgetName: string,
 ): Promise<void> {
-  const data = await getWidgetData(page);
+  const pageSize = getPageSize(widgetName);
+  const data = await getWidgetData(page, pageSize);
   const Component = getWidgetComponent(widgetName);
   renderWidget(React.createElement(Component, { data }));
   if (data.allCompletedToday) {
     const remaining = await getCelebrationRemainingMs();
     if (remaining > 0) {
       await new Promise<void>((resolve) => setTimeout(resolve, remaining + 300));
-      const normalData = await getWidgetData(0);
+      const normalData = await getWidgetData(0, pageSize);
       const Component = getWidgetComponent(widgetName);
       renderWidget(React.createElement(Component, { data: normalData }));
     }

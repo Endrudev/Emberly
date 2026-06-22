@@ -13,6 +13,9 @@
 
     android:initialLayout="@layout/rn_widget"
 
+
+
+
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen">
 </appwidget-provider>

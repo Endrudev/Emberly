@@ -6,6 +6,7 @@ import { ActivityIndicator, PaperProvider, Text } from 'react-native-paper';
 import { useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 import {
   useFonts,
   DMSans_600SemiBold,
@@ -14,14 +15,36 @@ import {
 } from '@expo-google-fonts/dm-sans';
 
 import { useDbInit } from '@/db/useDbInit';
-import { widgetTaskHandler } from '@/widget/widgetTaskHandler';
+import { ensureReminderChannel } from '@/notifications/channel';
+import { useReminderSync } from '@/notifications/useReminderSync';
 
 // Register widget task handler at module level (before React mounts).
 // On non-Android platforms react-native-android-widget is a no-op.
+//
+// Dynamic require + try/catch (ne statický import nahoře) — react-native-android-widget
+// je custom native modul, který v Expo Go neexistuje. Na novou architekturu (newArchEnabled)
+// `TurboModuleRegistry.getEnforcing(...)` v jeho AndroidWidget.js hodí synchronní chybu hned
+// při require — bez try/catch by spadl celý root layout (a tím celá appka) při startu v Expo Go.
 if (Platform.OS === 'android') {
-  const { registerWidgetTaskHandler } = require('react-native-android-widget');
-  registerWidgetTaskHandler(widgetTaskHandler);
+  try {
+    const { registerWidgetTaskHandler } = require('react-native-android-widget');
+    const { widgetTaskHandler } = require('@/widget/widgetTaskHandler');
+    registerWidgetTaskHandler(widgetTaskHandler);
+  } catch {
+    // Expo Go — widget není k dispozici, appka běží dál bez něj (potřeba dev build).
+  }
 }
+
+// Foreground notification behavior — module level, same lifetime as the app
+// process (must be registered before any notification could arrive).
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { darkTheme, lightTheme } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
@@ -47,10 +70,40 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (isLoading || error) return;
+    if (__DEV__) {
+      console.log(
+        '[onboarding-gate] onboardingCompleted =',
+        settings.onboardingCompleted,
+        '→',
+        settings.onboardingCompleted ? 'staying on (tabs)' : 'redirecting to /funnel',
+      );
+    }
     if (!settings.onboardingCompleted) {
-      router.replace('/onboarding');
+      router.replace('/funnel');
     }
   }, [isLoading, error, settings.onboardingCompleted]);
+
+  // Android notification channel for reminders — safe to ensure unconditionally,
+  // it's a no-op if it already exists and nothing fires without permission + scheduling.
+  useEffect(() => {
+    void ensureReminderChannel();
+  }, []);
+
+  // Keeps scheduled reminders (L1 daily + L2 streak-at-risk) in sync with
+  // settings, live activity/completion state, app startup, and foreground
+  // resumes — see useReminderSync.ts for what triggers a reschedule.
+  useReminderSync();
+
+  // Tapping a reminder notification (cold start or while running) opens the app
+  // on the Aktivity tab. Guarded by onboardingCompleted — bez toho by tahle
+  // navigace mohla (ve stejném renderu) přepsat redirect na /funnel výše, pokud
+  // by `getLastNotificationResponse()` vrátil zastaralou nativní hodnotu z
+  // dřívějšího testování (notifikace přežívají i smazání dat appky).
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (isLoading || error || !lastNotificationResponse || !settings.onboardingCompleted) return;
+    router.push('/');
+  }, [isLoading, error, lastNotificationResponse, settings.onboardingCompleted, router]);
 
   return (
     <SafeAreaProvider>
@@ -95,7 +148,6 @@ export default function RootLayout() {
               }}
             >
               <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="onboarding" />
               <Stack.Screen
                 name="activity/new"
                 options={{ presentation: 'modal', headerShown: true, title: t.activity.newTitle }}

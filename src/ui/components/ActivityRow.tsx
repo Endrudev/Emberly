@@ -5,8 +5,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { DayCheckbox } from './DayCheckbox';
-import type { Activity, DayOfWeek } from '@/domain/types';
-import { ALL_DAYS } from '@/domain/types';
+import type { Activity } from '@/domain/types';
+import { dowOf, parseIsoDate } from '@/domain/week';
 import { COLORS, FONTS, getPastelColor } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
@@ -121,12 +121,11 @@ function ActivityRowImpl({
           pointerEvents={editMode ? 'none' : 'auto'}
         >
           <View style={styles.daysRow}>
-            {ALL_DAYS.map((day: DayOfWeek) => {
-              const dateIso = weekDates[day];
-              if (!dateIso) return null;
+            {weekDates.map((dateIso) => {
+              const day = dowOf(parseIsoDate(dateIso));
               return (
                 <DayCheckbox
-                  key={day}
+                  key={dateIso}
                   day={day}
                   color={activity.color}
                   completed={completedByDate.has(dateIso)}

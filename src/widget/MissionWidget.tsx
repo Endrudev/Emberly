@@ -6,7 +6,7 @@ import {
   TextWidget,
 } from 'react-native-android-widget';
 
-import { WIDGET_PAGE_SIZE } from './widgetTypes';
+import { WIDGET_PAGE_SIZE, WIDGET_PAGE_SIZE_4X2 } from './widgetTypes';
 import type { WidgetActivityData, WidgetData, WidgetWeekDay } from './widgetTypes';
 import { widgetStrings, type WidgetLang } from './widgetI18n';
 
@@ -21,6 +21,7 @@ const SHOW_PERSONAL_RECORD = false;
 const C = {
   white: '#FFFFFF' as const,
   card: '#FFFFFF' as const,
+  cardBorder: '#E4E4E4' as const,
 
   green: '#34C759' as const,
   greenPale: '#C9EFD3' as const,
@@ -28,11 +29,11 @@ const C = {
   orange: '#FF8C42' as const,
   peachBg: '#FFE9D9' as const,
   peachText: '#F2802A' as const,
+  // Streak karta (hlavička s ringem) — bílá, jen tenký border ji odlišuje.
+  streakCardBg: '#FFFFFF' as const,
 
   blueBg: '#E7F0FE' as const,
   blueText: '#4C8DF0' as const,
-
-  ringTrack: '#F1EDF3' as const,
 
   track: '#E6E8EC' as const,
 
@@ -99,7 +100,7 @@ function buildStreakSvg(progress: number): string {
     `<stop offset="100%" stop-color="#FB7A2B"/>` +
     `</linearGradient>` +
     `</defs>` +
-    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#F1EDF3" stroke-width="9"/>` +
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${darken(C.streakCardBg, 0.16)}" stroke-width="9"/>` +
     `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#g)" stroke-width="9"` +
     ` stroke-dasharray="${filled.toFixed(2)} ${circumference.toFixed(2)}"` +
     ` stroke-linecap="round"` +
@@ -131,8 +132,10 @@ function NormalWidget({ data }: Props) {
         width: 'match_parent',
         backgroundColor: C.card,
         borderRadius: 30,
+        borderWidth: 1,
+        borderColor: C.cardBorder,
         paddingHorizontal: 18,
-        paddingVertical: 14,
+        paddingVertical: 10,
         justifyContent: 'space-around',
       }}
     >
@@ -160,32 +163,43 @@ function StreakSection({ data }: Props) {
       : S.daysToBadge(data.daysToNextBadge, data.nextBadgeTarget);
 
   return (
-    <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
+    <FlexWidget
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: 'match_parent',
+        backgroundColor: C.streakCardBg,
+        borderRadius: 22,
+        borderWidth: 1,
+        borderColor: C.cardBorder,
+        padding: 8,
+      }}
+    >
       {/* Orange gradient arc ring */}
-      <OverlapWidget style={{ width: 104, height: 104 }}>
+      <OverlapWidget style={{ width: 76, height: 76 }}>
         <SvgWidget
           svg={buildStreakSvg(data.progressToNextBadge)}
-          style={{ width: 104, height: 104 }}
+          style={{ width: 76, height: 76 }}
         />
         <FlexWidget
           style={{
-            width: 104,
-            height: 104,
+            width: 76,
+            height: 76,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <SvgWidget svg={buildFireSvg(C.orange)} style={{ width: 28, height: 28 }} />
+          <SvgWidget svg={buildFireSvg(C.orange)} style={{ width: 20, height: 20 }} />
           <TextWidget
             text={String(data.currentStreak)}
-            style={{ fontSize: 29, fontWeight: 'bold', color: C.textPrimary }}
+            style={{ fontSize: 21, fontWeight: 'bold', color: C.textPrimary }}
           />
           {/* <TextWidget text="dní" style={{ fontSize: 11, color: C.textSecondary }} /> */}
         </FlexWidget>
       </OverlapWidget>
 
       {/* Right info column */}
-      <FlexWidget style={{ flex: 1, marginLeft: 16 }}>
+      <FlexWidget style={{ flex: 1, marginLeft: 12 }}>
         {SHOW_PERSONAL_RECORD && data.isPersonalRecord && (
           <FlexWidget
             style={{
@@ -206,12 +220,12 @@ function StreakSection({ data }: Props) {
 
         <TextWidget
           text={headline}
-          style={{ fontSize: 24, color: C.textPrimary, fontWeight: 'bold' }}
+          style={{ fontSize: 17.5, color: C.textPrimary, fontWeight: 'bold' }}
           maxLines={1}
         />
         <TextWidget
           text={subline}
-          style={{ fontSize: 16, color: C.textSecondary, fontWeight: 'bold', marginTop: 4 }}
+          style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 'bold', marginTop: 2 }}
           maxLines={2}
           truncate="END"
         />
@@ -220,16 +234,16 @@ function StreakSection({ data }: Props) {
           <FlexWidget
             style={{
               backgroundColor: C.blueBg,
-              borderRadius: 16,
-              paddingHorizontal: 11,
-              paddingVertical: 6,
+              borderRadius: 14,
+              paddingHorizontal: 9,
+              paddingVertical: 4,
               width: 'wrap_content',
-              marginTop: 10,
+              marginTop: 6,
             }}
           >
             <TextWidget
               text={S.streakShield}
-              style={{ color: C.blueText, fontSize: 12.5, fontWeight: 'bold' }}
+              style={{ color: C.blueText, fontSize: 11, fontWeight: 'bold' }}
             />
           </FlexWidget>
         )}
@@ -479,8 +493,10 @@ function ActivityTile({
 }
 
 // ── 4×2 compact widget ────────────────────────────────────────────────────────
+// Menší dlaždice než 4×3 → 6 na stránku místo 5 (jinak zbytečně velké mezery
+// mezi nimi, viz WIDGET_PAGE_SIZE_4X2).
 
-const TILE_4X2 = 50;
+const TILE_4X2 = 44;
 
 function StreakSection4x2({ data }: Props) {
   const S = widgetStrings[data.lang];
@@ -491,7 +507,18 @@ function StreakSection4x2({ data }: Props) {
       : S.daysToBadge(data.daysToNextBadge, data.nextBadgeTarget);
 
   return (
-    <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', width: 'match_parent' }}>
+    <FlexWidget
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: 'match_parent',
+        backgroundColor: C.streakCardBg,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: C.cardBorder,
+        padding: 6,
+      }}
+    >
       <OverlapWidget style={{ width: 88, height: 88 }}>
         <SvgWidget svg={buildStreakSvg(data.progressToNextBadge)} style={{ width: 88, height: 88 }} />
         <FlexWidget style={{ width: 88, height: 88, alignItems: 'center', justifyContent: 'center' }}>
@@ -528,6 +555,8 @@ export function MissionWidget4x2({ data }: Props) {
         width: 'match_parent',
         backgroundColor: C.card,
         borderRadius: 30,
+        borderWidth: 1,
+        borderColor: C.cardBorder,
         paddingHorizontal: 18,
         paddingVertical: 9,
         justifyContent: 'space-around',
@@ -569,7 +598,7 @@ function ActivityGrid4x2({
   }
 
   const slots: (WidgetActivityData | null)[] = [...activities];
-  while (slots.length < WIDGET_PAGE_SIZE) slots.push(null);
+  while (slots.length < WIDGET_PAGE_SIZE_4X2) slots.push(null);
 
   return (
     <FlexWidget style={{ flexDirection: 'column', width: 'match_parent' }}>
@@ -634,9 +663,9 @@ function ActivityTile4x2({
         }}
       >
         {done ? (
-          <TextWidget text="✓" style={{ fontSize: 25, color: C.white, fontWeight: 'bold' }} />
+          <TextWidget text="✓" style={{ fontSize: 22, color: C.white, fontWeight: 'bold' }} />
         ) : (
-          <TextWidget text={activity.emoji} style={{ fontSize: 23 }} />
+          <TextWidget text={activity.emoji} style={{ fontSize: 20 }} />
         )}
       </FlexWidget>
       <TextWidget

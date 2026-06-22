@@ -9,7 +9,7 @@ import {
 } from '@/domain/streaks';
 import { dowOf, mondayOfIso, parseIsoDate, todayIso, weekDates, isDayScheduled, daysToMask } from '@/domain/week';
 import { getNextBadge } from './badgeMilestones';
-import { resolveWidgetLanguage, widgetStrings } from './widgetI18n';
+import { resolveWidgetLanguage, resolveWidgetWeekStartsOn, widgetStrings } from './widgetI18n';
 import {
   WIDGET_PAGE_SIZE,
   type WidgetData,
@@ -53,9 +53,10 @@ export async function getCachedWidgetState(): Promise<WidgetData | null> {
   }
 }
 
-export async function getWidgetData(page = 0): Promise<WidgetData> {
+export async function getWidgetData(page = 0, pageSize: number = WIDGET_PAGE_SIZE): Promise<WidgetData> {
   const today = todayIso();
   const lang = await resolveWidgetLanguage();
+  const weekStartsOn = await resolveWidgetWeekStartsOn();
   const dayLabels = widgetStrings[lang].dayLabels;
 
   const [allActivities, allCompletions] = await Promise.all([
@@ -118,16 +119,16 @@ export async function getWidgetData(page = 0): Promise<WidgetData> {
   }
 
   // Stránkování návyků (widget nemá horizontální scroll → listujeme šipkami)
-  const totalPages = Math.max(1, Math.ceil(todayActivities.length / WIDGET_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(todayActivities.length / pageSize));
   const safePage = Math.min(Math.max(0, page), totalPages - 1);
   const pageActivities = todayActivities.slice(
-    safePage * WIDGET_PAGE_SIZE,
-    safePage * WIDGET_PAGE_SIZE + WIDGET_PAGE_SIZE,
+    safePage * pageSize,
+    safePage * pageSize + pageSize,
   );
 
-  // Week days (Mon–Sun of current week)
-  const weekStart = mondayOfIso(parseIsoDate(today));
-  const days = weekDates(parseIsoDate(weekStart));
+  // Week days of the current week, ordered per the user's week-start setting
+  const weekStart = mondayOfIso(parseIsoDate(today), weekStartsOn);
+  const days = weekDates(parseIsoDate(weekStart), weekStartsOn);
 
   const completionsByDate = new Map<string, Set<number>>();
   for (const c of allCompletions) {
@@ -135,7 +136,7 @@ export async function getWidgetData(page = 0): Promise<WidgetData> {
     completionsByDate.get(c.date)!.add(c.activityId);
   }
 
-  const weekDays: WidgetWeekDay[] = days.map((day, i) => {
+  const weekDays: WidgetWeekDay[] = days.map((day) => {
     const isToday = day === today;
     const isFuture = day > today;
 
@@ -152,7 +153,7 @@ export async function getWidgetData(page = 0): Promise<WidgetData> {
       scheduledForDay.every((a) => completedForDay.has(a.id));
 
     return {
-      label: dayLabels[i]!,
+      label: dayLabels[dayDow]!,
       isCompleted: !isFuture && allScheduledDone,
       isToday,
       isFuture,
