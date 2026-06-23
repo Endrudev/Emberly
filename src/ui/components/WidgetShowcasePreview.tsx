@@ -24,9 +24,15 @@ const DAY_LABELS: Record<'cs' | 'en', string[]> = {
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
 };
 
-const WIDTH = 360;
-const HEIGHT_4X3 = 342; // Samsung buňka ≈ 114dp × 3
-const HEIGHT_4X2 = 228; // Samsung buňka ≈ 114dp × 2
+// Exportováno — krok 10 funnelu potřebuje tyhle rozměry pro zmenšení
+// (transform: scale) náhledu, aby se vešel i na užší obrazovky.
+export const WIDGET_PREVIEW_WIDTH = 360;
+export const WIDGET_PREVIEW_HEIGHT_4X3 = 342; // Samsung buňka ≈ 114dp × 3
+export const WIDGET_PREVIEW_HEIGHT_4X2 = 228; // Samsung buňka ≈ 114dp × 2
+
+const WIDTH = WIDGET_PREVIEW_WIDTH;
+const HEIGHT_4X3 = WIDGET_PREVIEW_HEIGHT_4X3;
+const HEIGHT_4X2 = WIDGET_PREVIEW_HEIGHT_4X2;
 
 interface NativeWidgetModules {
   WidgetPreview: ComponentType<{

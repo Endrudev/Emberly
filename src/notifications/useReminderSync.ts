@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { getNotificationPermissionStatus, requestNotificationPermission } from './permissions';
 import { rescheduleAll } from './scheduler';
 
 /**
@@ -32,10 +34,30 @@ export function useReminderSync(): void {
   const syncRef = useRef(() => {});
   syncRef.current = () => {
     if (!loaded) return;
-    void rescheduleAll(
-      { remindersEnabled, reminderTime, streakReminderEnabled },
-      { activities, completions },
-    );
+    void (async () => {
+      // `remindersEnabled` je naše uložená preference — přežije Android Auto
+      // Backup. Systémové POST_NOTIFICATIONS oprávnění ale NIKDY nezálohuje
+      // (OS to z bezpečnostních důvodů nedovolí), takže po obnově ze zálohy
+      // (nebo po manuálním zrušení oprávnění v systému) může appka mít
+      // `remindersEnabled=true`, ale bez skutečného oprávnění — naplánovaná
+      // notifikace by se pak tiše nikdy nezobrazila, beze chyby. Tady se
+      // stav potichu doladí: zkusí se znovu vyžádat, a pokud se nepovede,
+      // přepínač se vrátí na false, ať appka neukazuje neprávdu.
+      if (remindersEnabled) {
+        const status = await getNotificationPermissionStatus();
+        if (status !== Notifications.PermissionStatus.GRANTED) {
+          const requested = await requestNotificationPermission();
+          if (requested !== Notifications.PermissionStatus.GRANTED) {
+            useSettingsStore.getState().setRemindersEnabled(false);
+            return;
+          }
+        }
+      }
+      await rescheduleAll(
+        { remindersEnabled, reminderTime, streakReminderEnabled },
+        { activities, completions },
+      );
+    })();
   };
 
   useEffect(() => {

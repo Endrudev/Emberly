@@ -169,6 +169,9 @@ export const en = {
     dailyTarget: 'Daily target',
     dailyTargetAll: 'All activities',
     dataSection: 'DATA',
+    autoBackupLabel: 'Backup to Google',
+    autoBackupDescription:
+      "Your habits and settings are automatically backed up to your Google account and restored after reinstalling the app. Backups aren't instant — typically once a day, while charging on Wi-Fi.",
     persistentNotification: 'Persistent notification',
     persistentNotificationDescription: 'Shows daily streak and today\'s progress.',
     exportData: 'Export data',

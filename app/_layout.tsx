@@ -15,6 +15,7 @@ import {
 } from '@expo-google-fonts/dm-sans';
 
 import { useDbInit } from '@/db/useDbInit';
+import { useWalCheckpoint } from '@/db/useWalCheckpoint';
 import { ensureReminderChannel } from '@/notifications/channel';
 import { useReminderSync } from '@/notifications/useReminderSync';
 
@@ -88,6 +89,10 @@ export default function RootLayout() {
   useEffect(() => {
     void ensureReminderChannel();
   }, []);
+
+  // WAL checkpoint při přechodu appky do pozadí — ať je `.db` self-contained
+  // pro Android Auto Backup (záloha nezahrnuje `-wal`/`-shm`).
+  useWalCheckpoint();
 
   // Keeps scheduled reminders (L1 daily + L2 streak-at-risk) in sync with
   // settings, live activity/completion state, app startup, and foreground

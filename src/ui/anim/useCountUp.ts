@@ -13,16 +13,26 @@ const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 export function useCountUp(target: number, duration = 400): number {
   const reduceMotion = useReduceMotion();
   const [value, setValue] = useState(reduceMotion ? target : 0);
-  const fromRef = useRef(reduceMotion ? target : 0);
+  // Mirrors the value actually on screen at all times (updated every tick),
+  // not just on natural completion — see fix note below.
+  const valueRef = useRef(value);
 
   useEffect(() => {
     if (reduceMotion) {
-      fromRef.current = target;
+      valueRef.current = target;
       setValue(target);
       return;
     }
 
-    const from = fromRef.current;
+    // Start from wherever the animation actually is right now, not from a
+    // stale "from" snapshot. The old version only updated its from-ref when
+    // an animation finished naturally; interrupting it mid-flight (e.g.
+    // toggling another habit before the count-up settled) re-ran this effect
+    // with the ref still pointing at the *previous* start value — causing a
+    // visible jump backward, or — if the new target happened to equal that
+    // stale value — an early `return` that left the number frozen mid-count
+    // forever, since `value` itself was never resynced.
+    const from = valueRef.current;
     if (from === target) return;
 
     let raf: ReturnType<typeof requestAnimationFrame>;
@@ -32,12 +42,12 @@ export function useCountUp(target: number, duration = 400): number {
       const elapsed = Date.now() - start;
       const t = Math.min(1, elapsed / duration);
       const eased = easeOutCubic(t);
-      setValue(from + (target - from) * eased);
+      const next = from + (target - from) * eased;
+      valueRef.current = next;
+      setValue(next);
 
       if (t < 1) {
         raf = requestAnimationFrame(tick);
-      } else {
-        fromRef.current = target;
       }
     }
 

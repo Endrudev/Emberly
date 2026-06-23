@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import { ActivityIndicator } from 'react-native-paper';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { useFunnelStore } from '@/store/useFunnelStore';
 import { COLORS } from '@/ui/theme';
+import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { setFunnelProgress } from './funnelProgress';
 import { FUNNEL_STEPS } from './steps';
 
@@ -16,6 +18,7 @@ import { FUNNEL_STEPS } from './steps';
  * + navigace) — `onNext` na posledním indexu je tedy no-op.
  */
 export function FunnelEngine() {
+  const reduceMotion = useReduceMotion();
   const hasHydrated = useFunnelStore((s) => s._hasHydrated);
   const stepIndex = useFunnelStore((s) => s.stepIndex);
   const setStepIndex = useFunnelStore((s) => s.setStepIndex);
@@ -56,11 +59,21 @@ export function FunnelEngine() {
 
   const Step = step.Component;
   return (
-    <Step
-      progress={(safeIndex + 1) / total}
-      canGoBack={safeIndex > 0}
-      onNext={handleNext}
-      onBack={handleBack}
-    />
+    // `key={step.key}` nutí Animated.View remountnout při každé změně kroku
+    // (vpřed i zpět), ať se `entering` fade přehraje pokaždé znovu — bez
+    // klíče by React jen přepsal children té samé instance a animace by se
+    // spustila jen jednou, při prvním vstupu do funnelu.
+    <Animated.View
+      key={step.key}
+      entering={reduceMotion ? undefined : FadeIn.duration(220)}
+      style={{ flex: 1 }}
+    >
+      <Step
+        progress={(safeIndex + 1) / total}
+        canGoBack={safeIndex > 0}
+        onNext={handleNext}
+        onBack={handleBack}
+      />
+    </Animated.View>
   );
 }

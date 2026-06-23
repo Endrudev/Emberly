@@ -338,6 +338,13 @@ export default function SettingsScreen() {
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
+            icon="☁️"
+            iconBg="#E8F4FE"
+            label={t.settings.autoBackupLabel}
+            showArrow={false}
+          />
+          <SettingsRow
+            {...rowProps}
             icon="🗑️"
             iconBg="#FFE8E8"
             label={t.settings.resetData}
@@ -345,6 +352,9 @@ export default function SettingsScreen() {
             isLast
           />
         </Animated.View>
+        <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
+          {t.settings.autoBackupDescription}
+        </Text>
 
         {/* ── About ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>
@@ -433,6 +443,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.96,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  sectionFootnote: {
+    fontSize: 12,
+    fontFamily: FONTS.semiBold,
+    lineHeight: 17,
+    marginTop: -16,
+    marginBottom: 24,
+    marginHorizontal: 4,
   },
   section: {
     borderRadius: 16,

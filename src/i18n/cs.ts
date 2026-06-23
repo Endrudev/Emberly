@@ -170,6 +170,9 @@ export const cs = {
     dailyTarget: 'Denní cíl',
     dailyTargetAll: 'Všechny aktivity',
     dataSection: 'DATA',
+    autoBackupLabel: 'Záloha na Google',
+    autoBackupDescription:
+      'Návyky i nastavení se automaticky zálohují na tvůj Google účet a obnoví se po přeinstalaci appky. Záloha neproběhne hned — typicky jednou denně, při nabíjení a Wi-Fi.',
     persistentNotification: 'Trvalá notifikace',
     persistentNotificationDescription: 'Zobrazuje denní streak a dnešní progress.',
     exportData: 'Exportovat data',

@@ -201,6 +201,36 @@ resume po zabití appky), `FunnelScreen.tsx` je sdílená kostra (progress bar +
   nezmizely izolované bílé highlighty v očích apod.). Při dalším re-exportu z Figmy/AI nástroje
   zkontrolovat, že frame/artboard nemá fill, a po exportu ověřit `mode` (musí být `RGBA`).
 
+### Android Auto Backup (perzistence dat přes reinstalaci)
+`allowBackup` je explicitně `true` v `app.json` (`android.allowBackup`) — Auto Backup zálohuje
+výchozí fileset (SQLite DB + AsyncStorage) na Google Drive uživatele, ~1×/24h při nabíjení+Wi-Fi.
+Žádný backend, žádná změna Data Safety/Privacy deklarací (zálohuje se na účet uživatele, ne k nám).
+- **WAL checkpoint na pozadí** (`src/db/useWalCheckpoint.ts`) — `expo-sqlite` běží ve WAL módu,
+  takže čerstvé zápisy mohou žít jen v `-wal`/`-shm`, které se nezálohují. Při `AppState` přechodu
+  do `'background'` se synchronně (`execSync`, ne async — proces může být uspán dřív, než by
+  promise doběhla) zavolá `PRAGMA wal_checkpoint(TRUNCATE)`, ať je hlavní `.db` self-contained.
+- **Rozhodnutí: obnova `onboardingCompleted=true` se NEPŘEPISUJE.** Po reinstalaci s obnovenými
+  daty uživatel přeskočí funnel i paywall — to je záměr (seamless návrat k vlastním datům;
+  paywall/entitlement stejně řeší RevenueCat, ne onboarding flag). Re-show paywallu po reinstalaci
+  jako vědomá monetizační páka je možné řešení do budoucna, ale vědomě NEimplementováno.
+- Připomínky se re-armují samy při startu appky (`useReminderSync`) — OS notifikace se nezálohují,
+  ale `remindersEnabled`/`reminderTime` ano, takže se naplánují znovu z obnoveného nastavení.
+- **Explicitní backup rules** (`plugins/withAndroidBackupRules.js`, config plugin přes
+  `withAndroidManifest` + `withDangerousMod`, zapisuje `res/xml/backup_rules.xml` +
+  `res/xml/data_extraction_rules.xml`) — výchozí fileset zálohuje CELÉ `files/`, což se na
+  reálném zařízení potvrdilo jako problém: dev build měl ve `files/` `BridgelessReactNativeDevBundle.js`
+  (~15 MB, RN bridgeless JS bundle cache), který se zálohoval celý zbytečně. Explicitní include-only
+  pravidla (jen `files/SQLite/`, `databases/`, `shared_prefs/`) zmenšila reálnou zálohu na ~62 KB.
+  V produkci tenhle konkrétní soubor nevznikne, ale stejné riziko hrozí jakémukoli budoucímu
+  velkému souboru omylem uloženému do `files/` místo `cache/` — proto include-only, ne default.
+- **POST_NOTIFICATIONS se NIKDY nezálohuje** (runtime oprávnění OS nikdy nerestoruje, bezpečnostní
+  hranice) — na reálném zařízení ověřeno: po obnově `remindersEnabled=true` z AsyncStorage, ale
+  `dumpsys package` ukázal `granted=false`. `useReminderSync.ts` proto před každým plánováním
+  ověří skutečný stav oprávnění (`getNotificationPermissionStatus`) — pokud appka myslí, že
+  připomínky jsou zapnuté, ale oprávnění chybí, tiše se zkusí znovu vyžádat; pokud se nepovede,
+  `remindersEnabled` se vrátí na `false`, ať appka nikdy neukazuje neprávdu (přepínač ON bez
+  reálně fungujících notifikací).
+
 ### Typografie — DM Sans (R3)
 Font: **DM Sans** (`@expo-google-fonts/dm-sans`), načítán v `app/_layout.tsx` přes `useFonts`.
 `FONTS` export v `src/ui/theme.ts`:

@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput as RNTextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -91,6 +92,7 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
   ) {
     const t = useTranslation();
     const C = useAppTheme();
+    const insets = useSafeAreaInsets();
     const displayDays = useMemo(() => orderedDayIndices(weekStartsOn), [weekStartsOn]);
     const [name, setName] = useState(initial?.name ?? '');
     const [emoji, setEmoji] = useState(initial?.emoji ?? POPULAR_EMOJI[0]!);
@@ -165,7 +167,7 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
 
     return (
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[styles.container, { paddingBottom: 32 + insets.bottom + 48 }]}
         keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: C.BG }}
       >

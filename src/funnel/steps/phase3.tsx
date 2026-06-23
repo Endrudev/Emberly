@@ -10,7 +10,11 @@ import type { Activity, Completion } from '@/domain/types';
 import { mondayOf, todayIso as getTodayIso, weekDates } from '@/domain/week';
 import { ActivityRow } from '@/ui/components/ActivityRow';
 import { HabitHeatmap } from '@/ui/components/HabitHeatmap';
-import { WidgetShowcasePreview } from '@/ui/components/WidgetShowcasePreview';
+import {
+  WidgetShowcasePreview,
+  WIDGET_PREVIEW_WIDTH,
+  WIDGET_PREVIEW_HEIGHT_4X3,
+} from '@/ui/components/WidgetShowcasePreview';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { EMBERLY } from '../emberly';
 import { FunnelScreen } from '../FunnelScreen';
@@ -18,6 +22,11 @@ import type { FunnelStepProps } from '../types';
 
 /** Fáze 3 — Edukace & hodnota: 8. Jak to funguje · 9. Tier systém ·
  *  10. Widget + heatmapa · 11. Věda/důvěra. */
+
+// Widget preview je pixel-accurate (360pt) — na užších obrazovkách s
+// paddingem FunnelScreen (24px na stranu) by přetékal, proto se na funnelu
+// zmenšuje. Showcase v Nastavení (víc místa) zůstává v plné velikosti.
+const WIDGET_PREVIEW_SCALE = 0.68;
 
 // Mock data pro krok 8 — ukázka skutečné ActivityRow, žádná reálná uživatelská
 // data v tomto bodě funnelu ještě neexistují.
@@ -207,7 +216,9 @@ export function WidgetStep({ progress, canGoBack, onNext, onBack }: FunnelStepPr
         <Text style={styles.title}>{t.funnel.widgetStep.title}</Text>
         <Text style={styles.subtitle}>{t.funnel.widgetStep.subtitle}</Text>
         <View style={styles.widgetPreviewWrap}>
-          <WidgetShowcasePreview variant="4x3" />
+          <View style={styles.widgetPreviewScaled}>
+            <WidgetShowcasePreview variant="4x3" />
+          </View>
         </View>
         <HabitHeatmap
           activities={HEATMAP_ACTIVITIES}
@@ -337,6 +348,20 @@ const styles = StyleSheet.create({
   },
   widgetPreviewWrap: {
     alignItems: 'center',
+  },
+  // Widget preview je natvrdo 360×342 (pixel-accurate náhled reálné velikosti
+  // widgetu) — na funnelu ho potřebujeme menší, aby se vešel na užší
+  // obrazovky i s textem okolo. `transform: scale` smrští jen VIZUÁL, layout
+  // box (360×342) zůstává stejný — záporné okraje (symetricky na všechny
+  // strany) tu zbylou "neviditelnou" plochu zase zabalí, ať zabíraný prostor
+  // odpovídá vizuální velikosti. Žádné `overflow: hidden` ořezávání (to dřív
+  // při zaokrouhlení zlomku pixelu uřezávalo spodní/pravý okraj).
+  widgetPreviewScaled: {
+    width: WIDGET_PREVIEW_WIDTH,
+    height: WIDGET_PREVIEW_HEIGHT_4X3,
+    transform: [{ scale: WIDGET_PREVIEW_SCALE }],
+    marginHorizontal: -(WIDGET_PREVIEW_WIDTH * (1 - WIDGET_PREVIEW_SCALE)) / 2,
+    marginVertical: -(WIDGET_PREVIEW_HEIGHT_4X3 * (1 - WIDGET_PREVIEW_SCALE)) / 2,
   },
   reviewCard: {
     backgroundColor: COLORS.primaryLight,
