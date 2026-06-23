@@ -46,7 +46,28 @@ export const completions = sqliteTable(
   }),
 );
 
+/**
+ * Dny, na které byla automaticky uplatněna premium "ochrana série" (streak freeze).
+ * Jeden záznam = jeden zmrazený lokální ISO den. Kvóta (kolik/měsíc) se nepočítá
+ * jako mutable counter, ale odvozuje z počtu záznamů v daném kalendářním měsíci.
+ */
+export const streakFreezes = sqliteTable(
+  'streak_freezes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    date: text('date').notNull(),
+    createdAt: integer('created_at')
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
+  },
+  (table) => ({
+    uniqDate: uniqueIndex('uniq_streak_freeze_date').on(table.date),
+  }),
+);
+
 export type ActivityRow = typeof activities.$inferSelect;
 export type NewActivityRow = typeof activities.$inferInsert;
 export type CompletionRow = typeof completions.$inferSelect;
 export type NewCompletionRow = typeof completions.$inferInsert;
+export type StreakFreezeRow = typeof streakFreezes.$inferSelect;
+export type NewStreakFreezeRow = typeof streakFreezes.$inferInsert;

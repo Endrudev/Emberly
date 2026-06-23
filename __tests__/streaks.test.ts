@@ -105,6 +105,26 @@ describe('computeCurrentDailyStreak', () => {
   });
 });
 
+describe('computeCurrentDailyStreak — frozenDates (ochrana série)', () => {
+  test('a frozen missed day does not break the streak', () => {
+    const activities = [act(1, [MON, TUE, WED, THU, FRI, SAT, SUN])];
+    const completions = done(1, [
+      '2026-05-25',
+      '2026-05-26',
+      // 2026-05-27 zmeškáno, ale zmrazeno
+      '2026-05-28', // dnes
+    ]);
+    const frozen = new Set(['2026-05-27']);
+    expect(computeCurrentDailyStreak(activities, completions, '2026-05-28', frozen)).toBe(4);
+  });
+
+  test('without the freeze, the same missed day breaks the streak (regression guard)', () => {
+    const activities = [act(1, [MON, TUE, WED, THU, FRI, SAT, SUN])];
+    const completions = done(1, ['2026-05-25', '2026-05-26', '2026-05-28']);
+    expect(computeCurrentDailyStreak(activities, completions, '2026-05-28')).toBe(1);
+  });
+});
+
 describe('computeBestDailyStreak', () => {
   test('returns longest historical run', () => {
     const activities = [act(1, [MON, TUE, WED, THU, FRI, SAT, SUN])];
@@ -143,6 +163,19 @@ describe('computeBestDailyStreak', () => {
     // 2026-05-11 (po, scheduled+done) +1
     // 2026-05-12 (today=út, unscheduled) +1 → total 11
     expect(computeBestDailyStreak(activities, completions, '2026-05-12')).toBe(11);
+  });
+
+  test('a frozen day counts toward the best run', () => {
+    const activities = [act(1, [MON, TUE, WED, THU, FRI, SAT, SUN])];
+    const completions = done(1, [
+      '2026-02-01',
+      '2026-02-02',
+      // 2026-02-03 zmeškáno, ale zmrazeno
+      '2026-02-04',
+      '2026-02-05',
+    ]);
+    const frozen = new Set(['2026-02-03']);
+    expect(computeBestDailyStreak(activities, completions, '2026-02-05', frozen)).toBe(5);
   });
 });
 

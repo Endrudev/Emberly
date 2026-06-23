@@ -123,6 +123,22 @@ export const en = {
     completions: 'Completions',
     longestStreak: 'Longest streak',
     noData: 'No data yet',
+    // ── Dashboard (stats redesign) ──
+    periodWeek: 'Week',
+    periodMonth: 'Month',
+    periodAll: 'All',
+    tileCurrentStreak: 'Daily streak',
+    tileSuccessRate: 'Success rate',
+    tileCheckins: 'Check-ins',
+    tileActiveDays: 'Active days',
+    daysUnit: 'days',
+    trendTitle: 'Weekly trend',
+    consistencyTitle: 'Consistency',
+    weekdayTitle: 'Days of the week',
+    byHabitTitle: 'By habit',
+    bestDayInsight: (day: string) => `You're most consistent on ${day}.`,
+    emptyTitle: 'Nothing here yet',
+    emptyBody: 'Start checking off habits and your stats will show up here.',
   },
   streakScreen: {
     title: 'Streak',
@@ -142,6 +158,14 @@ export const en = {
       { key: 'inferno', name: 'Inferno', emoji: '🌋', min: 60, max: 99, label: '60–99 day streak' },
       { key: 'legendary', name: 'Legendary', emoji: '⚡⚡', min: 100, max: Infinity, label: '100+ day streak' },
     ] as const,
+  },
+  streakFreeze: {
+    title: '❄️ Streak protection',
+    remaining: (n: number, quota: number) =>
+      `${n}/${quota} protection${n === 1 ? '' : 's'} left this month`,
+    usedOn: (dates: string) => `Used on: ${dates}`,
+    noneUsedThisMonth: 'Not used yet this month.',
+    explainer: 'If you miss a day, it gets protected automatically — your streak stays alive.',
   },
   settings: {
     title: 'Settings',
@@ -345,7 +369,39 @@ export const en = {
       // TODO social-proof: nahradit reálnými před launchem
       socialProof: '12,000+ people joined',
       closeAccessibilityLabel: 'Close',
+      disclosure:
+        'Subscription auto-renews until cancelled. You can cancel anytime in your Google Play subscriptions. Billing starts after the 7-day free trial.',
     },
+  },
+  // Premium gating — feature locks, paywall triggers, subscription management.
+  premium: {
+    unlockCta: 'Unlock Premium',
+    badge: 'PREMIUM',
+    // Habit limit (free)
+    habitLimitTitle: 'Habit limit reached',
+    habitLimitBody: (n: number) =>
+      `The free plan includes ${n} habits. Unlock Premium for unlimited habits.`,
+    // Advanced stats lock
+    lockStatsTitle: 'Advanced stats',
+    lockStatsBody: 'The heatmap and per-habit breakdown are part of Premium.',
+    // Higher tiers lock
+    lockTierTitle: 'Higher tiers are Premium',
+    lockTierBody: 'Unlock all streak tiers and watch Emberly grow all the way to legend.',
+    lockStreakFreezeTitle: 'Streak protection is Premium',
+    lockStreakFreezeBody: "Never lose your streak again over one forgotten day.",
+    // Settings section
+    subscriptionSection: 'SUBSCRIPTION',
+    upgradeTitle: 'Upgrade to Premium',
+    upgradeSubtitle: 'Unlimited habits, all tiers, advanced stats',
+    premiumActiveTitle: 'Premium active',
+    premiumActiveSubtitle: 'Thanks for the support 🔥',
+    manageTitle: 'Manage subscription',
+    restoreTitle: 'Restore purchases',
+    restoreNoneFound: 'No subscription found to restore.',
+    restoreSuccessTitle: 'Restored',
+    restoreSuccessBody: 'Premium has been restored. Thank you!',
+    // Dev-only override
+    devOverrideLabel: 'Premium override (dev)',
   },
   // Widget showcase in Settings + one-time nudge on Home.
   widget: {

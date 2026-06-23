@@ -1,58 +1,145 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
+import { addDays } from 'date-fns';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore, weekStartFlag } from '@/store/useSettingsStore';
+import { useIsPremium } from '@/store/usePurchasesStore';
+import { openPaywall } from '@/purchases/openPaywall';
 import { useAppTheme } from '@/ui/useAppTheme';
-import { CircularProgress } from '@/ui/components/CircularProgress';
 import { HabitHeatmap } from '@/ui/components/HabitHeatmap';
+import { PremiumLockCard } from '@/ui/components/PremiumLockCard';
+import { SegmentedPill } from '@/ui/components/SegmentedPill';
 import { CountUpText } from '@/ui/anim/CountUpText';
-import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import {
-  computeWeekProgress,
   computeActivityStats,
+  computeCurrentActivityStreak,
+  computeCurrentDailyStreak,
   toActivityForStreak,
 } from '@/domain/streaks';
-import { diffDaysIso, mondayOfIso, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
+import {
+  computeBestWeekday,
+  computeRangeStats,
+  computeWeekdayBreakdown,
+  computeWeeklyTrend,
+  earliestCreatedIso,
+} from '@/domain/insights';
+import {
+  diffDaysIso,
+  orderedDayIndices,
+  parseIsoDate,
+  toIsoDate,
+  todayIso as todayIsoFn,
+} from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 
-/** Grows a single "by habit" bar from 0 to its width, staggered by row index. */
-function AnimatedBarFill({
-  pct,
-  delay,
-  color,
-  trackColor,
-  reduceMotion,
+type Period = 'week' | 'month' | 'all';
+
+/** Zlatá pro 100% (stejná rodina jako "perfect" gradient na home headeru). */
+const GOLD = '#F2B01E';
+
+/** Jedna hero dlaždice (číslo + popisek). */
+function Tile({
+  emoji,
+  value,
+  suffix,
+  label,
+  bg,
+  textColor,
+  subColor,
 }: {
-  pct: number;
-  delay: number;
-  color: string;
-  trackColor: string;
-  reduceMotion: boolean;
+  emoji: string;
+  value: number;
+  suffix?: string;
+  label: string;
+  bg: string;
+  textColor: string;
+  subColor: string;
 }) {
-  const width = useSharedValue(reduceMotion ? pct : 0);
-
-  useEffect(() => {
-    width.value = reduceMotion
-      ? pct
-      : withDelay(delay, withTiming(pct, { duration: 500 }));
-  }, [pct, delay, reduceMotion, width]);
-
-  const style = useAnimatedStyle(() => ({ width: `${width.value}%` }));
-
   return (
-    <View style={[styles.progressTrack, { backgroundColor: trackColor }]}>
-      <Animated.View style={[styles.progressFill, { backgroundColor: color }, style]} />
+    <View style={[styles.tile, { backgroundColor: bg }]}>
+      <Text style={styles.tileEmoji}>{emoji}</Text>
+      <CountUpText value={value} suffix={suffix} style={[styles.tileValue, { color: textColor }]} />
+      <Text style={[styles.tileLabel, { color: subColor }]}>{label}</Text>
+    </View>
+  );
+}
+
+/** Sloupcový trend graf: % uprostřed baru, 100% bar zlatý. */
+function TrendChart({ data, trackColor }: { data: number[]; trackColor: string }) {
+  return (
+    <View style={styles.trendRow}>
+      {data.map((rate, i) => {
+        const pct = Math.round(rate * 100);
+        const perfect = rate >= 0.999;
+        const isLast = i === data.length - 1;
+        const fillColor = perfect ? GOLD : isLast ? COLORS.primary : '#A6DDB4';
+        return (
+          <View key={i} style={styles.trendBarSlot}>
+            <View style={[styles.trendBarTrack, { backgroundColor: trackColor }]}>
+              <View
+                style={[
+                  styles.trendBarFill,
+                  { height: `${Math.max(8, pct)}%`, backgroundColor: fillColor },
+                ]}
+              />
+            </View>
+            <View style={styles.trendLabelWrap} pointerEvents="none">
+              <Text style={styles.trendLabel}>{pct}%</Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Mini rozpad úspěšnosti po dnech v týdnu (Po–Ne), nejlepší den zvýrazněný. */
+function WeekdayBars({
+  rates,
+  bestDow,
+  order,
+  dayLabels,
+  trackColor,
+  labelColor,
+}: {
+  rates: { rate: number; scheduled: number }[];
+  bestDow: number | null;
+  order: number[];
+  dayLabels: readonly string[];
+  trackColor: string;
+  labelColor: string;
+}) {
+  return (
+    <View style={styles.weekdayRow}>
+      {order.map((dow) => {
+        const w = rates[dow] ?? { rate: 0, scheduled: 0 };
+        const pct = Math.round(w.rate * 100);
+        const isBest = dow === bestDow && w.scheduled > 0;
+        const noData = w.scheduled === 0;
+        return (
+          <View key={dow} style={styles.weekdaySlot}>
+            <View style={[styles.weekdayTrack, { backgroundColor: trackColor }]}>
+              <View
+                style={[
+                  styles.weekdayFill,
+                  {
+                    height: `${Math.max(noData ? 0 : 6, pct)}%`,
+                    backgroundColor: isBest ? GOLD : '#A6DDB4',
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.weekdayLabel, { color: isBest ? GOLD : labelColor }]}>
+              {dayLabels[dow]}
+            </Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -60,130 +147,234 @@ function AnimatedBarFill({
 export default function StatsScreen() {
   const t = useTranslation();
   const C = useAppTheme();
-  const reduceMotion = useReduceMotion();
 
   const activities = useAppStore((s) => s.activities);
   const completions = useAppStore((s) => s.completions);
+  const isPremium = useIsPremium();
   const weekStartsOn = weekStartFlag(useSettingsStore((s) => s.weekStart));
   const today = todayIsoFn();
-  const currentWeekStart = mondayOfIso(parseIsoDate(today), weekStartsOn);
 
-  const weekProgress = useMemo(
+  const [period, setPeriod] = useState<Period>('week');
+
+  const actsForStreak = useMemo(() => activities.map(toActivityForStreak), [activities]);
+  const earliestIso = useMemo(() => earliestCreatedIso(actsForStreak), [actsForStreak]);
+
+  const hasData = activities.length > 0;
+
+  // Rozsah a šířka okna pro vybrané období.
+  const { startIso, windowDays } = useMemo(() => {
+    if (period === 'week') {
+      return { startIso: toIsoDate(addDays(parseIsoDate(today), -6)), windowDays: 7 };
+    }
+    if (period === 'month') {
+      return { startIso: toIsoDate(addDays(parseIsoDate(today), -29)), windowDays: 30 };
+    }
+    const start = earliestIso ?? today;
+    return { startIso: start, windowDays: Math.max(1, diffDaysIso(start, today) + 1) };
+  }, [period, today, earliestIso]);
+
+  const range = useMemo(
+    () => computeRangeStats(actsForStreak, completions, startIso, today),
+    [actsForStreak, completions, startIso, today],
+  );
+
+  const currentStreak = useMemo(
+    () => computeCurrentDailyStreak(actsForStreak, completions, today),
+    [actsForStreak, completions, today],
+  );
+
+  const trend = useMemo(
+    () => computeWeeklyTrend(actsForStreak, completions, today, 8, weekStartsOn),
+    [actsForStreak, completions, today, weekStartsOn],
+  );
+
+  const bestWeekday = useMemo(
+    () => computeBestWeekday(actsForStreak, completions, today),
+    [actsForStreak, completions, today],
+  );
+
+  const weekdayBreakdown = useMemo(
+    () => computeWeekdayBreakdown(actsForStreak, completions, today),
+    [actsForStreak, completions, today],
+  );
+
+  const dayOrder = useMemo(() => orderedDayIndices(weekStartsOn), [weekStartsOn]);
+
+  const byHabit = useMemo(
     () =>
-      computeWeekProgress(
-        activities.map(toActivityForStreak),
-        completions,
-        currentWeekStart,
-        weekStartsOn,
-      ),
-    [activities, completions, currentWeekStart, weekStartsOn],
+      activities
+        .map((a) => ({
+          activity: a,
+          stats: computeActivityStats(toActivityForStreak(a), completions, today, windowDays),
+          streak: computeCurrentActivityStreak(toActivityForStreak(a), completions, today),
+        }))
+        .sort((x, y) => y.stats.completionRate - x.stats.completionRate),
+    [activities, completions, today, windowDays],
   );
 
-  const progressRatio =
-    weekProgress.plannedCount > 0
-      ? weekProgress.completedCount / weekProgress.plannedCount
-      : 0;
-  const progressPct = Math.round(progressRatio * 100);
+  const periodOptions: { key: Period; label: string }[] = [
+    { key: 'week', label: t.stats.periodWeek },
+    { key: 'month', label: t.stats.periodMonth },
+    { key: 'all', label: t.stats.periodAll },
+  ];
 
-  const daysLeftInWeek = useMemo(() => {
-    const lastDayOfWeek = weekDates(parseIsoDate(today), weekStartsOn)[6]!;
-    return diffDaysIso(today, lastDayOfWeek);
-  }, [today, weekStartsOn]);
-
-  const summaryLabel = useMemo(() => {
-    if (progressPct >= 100) return t.stats.greatWeek;
-    if (progressPct >= 75)  return t.stats.goodWeek;
-    if (progressPct >= 50)  return t.stats.okWeek;
-    return t.stats.badWeek;
-  }, [progressPct]);
-
-  const activityStats = useMemo(
-    () => activities.map((a) => computeActivityStats(toActivityForStreak(a), completions, today)),
-    [activities, completions, today],
-  );
+  const ratePct = Math.round(range.rate * 100);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.BG }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
         <Text style={[styles.pageTitle, { color: C.text }]}>{t.stats.title}</Text>
 
-        {/* Weekly summary card */}
-        {weekProgress.plannedCount > 0 ? (
-          <View style={[styles.summaryCard, { backgroundColor: C.summaryCardBg }]}>
-            <CircularProgress
-              size={80}
-              strokeWidth={8}
-              progress={progressRatio}
-              color={COLORS.primary}
-              trackColor={C.isDark ? 'rgba(45,181,74,0.25)' : '#D4EED9'}
-            >
-              <CountUpText value={progressPct} suffix="%" style={styles.summaryPct} />
-            </CircularProgress>
-            <View style={styles.summaryText}>
-              <Text style={[styles.summaryTitle, { color: C.text }]}>{summaryLabel}</Text>
-              <Text style={[styles.summaryDetail, { color: C.textSecondary }]}>
-                {t.stats.checkInsDetail(
-                  weekProgress.completedCount,
-                  weekProgress.plannedCount,
-                  daysLeftInWeek,
-                )}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
-        {/* Heatmap */}
-        <View style={[styles.card, { backgroundColor: C.surface }]}>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.last15Weeks}</Text>
-          </View>
-          <HabitHeatmap
-            activities={activities}
-            completions={completions}
-            todayIso={today}
-            weekStartsOn={weekStartsOn}
-          />
-        </View>
-
-        {/* By habit */}
-        {activityStats.length > 0 ? (
-          <View style={[styles.card, { backgroundColor: C.surface }]}>
-            <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.byHabit}</Text>
-            {activityStats.map((stat, i) => {
-              const activity = activities[i];
-              if (!activity) return null;
-              const pct = Math.round(stat.completionRate * 100);
-              return (
-                <View key={stat.activityId} style={styles.habitRow}>
-                  <Text style={styles.habitEmoji}>{activity.emoji}</Text>
-                  <View style={styles.habitInfo}>
-                    <View style={styles.habitLabelRow}>
-                      <Text style={[styles.habitName, { color: C.text }]}>{activity.name}</Text>
-                      <CountUpText
-                        value={pct}
-                        suffix="%"
-                        style={[styles.habitPct, { color: activity.color }]}
-                      />
-                    </View>
-                    <AnimatedBarFill
-                      pct={pct}
-                      delay={i * 60}
-                      color={activity.color}
-                      trackColor={C.progressTrack}
-                      reduceMotion={reduceMotion}
-                    />
-                  </View>
-                </View>
-              );
-            })}
+        {!hasData ? (
+          <View style={[styles.emptyCard, { backgroundColor: C.surface }]}>
+            <Text style={styles.emptyEmoji}>📊</Text>
+            <Text style={[styles.emptyTitle, { color: C.text }]}>{t.stats.emptyTitle}</Text>
+            <Text style={[styles.emptyBody, { color: C.textSecondary }]}>{t.stats.emptyBody}</Text>
           </View>
         ) : (
-          <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: C.textTertiary }]}>{t.stats.noData}</Text>
-          </View>
-        )}
+          <>
+            {/* Přepínač období */}
+            <View style={styles.periodRow}>
+              <SegmentedPill
+                options={periodOptions}
+                value={period}
+                onChange={setPeriod}
+                isDark={C.isDark}
+              />
+            </View>
 
+            {/* Hero dlaždice */}
+            <View style={styles.tileGrid}>
+              <Tile
+                emoji="🔥"
+                value={currentStreak}
+                label={t.stats.tileCurrentStreak}
+                bg={C.surface}
+                textColor={C.text}
+                subColor={C.textSecondary}
+              />
+              <Tile
+                emoji="🎯"
+                value={ratePct}
+                suffix="%"
+                label={t.stats.tileSuccessRate}
+                bg={C.surface}
+                textColor={C.text}
+                subColor={C.textSecondary}
+              />
+              <Tile
+                emoji="✅"
+                value={range.totalCheckins}
+                label={t.stats.tileCheckins}
+                bg={C.surface}
+                textColor={C.text}
+                subColor={C.textSecondary}
+              />
+              <Tile
+                emoji="📅"
+                value={range.activeDays}
+                label={t.stats.tileActiveDays}
+                bg={C.surface}
+                textColor={C.text}
+                subColor={C.textSecondary}
+              />
+            </View>
+
+            {isPremium ? (
+              <>
+                {/* Trend */}
+                <View style={[styles.card, { backgroundColor: C.surface }]}>
+                  <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.trendTitle}</Text>
+                  <TrendChart
+                    data={trend.map((p) => p.rate)}
+                    trackColor={C.isDark ? '#2A2A2C' : '#F0F0F0'}
+                  />
+                </View>
+
+                {/* Konzistence (heatmapa) */}
+                <View style={[styles.card, { backgroundColor: C.surface }]}>
+                  <Text style={[styles.cardTitle, { color: C.text }]}>
+                    {t.stats.consistencyTitle}
+                  </Text>
+                  <HabitHeatmap
+                    activities={activities}
+                    completions={completions}
+                    todayIso={today}
+                    weekStartsOn={weekStartsOn}
+                  />
+                </View>
+
+                {/* Dle návyku (seřazeno dle úspěšnosti) */}
+                {byHabit.length > 0 ? (
+                  <View style={[styles.card, { backgroundColor: C.surface }]}>
+                    <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.byHabitTitle}</Text>
+                    {byHabit.map(({ activity, stats, streak }) => {
+                      const pct = Math.round(stats.completionRate * 100);
+                      return (
+                        <View key={activity.id} style={styles.habitRow}>
+                          <Text style={styles.habitEmoji}>{activity.emoji}</Text>
+                          <View style={styles.habitInfo}>
+                            <View style={styles.habitLabelRow}>
+                              <Text style={[styles.habitName, { color: C.text }]} numberOfLines={1}>
+                                {activity.name}
+                              </Text>
+                              <View style={styles.habitMeta}>
+                                {streak > 0 ? (
+                                  <Text style={[styles.habitStreak, { color: C.textSecondary }]}>
+                                    🔥{streak}
+                                  </Text>
+                                ) : null}
+                                <Text style={[styles.habitPct, { color: activity.color }]}>
+                                  {pct}%
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={[styles.progressTrack, { backgroundColor: C.progressTrack }]}>
+                              <View
+                                style={[
+                                  styles.progressFill,
+                                  { backgroundColor: activity.color, width: `${pct}%` },
+                                ]}
+                              />
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
+
+                {/* Dny v týdnu — vizuální rozpad úspěšnosti + nejlepší den */}
+                {bestWeekday ? (
+                  <View style={[styles.card, { backgroundColor: C.surface }]}>
+                    <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.weekdayTitle}</Text>
+                    <WeekdayBars
+                      rates={weekdayBreakdown}
+                      bestDow={bestWeekday.dow}
+                      order={dayOrder}
+                      dayLabels={t.days.short}
+                      trackColor={C.isDark ? '#2A2A2C' : '#F0F0F0'}
+                      labelColor={C.textSecondary}
+                    />
+                    <View style={styles.insightRow}>
+                      <Text style={styles.insightEmoji}>💡</Text>
+                      <Text style={[styles.insightText, { color: C.text }]}>
+                        {t.stats.bestDayInsight(t.days.long[bestWeekday.dow])}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <PremiumLockCard
+                title={t.premium.lockStatsTitle}
+                body={t.premium.lockStatsBody}
+                ctaLabel={t.premium.unlockCta}
+                onUnlock={() => void openPaywall()}
+              />
+            )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -198,35 +389,41 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     letterSpacing: -0.56,
   },
-  summaryCard: {
+
+  periodRow: { marginBottom: 16 },
+
+  // Hero tiles
+  tileGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    padding: 20,
-    gap: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
     marginBottom: 16,
+  },
+  tile: {
+    width: '48.5%',
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
-    elevation: 1,
+    elevation: 2,
   },
-  summaryPct: {
-    fontSize: 16,
+  tileEmoji: { fontSize: 20, marginBottom: 6 },
+  tileValue: {
+    fontSize: 30,
     fontFamily: FONTS.extraBold,
-    color: COLORS.primary,
+    letterSpacing: -0.6,
   },
-  summaryText: { flex: 1 },
-  summaryTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.bold,
-    marginBottom: 4,
-  },
-  summaryDetail: {
-    fontSize: 13,
+  tileLabel: {
+    fontSize: 12.5,
     fontFamily: FONTS.semiBold,
-    lineHeight: 18,
+    marginTop: 2,
   },
+
+  // Generic card
   card: {
     borderRadius: 16,
     padding: 16,
@@ -237,12 +434,70 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  cardHeader: { marginBottom: 12 },
   cardTitle: {
     fontSize: 16,
     fontFamily: FONTS.bold,
-    marginBottom: 12,
+    marginBottom: 14,
   },
+
+  // Trend chart
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 76,
+    gap: 8,
+  },
+  trendBarSlot: { flex: 1, height: '100%', justifyContent: 'flex-end' },
+  trendBarTrack: {
+    height: '100%',
+    borderRadius: 6,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  trendBarFill: {
+    width: '100%',
+    borderRadius: 6,
+  },
+  trendLabelWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trendLabel: {
+    fontSize: 9.5,
+    fontFamily: FONTS.bold,
+    color: '#2A2A2A',
+  },
+
+  // Weekday breakdown
+  weekdayRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 72,
+    gap: 8,
+  },
+  weekdaySlot: { flex: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+  weekdayTrack: {
+    width: '100%',
+    flex: 1,
+    borderRadius: 6,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  weekdayFill: { width: '100%', borderRadius: 6 },
+  weekdayLabel: {
+    fontSize: 10.5,
+    fontFamily: FONTS.semiBold,
+    marginTop: 6,
+  },
+  insightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+
+  // By habit
   habitRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,10 +509,13 @@ const styles = StyleSheet.create({
   habitLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 5,
   },
-  habitName: { fontSize: 14, fontFamily: FONTS.semiBold },
-  habitPct:  { fontSize: 14, fontFamily: FONTS.bold },
+  habitName: { fontSize: 14, fontFamily: FONTS.semiBold, flex: 1, marginRight: 8 },
+  habitMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  habitStreak: { fontSize: 12.5, fontFamily: FONTS.semiBold },
+  habitPct: { fontSize: 14, fontFamily: FONTS.bold },
   progressTrack: {
     height: 8,
     borderRadius: 4,
@@ -267,6 +525,29 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
-  empty: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 15 },
+
+  // Insight
+  insightEmoji: { fontSize: 22 },
+  insightText: { flex: 1, fontSize: 14, fontFamily: FONTS.semiBold, lineHeight: 19 },
+
+  // Empty
+  emptyCard: {
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyEmoji: { fontSize: 32, marginBottom: 10 },
+  emptyTitle: { fontSize: 16, fontFamily: FONTS.bold, textAlign: 'center' },
+  emptyBody: {
+    fontSize: 13,
+    fontFamily: FONTS.semiBold,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 18,
+  },
 });

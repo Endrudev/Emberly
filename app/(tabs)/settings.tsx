@@ -12,6 +12,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore, type WeekStart } from '@/store/useSettingsStore';
+import { usePurchasesStore, useIsPremium } from '@/store/usePurchasesStore';
+import { openPaywall, restoreAndSync } from '@/purchases/openPaywall';
+import { showManageSubscriptions } from '@/purchases/purchases';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation, useDateLocale } from '@/i18n';
@@ -96,6 +99,18 @@ export default function SettingsScreen() {
   const activities = useAppStore((s) => s.activities);
   const resetAllData = useAppStore((s) => s.resetAllData);
   const settings   = useSettingsStore();
+  const isPremium  = useIsPremium();
+  const devOverride = usePurchasesStore((s) => s.devPremiumOverride);
+  const setDevOverride = usePurchasesStore((s) => s.setDevOverride);
+
+  const handleRestore = useCallback(() => {
+    void restoreAndSync().then((premium) => {
+      Alert.alert(
+        premium ? t.premium.restoreSuccessTitle : t.premium.restoreTitle,
+        premium ? t.premium.restoreSuccessBody : t.premium.restoreNoneFound,
+      );
+    });
+  }, [t]);
 
   const handleResetData = useCallback(() => {
     tapMedium();
@@ -355,6 +370,65 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
           {t.settings.autoBackupDescription}
         </Text>
+
+        {/* ── Subscription ── */}
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+          {t.premium.subscriptionSection}
+        </Text>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
+          {isPremium ? (
+            <>
+              <SettingsRow
+                {...rowProps}
+                icon="⭐"
+                iconBg="#FFF7E0"
+                label={t.premium.premiumActiveTitle}
+                value={t.premium.premiumActiveSubtitle}
+                showArrow={false}
+              />
+              <SettingsRow
+                {...rowProps}
+                icon="⚙️"
+                iconBg="#E8F4FE"
+                label={t.premium.manageTitle}
+                onPress={() => void showManageSubscriptions()}
+              />
+            </>
+          ) : (
+            <SettingsRow
+              {...rowProps}
+              icon="⭐"
+              iconBg="#FFF7E0"
+              label={t.premium.upgradeTitle}
+              value={t.premium.upgradeSubtitle}
+              onPress={() => void openPaywall()}
+            />
+          )}
+          <SettingsRow
+            {...rowProps}
+            icon="🔄"
+            iconBg="#E8F7EB"
+            label={t.premium.restoreTitle}
+            onPress={handleRestore}
+            isLast={!__DEV__}
+          />
+          {__DEV__ ? (
+            <SettingsRow
+              {...rowProps}
+              icon="🧪"
+              iconBg="#F0EEFF"
+              label={t.premium.devOverrideLabel}
+              showArrow={false}
+              isLast
+              right={
+                <AnimatedToggle
+                  value={isPremium}
+                  onValueChange={(v) => setDevOverride(v)}
+                />
+              }
+            />
+          ) : null}
+        </Animated.View>
 
         {/* ── About ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>

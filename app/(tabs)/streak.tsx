@@ -1,42 +1,85 @@
 import { useEffect, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
+import { format } from 'date-fns';
 import Animated, {
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withSequence,
+  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 
 import { useAppStore } from '@/store/useAppStore';
+import { useIsPremium } from '@/store/usePurchasesStore';
+import { isTierLocked, STREAK_FREEZE_MONTHLY_QUOTA } from '@/purchases/gating';
+import { openPaywall } from '@/purchases/openPaywall';
 import { useAppTheme } from '@/ui/useAppTheme';
-import { CircularProgress } from '@/ui/components/CircularProgress';
+import { TIER_BADGES, FROZEN_FLAME } from '@/ui/streakAssets';
 import { CountUpText } from '@/ui/anim/CountUpText';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { computeCurrentDailyStreak, toActivityForStreak } from '@/domain/streaks';
-import { todayIso as todayIsoFn } from '@/domain/week';
+import { freezesRemainingInMonth } from '@/domain/streakFreeze';
+import { parseIsoDate, todayIso as todayIsoFn } from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
-import { useTranslation } from '@/i18n';
+import { useTranslation, useDateLocale } from '@/i18n';
 
-const STREAK_COLOR = '#FF8C42';
-const STREAK_TRACK_LIGHT = '#FFE5CC';
-const STREAK_TRACK_DARK  = '#3D2010';
+/** Animovaný progress bar (fill 0→target). Respektuje reduce motion. */
+function ProgressBar({
+  progress,
+  trackColor,
+  reduceMotion,
+}: {
+  progress: number;
+  trackColor: string;
+  reduceMotion: boolean;
+}) {
+  const w = useSharedValue(reduceMotion ? progress : 0);
+  useEffect(() => {
+    w.value = reduceMotion ? progress : withDelay(200, withTiming(progress, { duration: 700 }));
+  }, [progress, reduceMotion, w]);
+  const style = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(1, w.value)) * 100}%` }));
+  return (
+    <View style={[styles.progressTrack, { backgroundColor: trackColor }]}>
+      <Animated.View style={[styles.progressFill, style]} />
+    </View>
+  );
+}
 
 export default function StreakScreen() {
   const t = useTranslation();
+  const dateLocale = useDateLocale();
   const C = useAppTheme();
+  const reduceMotion = useReduceMotion();
 
-  const activities  = useAppStore((s) => s.activities);
+  const activities = useAppStore((s) => s.activities);
   const completions = useAppStore((s) => s.completions);
-  const today       = todayIsoFn();
+  const frozenDates = useAppStore((s) => s.frozenDates);
+  const isPremium = useIsPremium();
+  const today = todayIsoFn();
+
+  const frozenSet = useMemo(() => new Set(frozenDates), [frozenDates]);
 
   const currentStreak = useMemo(
-    () => computeCurrentDailyStreak(activities.map(toActivityForStreak), completions, today),
-    [activities, completions, today],
+    () =>
+      computeCurrentDailyStreak(activities.map(toActivityForStreak), completions, today, frozenSet),
+    [activities, completions, today, frozenSet],
+  );
+
+  const monthIso = today.slice(0, 7);
+  const freezesRemaining = useMemo(
+    () => freezesRemainingInMonth(frozenDates, monthIso),
+    [frozenDates, monthIso],
+  );
+  const freezesUsedThisMonth = useMemo(
+    () =>
+      frozenDates
+        .filter((d) => d.slice(0, 7) === monthIso)
+        .sort()
+        .map((d) => format(parseIsoDate(d), 'd. M.', { locale: dateLocale })),
+    [frozenDates, monthIso, dateLocale],
   );
 
   const tiers = t.streakScreen.tiers;
@@ -47,9 +90,9 @@ export default function StreakScreen() {
       if (tier && currentStreak >= tier.min) return i;
     }
     return -1;
-  }, [currentStreak]);
+  }, [currentStreak, tiers]);
 
-  const nextTier       = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
+  const nextTier = currentTierIndex < tiers.length - 1 ? tiers[currentTierIndex + 1] : null;
   const daysToNextBadge = nextTier ? nextTier.min - currentStreak : 0;
 
   const circleProgress = useMemo(() => {
@@ -60,126 +103,154 @@ export default function StreakScreen() {
     return (currentStreak - tierStart) / (nextTier.min - tierStart);
   }, [currentStreak, currentTierIndex, nextTier, tiers]);
 
-  // ── Entrance animations ────────────────────────────────────────────────────
-  const reduceMotion = useReduceMotion();
-
-  // Very subtle flame pulse (scale 1 ↔ 1.05, 2s loop).
-  const flame = useSharedValue(1);
-  useEffect(() => {
-    if (reduceMotion) {
-      flame.value = 1;
-      return;
-    }
-    flame.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: 1000 }),
-        withTiming(1, { duration: 1000 }),
-      ),
-      -1,
-      false,
-    );
-  }, [reduceMotion, flame]);
-  const flameStyle = useAnimatedStyle(() => ({ transform: [{ scale: flame.value }] }));
+  // Hero badge = aktuálně dosažený tier; při streaku 0 ukážeme první tier (cíl) ztlumeně.
+  const heroTierIndex = currentTierIndex >= 0 ? currentTierIndex : 0;
+  const heroTier = tiers[heroTierIndex];
+  const heroLocked = isTierLocked(heroTierIndex, isPremium) && currentStreak > 0;
+  const heroDimmed = currentStreak === 0 || heroLocked;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.BG }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
         <Text style={[styles.pageTitle, { color: C.text }]}>{t.streakScreen.title}</Text>
 
-        {/* Big streak circle */}
-        <View style={styles.circleSection}>
-          <View style={[styles.circleCard, { backgroundColor: C.circleCardBg }]}>
-            <CircularProgress
-              size={160}
-              strokeWidth={12}
-              progress={circleProgress}
-              color={STREAK_COLOR}
-              trackColor={C.isDark ? STREAK_TRACK_DARK : STREAK_TRACK_LIGHT}
-            >
-              <View style={styles.circleInner}>
-                <Animated.View style={flameStyle}>
-                  <Text style={styles.flameEmoji}>🔥</Text>
-                </Animated.View>
-                <CountUpText
-                  value={currentStreak}
-                  duration={800}
-                  style={[styles.streakCount, { color: C.text }]}
-                />
-                <Text style={[styles.streakLabel, { color: C.textSecondary }]}>
-                  {t.streakScreen.dayStreak}
-                </Text>
+        {/* ── Hero — velký aktuální tier badge + číslo + progress ── */}
+        <Pressable
+          onPress={heroLocked ? () => void openPaywall() : undefined}
+          style={[styles.heroCard, { backgroundColor: C.circleCardBg }]}
+        >
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeInDown.duration(320)}
+            style={styles.heroBadgeWrap}
+          >
+            <Image
+              source={heroTier ? TIER_BADGES[heroTierIndex] : TIER_BADGES[0]}
+              style={[styles.heroBadge, heroDimmed && styles.badgeDimmed]}
+              resizeMode="contain"
+            />
+            {heroLocked ? (
+              <View style={styles.heroLockChip}>
+                <Text style={styles.heroLockChipText}>🔒</Text>
               </View>
-            </CircularProgress>
+            ) : null}
+          </Animated.View>
 
-            {currentStreak > 0 && nextTier ? (
-              <>
-                <Text style={[styles.badgeProgress, { color: C.text }]}>
-                  {t.streakScreen.daysToNextBadge(daysToNextBadge, nextTier.name)}
-                </Text>
-                <Text style={[styles.keepGoing, { color: C.textSecondary }]}>
-                  {t.streakScreen.keepGoing}
-                </Text>
-              </>
-            ) : currentStreak === 0 ? (
-              <>
-                <Text style={[styles.badgeProgress, { color: C.text }]}>
-                  {t.streakScreen.noStreak}
-                </Text>
-                <Text style={[styles.keepGoing, { color: C.textSecondary }]}>
-                  {t.streakScreen.noStreakSub}
-                </Text>
-              </>
-            ) : (
-              <Text style={[styles.badgeProgress, { color: C.text }]}>
-                {t.streakScreen.maxReached}
+          <CountUpText
+            value={currentStreak}
+            duration={800}
+            style={[styles.streakCount, { color: C.text }]}
+          />
+          <Text style={[styles.streakLabel, { color: C.textSecondary }]}>
+            {t.streakScreen.dayStreak}
+          </Text>
+
+          {currentStreak === 0 ? (
+            <>
+              <Text style={[styles.heroHint, { color: C.text }]}>{t.streakScreen.noStreak}</Text>
+              <Text style={[styles.heroSub, { color: C.textSecondary }]}>
+                {t.streakScreen.noStreakSub}
               </Text>
-            )}
-          </View>
-        </View>
+            </>
+          ) : nextTier ? (
+            <>
+              <ProgressBar
+                progress={circleProgress}
+                trackColor={C.isDark ? '#3D2010' : '#FFE5CC'}
+                reduceMotion={reduceMotion}
+              />
+              <Text style={[styles.heroHint, { color: C.text }]}>
+                {t.streakScreen.daysToNextBadge(daysToNextBadge, nextTier.name)}
+              </Text>
+            </>
+          ) : (
+            <Text style={[styles.heroHint, { color: C.text }]}>{t.streakScreen.maxReached}</Text>
+          )}
+        </Pressable>
 
-        {/* Tier list */}
-        <Text style={[styles.tiersTitle, { color: C.textTertiary }]}>
+        {/* ── Sbírka odznaků (všech 5 tierů) ── */}
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
           {t.streakScreen.tiersTitle}
         </Text>
-        <View style={[styles.tiersCard, { backgroundColor: C.surface }]}>
+        <View style={[styles.collectionCard, { backgroundColor: C.surface }]}>
           {tiers.map((tier, idx) => {
-            const isAchieved = currentStreak > tier.max;
-            const isCurrent  = idx === currentTierIndex;
-            const isLocked   = currentStreak < tier.min;
+            const earned = currentStreak >= tier.min;
+            const premiumLocked = isTierLocked(idx, isPremium);
+            const isCurrent = idx === currentTierIndex;
+            const dimmed = premiumLocked || !earned;
 
             return (
-              <Animated.View
+              <Pressable
                 key={tier.key}
-                entering={reduceMotion ? undefined : FadeInDown.delay(idx * 50).duration(260)}
-                style={[
-                  styles.tierRow,
-                  idx < tiers.length - 1 && [styles.tierRowBorder, { borderBottomColor: C.border }],
-                ]}
+                onPress={premiumLocked ? () => void openPaywall() : undefined}
+                style={styles.collectionItem}
               >
-                <Text style={[styles.tierEmoji, isLocked && styles.locked]}>{tier.emoji}</Text>
-                <View style={styles.tierInfo}>
-                  <Text style={[styles.tierName, { color: isLocked ? C.textTertiary : C.text }]}>
-                    {tier.name}
-                  </Text>
-                  <Text style={[styles.tierRange, { color: C.textSecondary }]}>
-                    {tier.label}
-                  </Text>
+                <View style={styles.collectionBadgeWrap}>
+                  <Image
+                    source={TIER_BADGES[idx]}
+                    style={[styles.collectionBadge, dimmed && styles.badgeDimmed]}
+                    resizeMode="contain"
+                  />
+                  {premiumLocked ? (
+                    <View style={styles.collectionLockChip}>
+                      <Text style={styles.collectionLockChipText}>🔒</Text>
+                    </View>
+                  ) : earned ? (
+                    <View style={styles.collectionCheck}>
+                      <Text style={styles.collectionCheckText}>✓</Text>
+                    </View>
+                  ) : null}
                 </View>
-                {isAchieved ? (
-                  <View style={styles.achievedBadge}>
-                    <Text style={styles.achievedIcon}>✓</Text>
-                  </View>
-                ) : isCurrent ? (
-                  <View style={styles.currentBadge}>
-                    <Text style={styles.currentBadgeText}>{t.streakScreen.youreHere}</Text>
-                  </View>
-                ) : null}
-              </Animated.View>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.collectionLabel,
+                    { color: isCurrent ? COLORS.primary : dimmed ? C.textTertiary : C.text },
+                  ]}
+                >
+                  {tier.name}
+                </Text>
+              </Pressable>
             );
           })}
         </View>
 
+        {/* ── Ochrana série (ledový plamínek) ── */}
+        <Pressable
+          onPress={isPremium ? undefined : () => void openPaywall()}
+          style={[styles.freezeCard, { backgroundColor: C.surface }]}
+        >
+          <View style={styles.freezeHeader}>
+            <Image source={FROZEN_FLAME} style={styles.freezeFlame} resizeMode="contain" />
+            <Text style={[styles.freezeTitle, { color: C.text }]}>{t.streakFreeze.title}</Text>
+            {isPremium ? null : (
+              <View style={styles.premiumChip}>
+                <Text style={styles.premiumChipText}>⭐ {t.premium.badge}</Text>
+              </View>
+            )}
+          </View>
+
+          {isPremium ? (
+            <>
+              <Text style={[styles.freezeRemaining, { color: C.text }]}>
+                {t.streakFreeze.remaining(freezesRemaining, STREAK_FREEZE_MONTHLY_QUOTA)}
+              </Text>
+              <Text style={[styles.freezeDetail, { color: C.textSecondary }]}>
+                {freezesUsedThisMonth.length > 0
+                  ? t.streakFreeze.usedOn(freezesUsedThisMonth.join(', '))
+                  : t.streakFreeze.noneUsedThisMonth}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.freezeBody, { color: C.textSecondary }]}>
+                {t.premium.lockStreakFreezeBody}
+              </Text>
+              <View style={styles.freezeCta}>
+                <Text style={styles.freezeCtaText}>{t.premium.unlockCta}</Text>
+              </View>
+            </>
+          )}
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -194,99 +265,185 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     letterSpacing: -0.56,
   },
-  circleSection: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  circleCard: {
+
+  // Hero
+  heroCard: {
     borderRadius: 24,
-    padding: 28,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    width: '100%',
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 2,
   },
-  circleInner: { alignItems: 'center' },
-  flameEmoji: { fontSize: 28, marginBottom: 2 },
+  heroBadgeWrap: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
+  heroBadge: { width: 140, height: 140 },
+  badgeDimmed: { opacity: 0.32 },
+  heroLockChip: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroLockChipText: { fontSize: 16 },
   streakCount: {
-    fontSize: 42,
+    fontSize: 46,
     fontFamily: FONTS.extraBold,
-    lineHeight: 48,
+    lineHeight: 52,
+    marginTop: 8,
   },
   streakLabel: {
     fontSize: 13,
     fontFamily: FONTS.semiBold,
   },
-  badgeProgress: {
-    fontSize: 16,
+  heroHint: {
+    fontSize: 15,
     fontFamily: FONTS.bold,
-    marginTop: 20,
+    marginTop: 16,
     textAlign: 'center',
   },
-  keepGoing: {
+  heroSub: {
     fontSize: 13,
     fontFamily: FONTS.semiBold,
     marginTop: 4,
     textAlign: 'center',
   },
-  tiersTitle: {
+  progressTrack: {
+    height: 10,
+    borderRadius: 5,
+    width: '100%',
+    overflow: 'hidden',
+    marginTop: 20,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 5,
+    backgroundColor: '#FF8C42',
+  },
+
+  // Collection strip
+  sectionTitle: {
     fontSize: 12,
     fontFamily: FONTS.extraBold,
     letterSpacing: 0.96,
     marginBottom: 12,
   },
-  tiersCard: {
-    borderRadius: 16,
+  collectionCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-    overflow: 'hidden',
   },
-  tierRow: {
-    flexDirection: 'row',
+  collectionItem: { flex: 1, alignItems: 'center' },
+  collectionBadgeWrap: { width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
+  collectionBadge: { width: 54, height: 54 },
+  collectionLockChip: {
+    position: 'absolute',
+    bottom: -2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 14,
+    justifyContent: 'center',
   },
-  tierRowBorder: {
-    borderBottomWidth: 1,
-  },
-  tierEmoji: {
-    fontSize: 22,
-    width: 36,
-    textAlign: 'center',
-  },
-  tierInfo: { flex: 1 },
-  tierName: {
-    fontSize: 16,
-    fontFamily: FONTS.semiBold,
-  },
-  tierRange: {
-    fontSize: 12,
-    fontFamily: FONTS.semiBold,
-    marginTop: 2,
-  },
-  achievedBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  collectionLockChipText: { fontSize: 11 },
+  collectionCheck: {
+    position: 'absolute',
+    bottom: -2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  achievedIcon: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  currentBadge: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingHorizontal: 10,
+  collectionCheckText: { color: '#fff', fontSize: 11, fontFamily: FONTS.bold },
+  collectionLabel: {
+    fontSize: 10.5,
+    fontFamily: FONTS.semiBold,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+
+  // Freeze
+  freezeCard: {
+    borderRadius: 22,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  freezeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  freezeFlame: { width: 48, height: 48 },
+  freezeTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: FONTS.bold,
+  },
+  premiumChip: {
+    backgroundColor: '#FFF3D6',
+    borderRadius: 9,
+    paddingHorizontal: 9,
     paddingVertical: 4,
   },
-  currentBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  locked: { opacity: 0.35 },
+  premiumChipText: {
+    color: '#9A7A12',
+    fontSize: 10.5,
+    fontFamily: FONTS.extraBold,
+    letterSpacing: 0.5,
+  },
+  freezeRemaining: {
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    marginTop: 14,
+  },
+  freezeDetail: {
+    fontSize: 12.5,
+    fontFamily: FONTS.semiBold,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  freezeBody: {
+    fontSize: 13,
+    fontFamily: FONTS.semiBold,
+    lineHeight: 18,
+    marginTop: 12,
+  },
+  freezeCta: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  freezeCtaText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.2,
+  },
 });

@@ -201,6 +201,68 @@ resume po zabití appky), `FunnelScreen.tsx` je sdílená kostra (progress bar +
   nezmizely izolované bílé highlighty v očích apod.). Při dalším re-exportu z Figmy/AI nástroje
   zkontrolovat, že frame/artboard nemá fill, a po exportu ověřit `mode` (musí být `RGBA`).
 
+### RevenueCat / monetizace
+Předplatné přes **RevenueCat** (`react-native-purchases` + `react-native-purchases-ui`). Kód hotový,
+chybí jen RC účet + Play produkty (placeholder hodnoty v `src/config/revenuecat.ts`, setup checklist
+ve vaultu `screens/onboarding-funnel.md`).
+- **Native modul = stejná past jako widget.** `react-native-purchases(-ui)` na new architecture
+  crashují **při importu** v Expo Go, ne při použití. VŠECHEN přístup jde přes lazy `require()` v
+  try/catch ve `src/purchases/purchases.ts` (`getPurchases`, `getRevenueCatUI`) — nikdy statický
+  top-level import. V Expo Go / bez reálného klíče vše no-op → `isPremium=false`.
+- **Paywall (krok 17 funnelu, `phase6.tsx`)**: produkce renderuje **remote** `RevenueCatUI.Paywall`
+  (copy/ceny/A-B v RC dashboardu); Expo Go fallback = vestavěný custom layout (zachován). Obojí
+  končí `applyFunnelAnswers` + `/(tabs)`.
+- **Entitlement stav**: `src/store/usePurchasesStore.ts` (`isPremium`, dev override). Gating UI
+  **vždy** přes selektor `useIsPremium()` / `selectIsPremium` (dev override má v `__DEV__` přednost).
+  Sync s RC v `src/purchases/usePurchasesSync.ts` (mount + CustomerInfo listener + foreground refresh),
+  mountnuto v `app/_layout.tsx`.
+- **Feature gates** (čistá logika `src/purchases/gating.ts`, testy `__tests__/gating.test.ts`):
+  free limit **3 návyky** (FAB na home), vyšší streak tiery (blaze+, index > 1) a pokročilé
+  statistiky zamčené přes `PremiumLockCard` → `openPaywall()`. Seed návyků z funnelu limitem
+  **neprochází**.
+- **Přehled = dashboard** (`app/(tabs)/stats.tsx`): hero dlaždice (denní série, úspěšnost, splnění,
+  aktivní dny) + přepínač období (`SegmentedPill`: týden/měsíc/vše, rolling okna 7/30/all). **Free**
+  vidí dlaždice + období; **premium** odemyká trend graf (8 týdnů, % uprostřed barů, 100% bar zlatý
+  jako „perfect" na home), heatmapu (konzistence), žebříček návyků (řazeno dle úspěšnosti, + per-návyk
+  série) a rozpad dnů v týdnu (Po–Ne, nejlepší den zlatě + caption). Čisté agregace v
+  `src/domain/insights.ts` (`computeRangeStats`, `computeWeeklyTrend`, `computeWeekdayBreakdown`,
+  `computeBestWeekday`), testy `__tests__/insights.test.ts`. Přepínač období řídí dlaždice + žebříček
+  (rolling okna); trend/heatmapa jsou vícetýdenní z podstaty.
+- **„Streak protection" (ochrana série) je implementovaná** — viz sekce "Streak freeze (Ochrana
+  série)" níže. Value stack na paywallu teď odpovídá realitě.
+- **Reinstalace**: viz rozhodnutí níže (Android Auto Backup) — `onboardingCompleted` se obnoví →
+  přeskočí funnel/paywall; entitlement řeší RC (re-sync z Play / restore), ne onboarding flag.
+
+### Streak freeze (Ochrana série)
+Premium uživatel má automatickou ochranu denního streaku (headline stat na Streak obrazovce) —
+žádné manuální "použít ochranu" tlačítko.
+- **Auto-consume, jen včerejšek.** `src/purchases/useStreakFreezeSync.ts` (mountnuto v
+  `app/_layout.tsx` vedle `usePurchasesSync`/`useReminderSync`) při každém spuštění/foregroundu
+  zkontroluje pouze **včerejší** den — pokud byl zmeškaný a kvóta dovolí, tiše ho zmrazí
+  (`addFreeze` v `useAppStore`). Vědomě nedohledává starší zmeškané dny po delší pauze (žádné
+  zpětné "dohánění" historie) — viz čistá rozhodovací funkce `decideAutoFreeze` v
+  `src/domain/streakFreeze.ts`.
+- **Kvóta: 2/kalendářní měsíc, bez přenosu (`STREAK_FREEZE_MONTHLY_QUOTA` v
+  `src/purchases/gating.ts`).** Zbývající počet se vždy počítá z existujících záznamů
+  (`freezesRemainingInMonth`), žádný mutable counter, který by mohl rozjet ze synchronizace.
+- **Scope: jen denní streak.** `evaluateDay`/`computeCurrentDailyStreak`/`computeBestDailyStreak`
+  v `src/domain/streaks.ts` přijímají `frozenDates: ReadonlySet<string>` (default prázdná množina
+  → beze změny chování). Týdenní streak a per-aktivita streak (`computeCurrentWeeklyStreak`,
+  `computeCurrentActivityStreak`) se zmrazením vědomě NEpočítají — nikde v UI nejsou headline
+  metrikou, slib na paywallu se týká konkrétně Streak obrazovky.
+- **Perzistence: nová tabulka `streak_freezes`** (`src/db/schema.ts`, migrace `0001`), ne
+  Zustand persist — jde o append-only historická fakta 1:1 vázaná na datum, stejný tvar jako
+  `completions`; jede zdarma na existující Android Auto Backup (stejný `.db` soubor).
+  Repo `src/data/streakFreezeRepo.ts`, store pole `frozenDates` v `useAppStore.ts`.
+- **Gating**: `canUseStreakFreeze(isPremium)` v `src/purchases/gating.ts`. UI na Streak obrazovce
+  (`app/(tabs)/streak.tsx`) — vlastní freeze karta s assetem ledového plamínku (`Frozen_flame`);
+  pro free uživatele má lock stav + CTA → `openPaywall()` (ne `PremiumLockCard`, ten drží jen
+  zamčené statistiky ve Stats screen).
+- **Streak screen redesign**: hero = velký aktuální tier badge (`TIER_BADGES` v `src/ui/streakAssets.ts`,
+  sdílené s funnelem) + číslo + lineární progress k dalšímu tieru; pod tím „sbírka" všech 5 odznaků
+  (earned ✓ / premium-locked 🔒 / nedosažené ztlumené); freeze karta s ledovým plamínkem. Tier badge
+  assety jsou RGBA (pozadí odstraněno flood-fillem od okrajů, viz Emberly assety výše).
+
 ### Android Auto Backup (perzistence dat přes reinstalaci)
 `allowBackup` je explicitně `true` v `app.json` (`android.allowBackup`) — Auto Backup zálohuje
 výchozí fileset (SQLite DB + AsyncStorage) na Google Drive uživatele, ~1×/24h při nabíjení+Wi-Fi.
@@ -333,7 +395,7 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 [ ] 10. Export/Import JSON
 [ ] 11. Nastavení (funkční — theme, week start, streak goal)
 [ ] 12. Polish (animace, haptika, a11y)
-[ ] 15. RevenueCat — nahradit placeholder paywall (krok 17 funnelu), monetizace
+[~] 15. RevenueCat — kód hotový (remote paywall + entitlement + feature gates); zbývá RC účet + Play produkty (viz sekce "RevenueCat / monetizace")
 ```
 
 ## Časté příkazy

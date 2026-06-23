@@ -2,12 +2,15 @@ import { create } from 'zustand';
 
 import { activityRepo } from '@/data/activityRepo';
 import { completionRepo } from '@/data/completionRepo';
+import { streakFreezeRepo } from '@/data/streakFreezeRepo';
 import type { Activity, Completion, DayOfWeek } from '@/domain/types';
 import { mondayOfIso, parseIsoDate, shiftWeek, todayIso, type WeekAnchor } from '@/domain/week';
 
 interface AppState {
   activities: Activity[];
   completions: Completion[]; // all completions loaded (for v1 — pokud DB nabobtná, omezit na rolling window)
+  /** ISO dny, na které byla uplatněna premium "ochrana série" (streak freeze). */
+  frozenDates: string[];
   currentWeekStart: string; // ISO pondělí aktuálně zobrazeného týdne
   loaded: boolean;
 
@@ -39,20 +42,24 @@ interface AppState {
   resetAllData: () => Promise<void>;
 
   toggleCompletion: (activityId: number, dateIso: string) => Promise<boolean>;
+  /** Zaznamená zmrazený den (volá se z `useStreakFreezeSync`). Idempotentní. */
+  addFreeze: (dateIso: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
   activities: [],
   completions: [],
+  frozenDates: [],
   currentWeekStart: mondayOfIso(parseIsoDate(todayIso())),
   loaded: false,
 
   async loadAll() {
-    const [activities, completions] = await Promise.all([
+    const [activities, completions, frozenDates] = await Promise.all([
       activityRepo.listActive(),
       completionRepo.listAll(),
+      streakFreezeRepo.listAll(),
     ]);
-    set({ activities, completions, loaded: true });
+    set({ activities, completions, frozenDates, loaded: true });
   },
 
   setWeekStart(iso) {
@@ -98,7 +105,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   async resetAllData() {
     await completionRepo.deleteAll();
     await activityRepo.deleteAll();
-    set({ activities: [], completions: [] });
+    await streakFreezeRepo.deleteAll();
+    set({ activities: [], completions: [], frozenDates: [] });
     // .catch — v Expo Go react-native-android-widget neexistuje, import() samotný odmítne.
     import('@/widget/updateWidget')
       .then(({ updateMissionWidget }) => updateMissionWidget())
@@ -128,5 +136,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       .then(({ updateMissionWidget }) => updateMissionWidget())
       .catch(() => {});
     return isNowCompleted;
+  },
+
+  async addFreeze(dateIso) {
+    if (get().frozenDates.includes(dateIso)) return;
+    await streakFreezeRepo.create(dateIso);
+    set({ frozenDates: [...get().frozenDates, dateIso] });
   },
 }));

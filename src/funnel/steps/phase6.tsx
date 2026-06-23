@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from 'react-native-paper';
@@ -10,16 +10,19 @@ import { useTranslation } from '@/i18n';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
+import { getRevenueCatUI, restorePurchases } from '@/purchases/purchases';
+import { usePurchasesStore } from '@/store/usePurchasesStore';
 import { applyFunnelAnswers } from '../applyFunnelAnswers';
 import type { FunnelStepProps } from '../types';
 
 /**
- * Fáze 6 — Hard paywall (krok 17). PLACEHOLDER — žádná reálná platba,
- * žádné RevenueCat entitlement. CTA i zavření (X) appku stejně odemknou
- * (skutečné zamykání přijde s RevenueCat integrací).
+ * Fáze 6 — Hard paywall (krok 17).
  *
- * TODO: nahradit RevenueCat Paywall (react-native-purchases + RevenueCat
- * Paywalls, vzdálená konfigurace pro A/B test ceny/copy/layoutu).
+ * V dev/produkčním buildu (RC native modul dostupný) renderuje **remote
+ * RevenueCat Paywall** (`RevenueCatUI.Paywall`) — copy/ceny/layout se spravují
+ * v RC dashboardu (A/B). V Expo Go modul neexistuje → fallback na vestavěný
+ * custom layout (níže), CTA i zavření vedou do appky stejně (žádný reálný
+ * nákup v Expo Go). Entitlement gating funkcí drží `usePurchasesStore`.
  */
 
 const CLOSE_DELAY_MS = 2500;
@@ -32,19 +35,25 @@ export function PaywallStep(_props: FunnelStepProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
+  const setPremium = usePurchasesStore((s) => s.setPremium);
   const [plan, setPlan] = useState<Plan>('yearly');
   const [closeVisible, setCloseVisible] = useState(false);
   const [finishing, setFinishing] = useState(false);
+
+  // Lazy-load RC UI modul jen jednou. null v Expo Go → custom fallback.
+  const RevenueCatUI = useMemo(() => getRevenueCatUI(), []);
 
   useEffect(() => {
     const id = setTimeout(() => setCloseVisible(true), CLOSE_DELAY_MS);
     return () => clearTimeout(id);
   }, []);
 
-  // CTA i zavření (X) vedou do appky stejně — v téhle placeholder verzi
-  // není žádné reálné entitlement gating, to přijde s RevenueCat.
+  // Dokončí funnel (seed návyků + onboarding) a vstoupí do appky. Sdílené pro
+  // remote paywall (purchase/restore/dismiss) i custom fallback (CTA/X).
+  const finishingRef = useRef(false);
   async function handleFinish() {
-    if (finishing) return;
+    if (finishingRef.current) return;
+    finishingRef.current = true;
     setFinishing(true);
     try {
       await applyFunnelAnswers(t.funnel.categories);
@@ -53,11 +62,41 @@ export function PaywallStep(_props: FunnelStepProps) {
     }
   }
 
-  function handleRestore() {
-    // Placeholder — bez RevenueCat není co obnovit.
-    Alert.alert(p.restore, p.restoreNoneFound);
+  async function handleRestore() {
+    const premium = await restorePurchases();
+    setPremium(premium);
+    if (premium) {
+      await handleFinish();
+    } else {
+      Alert.alert(p.restore, p.restoreNoneFound);
+    }
   }
 
+  // ── Remote RevenueCat Paywall (dev/produkční build) ─────────────────────────
+  if (RevenueCatUI) {
+    return (
+      <View style={styles.safe}>
+        <RevenueCatUI.Paywall
+          style={StyleSheet.absoluteFill}
+          onPurchaseCompleted={() => {
+            setPremium(true);
+            void handleFinish();
+          }}
+          onRestoreCompleted={({ customerInfo }: { customerInfo: unknown }) => {
+            // Listener v usePurchasesSync stav doladí; tady jen pustíme dál.
+            void customerInfo;
+            void handleFinish();
+          }}
+          onDismiss={() => {
+            // Hard paywall s únikem — zavření vede do appky (bez premium).
+            void handleFinish();
+          }}
+        />
+      </View>
+    );
+  }
+
+  // ── Custom fallback (Expo Go — RC native modul není k dispozici) ────────────
   const valueItems = [
     p.valueStreakProtection,
     p.valueUnlimitedHabits,
@@ -145,6 +184,9 @@ export function PaywallStep(_props: FunnelStepProps) {
         <AnimatedPressable onPress={handleRestore} hapticStyle="light">
           <Text style={styles.restore}>{p.restore}</Text>
         </AnimatedPressable>
+
+        {/* Subscription disclosure (auto-obnovení, jak zrušit, trial) — právní povinnost */}
+        <Text style={styles.disclosure}>{p.disclosure}</Text>
 
         <View style={styles.legalRow}>
           <AnimatedPressable onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} hapticStyle="none">
@@ -304,6 +346,14 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     textDecorationLine: 'underline',
+  },
+  disclosure: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.textTertiary,
+    textAlign: 'center',
+    lineHeight: 15,
+    marginTop: 2,
   },
   legalRow: {
     flexDirection: 'row',

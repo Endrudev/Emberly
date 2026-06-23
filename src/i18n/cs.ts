@@ -124,6 +124,22 @@ export const cs = {
     completions: 'Splnění',
     longestStreak: 'Nejdelší streak',
     noData: 'Zatím žádná data',
+    // ── Dashboard (redesign Přehledu) ──
+    periodWeek: 'Týden',
+    periodMonth: 'Měsíc',
+    periodAll: 'Vše',
+    tileCurrentStreak: 'Denní série',
+    tileSuccessRate: 'Úspěšnost',
+    tileCheckins: 'Splnění',
+    tileActiveDays: 'Aktivní dny',
+    daysUnit: 'dní',
+    trendTitle: 'Trend po týdnech',
+    consistencyTitle: 'Konzistence',
+    weekdayTitle: 'Dny v týdnu',
+    byHabitTitle: 'Dle návyku',
+    bestDayInsight: (day: string) => `Nejvíc ti jde ${day}.`,
+    emptyTitle: 'Zatím tu nic není',
+    emptyBody: 'Začni odškrtávat návyky a tvoje statistiky se tu objeví.',
   },
   streakScreen: {
     title: 'Streak',
@@ -143,6 +159,14 @@ export const cs = {
       { key: 'inferno', name: 'Inferno', emoji: '🌋', min: 60, max: 99, label: '60–99 denní streak' },
       { key: 'legendary', name: 'Legendární', emoji: '⚡⚡', min: 100, max: Infinity, label: '100+ denní streak' },
     ] as const,
+  },
+  streakFreeze: {
+    title: '❄️ Ochrana série',
+    remaining: (n: number, quota: number) =>
+      `${n}/${quota} ${n === 1 ? 'ochrana' : n >= 2 && n <= 4 ? 'ochrany' : 'ochran'} zbývá tento měsíc`,
+    usedOn: (dates: string) => `Použito: ${dates}`,
+    noneUsedThisMonth: 'Tento měsíc zatím nepoužito.',
+    explainer: 'Když zmeškáš den, appka ho automaticky ochrání — streak se nezlomí.',
   },
   settings: {
     title: 'Nastavení',
@@ -347,7 +371,39 @@ export const cs = {
       // TODO social-proof: nahradit reálnými před launchem
       socialProof: 'Připojilo se 12 000+ lidí',
       closeAccessibilityLabel: 'Zavřít',
+      disclosure:
+        'Předplatné se automaticky obnovuje, dokud ho nezrušíš. Zrušit ho můžeš kdykoliv ve správě předplatných na Google Play. Účtuje se po skončení 7denní bezplatné zkušební doby.',
     },
+  },
+  // Premium gating — locky funkcí, paywall triggery, správa předplatného.
+  premium: {
+    unlockCta: 'Odemknout Premium',
+    badge: 'PREMIUM',
+    // Limit návyků (free)
+    habitLimitTitle: 'Dosáhl jsi limitu návyků',
+    habitLimitBody: (n: number) =>
+      `Verze zdarma má ${n} návyky. Odemkni Premium pro neomezený počet návyků.`,
+    // Lock pokročilých statistik
+    lockStatsTitle: 'Pokročilé statistiky',
+    lockStatsBody: 'Heatmapa a rozpad podle návyků jsou součástí Premium.',
+    // Lock vyšších tierů
+    lockTierTitle: 'Vyšší tiery jsou Premium',
+    lockTierBody: 'Odemkni všechny streak tiery a sleduj, jak Emberly roste až k legendě.',
+    lockStreakFreezeTitle: 'Ochrana série je Premium',
+    lockStreakFreezeBody: 'Nikdy už nepřijdeš o streak kvůli jednomu zapomenutému dni.',
+    // Sekce v Nastavení
+    subscriptionSection: 'PŘEDPLATNÉ',
+    upgradeTitle: 'Upgradovat na Premium',
+    upgradeSubtitle: 'Neomezené návyky, všechny tiery, pokročilé statistiky',
+    premiumActiveTitle: 'Premium aktivní',
+    premiumActiveSubtitle: 'Děkujeme za podporu 🔥',
+    manageTitle: 'Spravovat předplatné',
+    restoreTitle: 'Obnovit nákupy',
+    restoreNoneFound: 'Žádné předplatné k obnovení.',
+    restoreSuccessTitle: 'Obnoveno',
+    restoreSuccessBody: 'Premium bylo obnoveno. Děkujeme!',
+    // Dev-only override
+    devOverrideLabel: 'Premium override (dev)',
   },
   // Showcase widgetu v Nastavení + one-time nudge na Home.
   widget: {

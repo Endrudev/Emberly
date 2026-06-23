@@ -9,6 +9,9 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import type { Activity } from '@/domain/types';
 import { useAppStore } from '@/store/useAppStore';
+import { useIsPremium } from '@/store/usePurchasesStore';
+import { canAddHabit, FREE_HABIT_LIMIT } from '@/purchases/gating';
+import { openPaywall } from '@/purchases/openPaywall';
 import { useSettingsStore, weekStartFlag } from '@/store/useSettingsStore';
 import { ActivityRow } from '@/ui/components/ActivityRow';
 import { TodayActivityRow } from '@/ui/components/TodayActivityRow';
@@ -150,6 +153,21 @@ export default function HomeScreen() {
   const toggleCompletion = useAppStore((s) => s.toggleCompletion);
   const deleteActivity   = useAppStore((s) => s.deleteActivity);
   const goToCurrentWeek  = useAppStore((s) => s.goToCurrentWeek);
+  const isPremium        = useIsPremium();
+
+  // Přidání návyku — free uživatel má limit (FREE_HABIT_LIMIT). Při dosažení
+  // limitu nabídne paywall místo otevření formuláře. Seed z funnelu limitem
+  // neprochází (gate je jen tady, na manuálním přidání).
+  const handleAddHabit = useCallback(() => {
+    if (canAddHabit(activities.length, isPremium)) {
+      router.push('/activity/new');
+      return;
+    }
+    Alert.alert(t.premium.habitLimitTitle, t.premium.habitLimitBody(FREE_HABIT_LIMIT), [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.premium.unlockCta, onPress: () => void openPaywall() },
+    ]);
+  }, [activities.length, isPremium, router, t]);
 
   useEffect(() => {
     if (!loaded) void loadAll();
@@ -762,7 +780,7 @@ export default function HomeScreen() {
       {/* ── FAB ── */}
       <Pressable
         style={styles.fab}
-        onPress={() => router.push('/activity/new')}
+        onPress={handleAddHabit}
         accessibilityLabel={t.home.addActivity}
         accessibilityRole="button"
       >

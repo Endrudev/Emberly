@@ -33,13 +33,15 @@ interface CompletionsIndex {
   set: Set<string>;
 }
 
-function indexCompletions(completions: readonly Completion[]): CompletionsIndex {
+export function indexCompletions(completions: readonly Completion[]): CompletionsIndex {
   const set = new Set<string>();
   for (const c of completions) {
     set.add(`${c.activityId}|${c.date}`);
   }
   return { set };
 }
+
+const EMPTY_FROZEN: ReadonlySet<string> = new Set();
 
 function isCompleted(index: CompletionsIndex, activityId: number, dateIso: string): boolean {
   return index.set.has(`${activityId}|${dateIso}`);
@@ -76,6 +78,7 @@ export function evaluateDay(
   activities: readonly ActivityForStreak[],
   completionsIndex: CompletionsIndex,
   dateIso: string,
+  frozenDates: ReadonlySet<string> = EMPTY_FROZEN,
 ): DayStatus {
   const scheduled = scheduledActivitiesOnDay(activities, dateIso);
   const scheduledIds = scheduled.map((a) => a.id);
@@ -87,7 +90,8 @@ export function evaluateDay(
     date: dateIso,
     scheduledIds,
     completedScheduledIds,
-    isSuccessful: allDone,
+    // Zmrazený den (premium "ochrana série") se počítá jako úspěšný bez ohledu na splnění.
+    isSuccessful: allDone || frozenDates.has(dateIso),
     hasScheduled: scheduled.length > 0,
   };
 }
@@ -106,6 +110,7 @@ export function computeCurrentDailyStreak(
   activities: readonly ActivityForStreak[],
   completions: readonly Completion[],
   todayIso: string,
+  frozenDates: ReadonlySet<string> = EMPTY_FROZEN,
 ): number {
   if (activities.length === 0) return 0;
   const index = indexCompletions(completions);
@@ -116,12 +121,12 @@ export function computeCurrentDailyStreak(
   );
 
   // Pokud je dnešek úspěšný, začínáme od dnešku, jinak od včerejška.
-  const todayStatus = evaluateDay(activities, index, todayIso);
+  const todayStatus = evaluateDay(activities, index, todayIso, frozenDates);
   let cursorIso = todayStatus.isSuccessful ? todayIso : shiftDateIso(todayIso, -1);
 
   let streak = 0;
   while (cursorIso >= earliestCreatedAt) {
-    const status = evaluateDay(activities, index, cursorIso);
+    const status = evaluateDay(activities, index, cursorIso, frozenDates);
     if (!status.isSuccessful) break;
     streak += 1;
     cursorIso = shiftDateIso(cursorIso, -1);
@@ -137,6 +142,7 @@ export function computeBestDailyStreak(
   activities: readonly ActivityForStreak[],
   completions: readonly Completion[],
   todayIso: string,
+  frozenDates: ReadonlySet<string> = EMPTY_FROZEN,
 ): number {
   if (activities.length === 0) return 0;
   const index = indexCompletions(completions);
@@ -152,7 +158,7 @@ export function computeBestDailyStreak(
   // Iterujeme den po dni. Pro výkon: pokud >365 dnů, mohlo by se to v budoucnu
   // optimalizovat (řadit completions a iterovat jen přes "důležité" dny), pro v1 OK.
   while (cursorIso <= todayIso) {
-    const status = evaluateDay(activities, index, cursorIso);
+    const status = evaluateDay(activities, index, cursorIso, frozenDates);
     // Dnešní nedokončený den nelámeme — nepočítáme ho ale ani do current.
     if (cursorIso === todayIso && !status.isSuccessful) {
       // ukončit běh bez resetu
@@ -308,7 +314,7 @@ function isPartialWeekStillOk(
 
 // ---- Pomocné ----
 
-function shiftDateIso(iso: string, deltaDays: number): string {
+export function shiftDateIso(iso: string, deltaDays: number): string {
   const d = parseIsoDate(iso);
   d.setDate(d.getDate() + deltaDays);
   return toIsoDate(d);
@@ -321,10 +327,13 @@ export function computeStreaks(
   completions: readonly Completion[],
   todayIso: string,
   weekStartsOn: WeekAnchor = 1,
+  frozenDates: ReadonlySet<string> = EMPTY_FROZEN,
 ): Streak {
   return {
-    currentDays: computeCurrentDailyStreak(activities, completions, todayIso),
-    bestDays: computeBestDailyStreak(activities, completions, todayIso),
+    currentDays: computeCurrentDailyStreak(activities, completions, todayIso, frozenDates),
+    bestDays: computeBestDailyStreak(activities, completions, todayIso, frozenDates),
+    // Ochrana série chrání jen denní streak (headline stat na Streak obrazovce) —
+    // týdenní streak vědomě bez zmrazení, nikde v UI se jako hlavní metrika nepoužívá.
     currentWeeks: computeCurrentWeeklyStreak(activities, completions, todayIso, weekStartsOn),
     bestWeeks: computeBestWeeklyStreak(activities, completions, todayIso, weekStartsOn),
   };

@@ -18,6 +18,8 @@ import { useDbInit } from '@/db/useDbInit';
 import { useWalCheckpoint } from '@/db/useWalCheckpoint';
 import { ensureReminderChannel } from '@/notifications/channel';
 import { useReminderSync } from '@/notifications/useReminderSync';
+import { usePurchasesSync } from '@/purchases/usePurchasesSync';
+import { useStreakFreezeSync } from '@/purchases/useStreakFreezeSync';
 
 // Register widget task handler at module level (before React mounts).
 // On non-Android platforms react-native-android-widget is a no-op.
@@ -98,6 +100,15 @@ export default function RootLayout() {
   // settings, live activity/completion state, app startup, and foreground
   // resumes — see useReminderSync.ts for what triggers a reschedule.
   useReminderSync();
+
+  // Keeps RevenueCat entitlement (isPremium) in sync — configures the SDK,
+  // loads current state, listens for purchases, refreshes on foreground.
+  // No-op in Expo Go / without a real API key (see usePurchasesSync).
+  usePurchasesSync();
+
+  // Premium "ochrana série" — tiše zmrazí včerejšek, pokud byl zmeškaný a kvóta
+  // dovolí. Žádný native modul, funguje i v Expo Go (viz useStreakFreezeSync).
+  useStreakFreezeSync();
 
   // Tapping a reminder notification (cold start or while running) opens the app
   // on the Aktivity tab. Guarded by onboardingCompleted — bez toho by tahle

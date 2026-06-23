@@ -16,6 +16,7 @@ import {
   WIDGET_PREVIEW_HEIGHT_4X3,
 } from '@/ui/components/WidgetShowcasePreview';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
+import { TIER_BADGES } from '@/ui/streakAssets';
 import { EMBERLY } from '../emberly';
 import { FunnelScreen } from '../FunnelScreen';
 import type { FunnelStepProps } from '../types';
@@ -79,15 +80,7 @@ function GrowthBar({
   return <Animated.View style={[styles.growthBar, style]} />;
 }
 
-// Badge_lvl5 zatím neexistuje (assets/emberly má jen lvl1–4) — poslední tier
-// (Legendární) recykluje lvl4, dokud nepřibude 5. badge. Viz assets/emberly/README.md.
-const TIER_BADGES = [
-  require('../../../assets/emberly/Badge_lvl1.png'),
-  require('../../../assets/emberly/Badge_lvl2.png'),
-  require('../../../assets/emberly/Badge_lvl3.png'),
-  require('../../../assets/emberly/Badge_lvl4.png'),
-  require('../../../assets/emberly/Badge_lvl4.png'),
-];
+// Tier badge assety (Jiskra → Legendární) — sdílené přes `@/ui/streakAssets`.
 
 export function HowItWorksStep({ progress, canGoBack, onNext, onBack }: FunnelStepProps) {
   const t = useTranslation();
