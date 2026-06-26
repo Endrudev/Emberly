@@ -203,8 +203,9 @@ resume po zabití appky), `FunnelScreen.tsx` je sdílená kostra (progress bar +
 
 ### RevenueCat / monetizace
 Předplatné přes **RevenueCat** (`react-native-purchases` + `react-native-purchases-ui`). Kód hotový,
-chybí jen RC účet + Play produkty (placeholder hodnoty v `src/config/revenuecat.ts`, setup checklist
-ve vaultu `screens/onboarding-funnel.md`).
+chybí jen RC účet + Play produkty (placeholder hodnoty v `src/config/revenuecat.ts`). **Setup
+tutorial krok-za-krokem ve vaultu `dev/revenuecat-setup.md`** (Play produkty → RC účet → paywall →
+build → test); rychlý přehled v `screens/onboarding-funnel.md`.
 - **Native modul = stejná past jako widget.** `react-native-purchases(-ui)` na new architecture
   crashují **při importu** v Expo Go, ne při použití. VŠECHEN přístup jde přes lazy `require()` v
   try/catch ve `src/purchases/purchases.ts` (`getPurchases`, `getRevenueCatUI`) — nikdy statický

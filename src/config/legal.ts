@@ -1,12 +1,8 @@
 /**
- * Placeholder URL — nahraď, jakmile je Privacy Policy hostovaná (viz Úkol 2
- * v právním promptu / legal/privacy-policy.md). example.com = záměrně
- * nefunkční, aby bylo na první pohled jasné, že jde o placeholder.
+ * Veřejné URL právních dokumentů, hostované přes GitHub Pages z `docs/`
+ * (návod: vault `dev/legal-hosting.md`). Funkční až po zapnutí Pages v
+ * Settings → Pages (Deploy from branch → main → /docs).
  */
-export const PRIVACY_POLICY_URL = 'https://example.com/mission-tracker/privacy-policy';
+export const PRIVACY_POLICY_URL = 'https://endrudev.github.io/Mission-Tracker/privacy-policy/';
 
-/**
- * Placeholder URL — nahraď, jakmile jsou Terms of Service hostované (viz
- * Úkol 3 v právním promptu / legal/terms.md).
- */
-export const TERMS_OF_SERVICE_URL = 'https://example.com/mission-tracker/terms';
+export const TERMS_OF_SERVICE_URL = 'https://endrudev.github.io/Mission-Tracker/terms/';
