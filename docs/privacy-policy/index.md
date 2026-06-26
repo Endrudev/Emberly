@@ -2,136 +2,6 @@
 title: Privacy Policy — Emberly
 ---
 
-# Zásady ochrany soukromí — Emberly
-
-**Účinnost od:** 22. 6. 2026
-
-## 1. Kdo jsme
-
-Emberly je mobilní aplikace pro sledování týdenních aktivit a budování
-návyků. Provozovatelem (správcem osobních údajů) je:
-
-- **EndruDev**
-- Kontakt: n8n.socials@gmail.com
-
-## 2. Jaká data zpracováváme
-
-### 2.1 Data uložená pouze na vašem zařízení
-Vaše aktivity, jejich historie splnění (completions) a nastavení aplikace
-(téma, jazyk, začátek týdne, cíle streaku, nastavení připomínek) jsou uložena
-**výhradně lokálně** v databázi na vašem telefonu. Nemáme k těmto datům
-přístup, neukládáme je na žádném serveru a nepřenášíme je nikam mimo vaše
-zařízení.
-
-### 2.2 Záloha přes Android Auto Backup
-Android může automaticky zálohovat data aplikace (včetně výše uvedené
-databáze) na váš Google účet (Google Drive), pokud máte tuto funkci
-v telefonu zapnutou. Tuto zálohu provádí a uchovává **Google**, ne my — řídí
-se zásadami ochrany soukromí Google. Zálohu můžete vypnout v nastavení
-zálohování telefonu.
-
-### 2.3 Předplatné (RevenueCat)
-Pro správu předplatného používáme službu **RevenueCat, Inc.** RevenueCat
-zpracovává:
-- historii nákupů (jaký produkt, kdy, status předplatného),
-- identifikátory zařízení/uživatele (anonymní app user ID generované
-  RevenueCat, případně identifikátor zařízení),
-- platební údaje zpracovává přímo **Google Play Billing** — my ani RevenueCat
-  nemáme přístup k číslu vaší platební karty.
-
-Tato data slouží výhradně k ověření a správě vašeho předplatného (entitlements).
-
-### 2.4 Notifikace
-Připomínky jsou plánované **lokálně na zařízení** (expo-notifications). Pro
-jejich zobrazení se nepoužívá žádný push token ani externí notifikační
-služba (FCM) — obsah připomínek nikam neopouští vaše zařízení.
-
-### 2.5 Co NEsbíráme
-Nepoužíváme žádné analytické nástroje, reklamní SDK ani sledovací technologie
-třetích stran. Aplikace nevyžaduje registraci ani přihlášení.
-
-## 3. Účel zpracování
-
-| Data | Účel |
-|---|---|
-| Lokální data aplikace | Fungování appky (sledování návyků) |
-| Auto Backup | Obnova dat při změně/obnově telefonu (na vaše přání, řízeno Googlem) |
-| RevenueCat / nákupní data | Správa a ověření předplatného |
-
-## 4. Právní základ (GDPR čl. 6)
-
-- **Plnění smlouvy** (čl. 6 odst. 1 písm. b) — zpracování nutné k poskytnutí
-  předplacených funkcí (RevenueCat).
-- **Oprávněný zájem** (čl. 6 odst. 1 písm. f) — lokální fungování aplikace,
-  zálohování zařízením/OS.
-
-Nepoužíváme zpracování vyžadující souhlas (žádné marketingové ani analytické
-sledování). Pokud bychom v budoucnu přidali analytiku nebo reklamy, tyto
-zásady aktualizujeme a vyžádáme si odpovídající souhlas.
-
-## 5. Zpracovatelé a třetí strany
-
-- **RevenueCat, Inc.** — zpracování dat o předplatném. RevenueCat má vlastní
-  zásady ochrany soukromí a DPA (Data Processing Agreement).
-- **Google LLC** — Google Play Billing (platby) a Android Auto Backup
-  (zálohování). Řídí se zásadami ochrany soukromí Google.
-
-Žádná data nesdílíme s jinými třetími stranami nad rámec výše uvedených
-zpracovatelů. Data neprodáváme.
-
-## 6. Mezinárodní přenos dat
-
-RevenueCat může zpracovávat data na serverech mimo EU/EHP (např. USA). V
-takovém případě se přenos řídí standardními smluvními doložkami (Standard
-Contractual Clauses) nebo jiným odpovídajícím mechanismem dle GDPR.
-
-## 7. Doba uchování
-
-- Lokální data aplikace: dokud appku nesmažete nebo data manuálně nevymažete
-  v nastavení appky.
-- Údaje o předplatném u RevenueCat: po dobu trvání předplatného a dále po
-  dobu vyžadovanou pro účetní/daňové povinnosti.
-
-## 8. Vaše práva (GDPR)
-
-Máte právo na:
-- přístup ke svým osobním údajům,
-- opravu nepřesných údajů,
-- výmaz („právo být zapomenut"),
-- omezení zpracování,
-- přenositelnost údajů,
-- vznést námitku proti zpracování,
-- podat stížnost u dozorového úřadu (v ČR: Úřad pro ochranu osobních údajů,
-  www.uoou.cz).
-
-Jelikož většina dat je jen na vašem zařízení, smazáním aplikace nebo jejích
-dat (Nastavení → Resetovat všechna data) tato data zmizí. Ohledně dat u
-RevenueCat nás kontaktujte na e-mailu níže.
-
-## 9. Děti
-
-Aplikace **necílí na děti** a vědomě neshromažďuje údaje od dětí mladších 16
-let.
-
-## 10. Zabezpečení
-
-Lokální data jsou uložena v sandboxu aplikace na vašem zařízení, chráněném
-zabezpečením operačního systému Android. Přenos dat k RevenueCat/Google
-probíhá šifrovaně (HTTPS/TLS).
-
-## 11. Změny těchto zásad
-
-Tyto zásady můžeme čas od času aktualizovat — například při přidání nové
-funkce, která zpracovává data jinak. Aktuální verze je vždy dostupná na této
-URL a v aplikaci (Nastavení → O aplikaci).
-
-## 12. Kontakt
-
-Dotazy ohledně ochrany soukromí směřujte na: **n8n.socials@gmail.com**
-
----
----
-
 # Privacy Policy — Emberly
 
 **Effective date:** June 22, 2026
@@ -258,3 +128,133 @@ this URL and in the app (Settings → About).
 ## 12. Contact
 
 For privacy questions, contact: **n8n.socials@gmail.com**
+
+---
+---
+
+# Zásady ochrany soukromí — Emberly
+
+**Účinnost od:** 22. 6. 2026
+
+## 1. Kdo jsme
+
+Emberly je mobilní aplikace pro sledování týdenních aktivit a budování
+návyků. Provozovatelem (správcem osobních údajů) je:
+
+- **EndruDev**
+- Kontakt: n8n.socials@gmail.com
+
+## 2. Jaká data zpracováváme
+
+### 2.1 Data uložená pouze na vašem zařízení
+Vaše aktivity, jejich historie splnění (completions) a nastavení aplikace
+(téma, jazyk, začátek týdne, cíle streaku, nastavení připomínek) jsou uložena
+**výhradně lokálně** v databázi na vašem telefonu. Nemáme k těmto datům
+přístup, neukládáme je na žádném serveru a nepřenášíme je nikam mimo vaše
+zařízení.
+
+### 2.2 Záloha přes Android Auto Backup
+Android může automaticky zálohovat data aplikace (včetně výše uvedené
+databáze) na váš Google účet (Google Drive), pokud máte tuto funkci
+v telefonu zapnutou. Tuto zálohu provádí a uchovává **Google**, ne my — řídí
+se zásadami ochrany soukromí Google. Zálohu můžete vypnout v nastavení
+zálohování telefonu.
+
+### 2.3 Předplatné (RevenueCat)
+Pro správu předplatného používáme službu **RevenueCat, Inc.** RevenueCat
+zpracovává:
+- historii nákupů (jaký produkt, kdy, status předplatného),
+- identifikátory zařízení/uživatele (anonymní app user ID generované
+  RevenueCat, případně identifikátor zařízení),
+- platební údaje zpracovává přímo **Google Play Billing** — my ani RevenueCat
+  nemáme přístup k číslu vaší platební karty.
+
+Tato data slouží výhradně k ověření a správě vašeho předplatného (entitlements).
+
+### 2.4 Notifikace
+Připomínky jsou plánované **lokálně na zařízení** (expo-notifications). Pro
+jejich zobrazení se nepoužívá žádný push token ani externí notifikační
+služba (FCM) — obsah připomínek nikam neopouští vaše zařízení.
+
+### 2.5 Co NEsbíráme
+Nepoužíváme žádné analytické nástroje, reklamní SDK ani sledovací technologie
+třetích stran. Aplikace nevyžaduje registraci ani přihlášení.
+
+## 3. Účel zpracování
+
+| Data | Účel |
+|---|---|
+| Lokální data aplikace | Fungování appky (sledování návyků) |
+| Auto Backup | Obnova dat při změně/obnově telefonu (na vaše přání, řízeno Googlem) |
+| RevenueCat / nákupní data | Správa a ověření předplatného |
+
+## 4. Právní základ (GDPR čl. 6)
+
+- **Plnění smlouvy** (čl. 6 odst. 1 písm. b) — zpracování nutné k poskytnutí
+  předplacených funkcí (RevenueCat).
+- **Oprávněný zájem** (čl. 6 odst. 1 písm. f) — lokální fungování aplikace,
+  zálohování zařízením/OS.
+
+Nepoužíváme zpracování vyžadující souhlas (žádné marketingové ani analytické
+sledování). Pokud bychom v budoucnu přidali analytiku nebo reklamy, tyto
+zásady aktualizujeme a vyžádáme si odpovídající souhlas.
+
+## 5. Zpracovatelé a třetí strany
+
+- **RevenueCat, Inc.** — zpracování dat o předplatném. RevenueCat má vlastní
+  zásady ochrany soukromí a DPA (Data Processing Agreement).
+- **Google LLC** — Google Play Billing (platby) a Android Auto Backup
+  (zálohování). Řídí se zásadami ochrany soukromí Google.
+
+Žádná data nesdílíme s jinými třetími stranami nad rámec výše uvedených
+zpracovatelů. Data neprodáváme.
+
+## 6. Mezinárodní přenos dat
+
+RevenueCat může zpracovávat data na serverech mimo EU/EHP (např. USA). V
+takovém případě se přenos řídí standardními smluvními doložkami (Standard
+Contractual Clauses) nebo jiným odpovídajícím mechanismem dle GDPR.
+
+## 7. Doba uchování
+
+- Lokální data aplikace: dokud appku nesmažete nebo data manuálně nevymažete
+  v nastavení appky.
+- Údaje o předplatném u RevenueCat: po dobu trvání předplatného a dále po
+  dobu vyžadovanou pro účetní/daňové povinnosti.
+
+## 8. Vaše práva (GDPR)
+
+Máte právo na:
+- přístup ke svým osobním údajům,
+- opravu nepřesných údajů,
+- výmaz („právo být zapomenut"),
+- omezení zpracování,
+- přenositelnost údajů,
+- vznést námitku proti zpracování,
+- podat stížnost u dozorového úřadu (v ČR: Úřad pro ochranu osobních údajů,
+  www.uoou.cz).
+
+Jelikož většina dat je jen na vašem zařízení, smazáním aplikace nebo jejích
+dat (Nastavení → Resetovat všechna data) tato data zmizí. Ohledně dat u
+RevenueCat nás kontaktujte na e-mailu níže.
+
+## 9. Děti
+
+Aplikace **necílí na děti** a vědomě neshromažďuje údaje od dětí mladších 16
+let.
+
+## 10. Zabezpečení
+
+Lokální data jsou uložena v sandboxu aplikace na vašem zařízení, chráněném
+zabezpečením operačního systému Android. Přenos dat k RevenueCat/Google
+probíhá šifrovaně (HTTPS/TLS).
+
+## 11. Změny těchto zásad
+
+Tyto zásady můžeme čas od času aktualizovat — například při přidání nové
+funkce, která zpracovává data jinak. Aktuální verze je vždy dostupná na této
+URL a v aplikaci (Nastavení → O aplikaci).
+
+## 12. Kontakt
+
+Dotazy ohledně ochrany soukromí směřujte na: **n8n.socials@gmail.com**
