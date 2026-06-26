@@ -19,7 +19,13 @@ expo-env.d.ts
 *.p8
 *.p12
 *.key
+*.pem
 *.mobileprovision
+# Block any signing keystore from being committed. debug.keystore je veřejný
+# standardní Android debug klíč → zůstává trackovaný (výjimka níže); tohle
+# brání omylem commitnout reálný release/upload keystore do public repa.
+*.keystore
+!android/app/debug.keystore
 ios/Pods/
 android/.gradle/
 android/app/build/
@@ -54,3 +60,12 @@ coverage/
 # Trello e-mail integrace (obsahuje tajný board token)
 scripts/trello.local.json
 scripts/_trello_tasks.json
+
+# Osobní dev config — konfiguruje lokální Obsidian MCP server (machine-specific
+# absolutní cesta), pro veřejné repo zbytečné. Soubor zůstává lokálně.
+.mcp.json
+
+# Právní pracovní drafty + Play Console příprava. Hotové VEŘEJNÉ verze žijí
+# v docs/ (GitHub Pages). Tyhle zdrojové drafty (placeholdery, interní poznámky
+# k Data Safety / IARC) nemají být v public repu. Zůstávají lokálně.
+legal/
