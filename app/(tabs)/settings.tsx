@@ -225,7 +225,7 @@ export default function SettingsScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.profileName, { color: C.text }]}>
-              {settings.userName || 'Mission Tracker'}
+              {settings.userName || 'Emberly'}
             </Text>
             {trackingSince ? (
               <Text style={[styles.profileSince, { color: C.textSecondary }]}>

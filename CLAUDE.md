@@ -1,4 +1,4 @@
-# Mission Tracker — Claude Code context
+# Emberly — Claude Code context
 
 ## Co je tento projekt
 Mobilní appka pro sledování týdenních aktivit a budování návyků.
@@ -6,7 +6,7 @@ Primárně Android, cross-platform codebase (iOS path open, nevyžaduje eject).
 
 ## Obsidian vault — dokumentace projektu
 Kompletní dokumentace projektu (produkt, architektura, design, provoz, myšlení) žije v Obsidian vaultu:
-**`C:\Users\ondra\Desktop\_obsidianProjects\Mission-Tracker\`**
+**`C:\Users\ondra\Desktop\_obsidianProjects\Emberly\`**
 
 Hub note (rozcestník pro vše): `00-index.md`
 
@@ -362,8 +362,8 @@ per-frame layout animace `height`) — scroll-driven přes `useAnimatedScrollHan
   - `MaterialCommunityIcons` již není potřeba pro tab bar
 
 ### Android widget (react-native-android-widget)
-Home screen widget v `src/widget/` (MissionWidget.tsx layout, widgetData.ts DB agregátor, widgetTaskHandler.ts headless task). Běží jako **Headless JS** v app procesu → přímý SQLite přístup.
-- **Velikost: app.json + `android/.../xml/widgetprovider_missionwidget.xml` MUSÍ být v sync.** Prebuild generuje XML z app.json — úprava jen XML se po rebuildu vrátí. Aktuálně 4×3 (`targetCellWidth 4`, `targetCellHeight 3`).
+Home screen widget v `src/widget/` (EmberlyWidget.tsx layout, widgetData.ts DB agregátor, widgetTaskHandler.ts headless task). Běží jako **Headless JS** v app procesu → přímý SQLite přístup.
+- **Velikost: app.json + `android/.../xml/widgetprovider_emberlywidget.xml` MUSÍ být v sync.** Prebuild generuje XML z app.json — úprava jen XML se po rebuildu vrátí. Aktuálně 4×3 (`targetCellWidth 4`, `targetCellHeight 3`).
 - **Horizontální scroll nejde** (RemoteViews) → návyky stránkované šipkami (`clickAction WIDGET_PAGE`, stránka přes `clickActionData`, stateless).
 - **Plynulé animace nejdou** (RemoteViews) — wow efekty patří do appky. Viz vault `widgets/widget-animations-research.md`.
 - **Rychlé ladění layoutu:** dev obrazovka `app/widget-preview.tsx` (`WidgetPreview` = pixel-identický náhled) + `adb screencap`, bez rebuildů. Rebuild jen při změně velikosti.
@@ -375,7 +375,7 @@ Instalace Docker Desktop povoluje Hyper-V a resetuje Windows Firewall výjimky.
 Bez pravidla pro `node.exe` na portech 8081-8083 telefon nemůže stáhnout bundle.
 Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše).
 **Rychlá náhrada bez admin práv:** USB tunel `adb reverse tcp:8081 tcp:8081` + spustit app přes
-`missiontracker://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`.
+`emberly://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`.
 
 ## Stav implementace
 ```

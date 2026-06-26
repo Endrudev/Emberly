@@ -24,8 +24,8 @@ export const DEFAULT_OFFERING_ID = 'default';
  * `purchaseProduct`; remote RevenueCat Paywall si balíčky tahá z offeringu sám.
  */
 export const PRODUCT_IDS = {
-  yearly: 'mission_tracker_premium_yearly',
-  monthly: 'mission_tracker_premium_monthly',
+  yearly: 'emberly_premium_yearly',
+  monthly: 'emberly_premium_monthly',
 } as const;
 
 /** Je nastavený reálný API klíč (ne placeholder)? Řídí, zda vůbec konfigurovat SDK. */

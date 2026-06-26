@@ -15,7 +15,7 @@
     </intent>
   </queries>
   <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:fullBackupContent="@xml/backup_rules" android:dataExtractionRules="@xml/data_extraction_rules">
-    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="mission-tracker-status"/>
+    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="emberly-status"/>
     <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notification_icon_color"/>
     <meta-data android:name="expo.modules.notifications.default_notification_color" android:resource="@color/notification_icon_color"/>
     <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
@@ -31,22 +31,22 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="missiontracker"/>
+        <data android:scheme="emberly"/>
       </intent-filter>
     </activity>
-    <receiver android:name=".widget.MissionWidget" android:exported="false" android:label="Mission Tracker">
+    <receiver android:name=".widget.EmberlyWidget" android:exported="false" android:label="Emberly">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.endru.missiontracker.WIDGET_CLICK"/>
+        <action android:name="com.endru.emberly.WIDGET_CLICK"/>
       </intent-filter>
-      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_missionwidget"/>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_emberlywidget"/>
     </receiver>
-    <receiver android:name=".widget.MissionWidget4x2" android:exported="false" android:label="Mission Tracker (kompakt)">
+    <receiver android:name=".widget.EmberlyWidget4x2" android:exported="false" android:label="Emberly (kompakt)">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
-        <action android:name="com.endru.missiontracker.WIDGET_CLICK"/>
+        <action android:name="com.endru.emberly.WIDGET_CLICK"/>
       </intent-filter>
-      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_missionwidget4x2"/>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_emberlywidget4x2"/>
     </receiver>
   </application>
 </manifest>

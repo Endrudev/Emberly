@@ -1,14 +1,14 @@
 ---
-title: Terms of Service — Mission Tracker
+title: Terms of Service — Emberly
 ---
 
-# Podmínky použití — Mission Tracker
+# Podmínky použití — Emberly
 
 **Účinnost od:** 22. 6. 2026
 
 ## 1. Provozovatel
 
-Mission Tracker (dále jen „aplikace") je provozována:
+Emberly (dále jen „aplikace") je provozována:
 
 - **EndruDev**
 - Kontakt: n8n.socials@gmail.com
@@ -85,13 +85,13 @@ Dotazy k těmto podmínkám směřujte na: **n8n.socials@gmail.com**
 ---
 ---
 
-# Terms of Service — Mission Tracker
+# Terms of Service — Emberly
 
 **Effective date:** June 22, 2026
 
 ## 1. Provider
 
-Mission Tracker (the "app") is operated by:
+Emberly (the "app") is operated by:
 
 - **EndruDev**
 - Contact: n8n.socials@gmail.com

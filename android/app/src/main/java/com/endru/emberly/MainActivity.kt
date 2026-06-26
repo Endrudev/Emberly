@@ -1,4 +1,4 @@
-package com.endru.missiontracker
+package com.endru.emberly
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

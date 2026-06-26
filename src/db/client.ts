@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 
 import * as schema from './schema';
 
-const DB_NAME = 'mission-tracker.db';
+const DB_NAME = 'emberly.db';
 
 const sqlite = SQLite.openDatabaseSync(DB_NAME, { enableChangeListener: true });
 

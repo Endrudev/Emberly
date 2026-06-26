@@ -1,4 +1,4 @@
-package com.endru.missiontracker
+package com.endru.emberly
 
 import android.app.Application
 import android.content.res.Configuration

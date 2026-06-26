@@ -1,13 +1,13 @@
 import { Platform } from 'react-native';
 import type { WidgetPinNativeModule } from 'widget-pin';
 
-export type WidgetVariant = 'MissionWidget' | 'MissionWidget4x2';
+export type WidgetVariant = 'EmberlyWidget' | 'EmberlyWidget4x2';
 
-// Musí přesně sedět s `<receiver android:name=".widget.MissionWidget...">`
+// Musí přesně sedět s `<receiver android:name=".widget.EmberlyWidget...">`
 // v android/app/src/main/AndroidManifest.xml (generuje react-native-android-widget).
 const PROVIDER_CLASS_NAME: Record<WidgetVariant, string> = {
-  MissionWidget: 'com.endru.missiontracker.widget.MissionWidget',
-  MissionWidget4x2: 'com.endru.missiontracker.widget.MissionWidget4x2',
+  EmberlyWidget: 'com.endru.emberly.widget.EmberlyWidget',
+  EmberlyWidget4x2: 'com.endru.emberly.widget.EmberlyWidget4x2',
 };
 
 /**

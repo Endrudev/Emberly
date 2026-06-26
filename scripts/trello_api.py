@@ -72,7 +72,7 @@ def main() -> None:
     key, token = c["key"], c["token"]
 
     boards = _call("GET", "/members/me/boards", key, token, fields="name")
-    board_id = find_id(boards, c.get("board", "Mission Tracker"))
+    board_id = find_id(boards, c.get("board", "Emberly"))
     if not board_id:
         print("Board nenalezen. Dostupné:", [b["name"] for b in boards])
         sys.exit(1)

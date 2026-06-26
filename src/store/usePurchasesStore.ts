@@ -33,7 +33,7 @@ export const usePurchasesStore = create<PurchasesState>()(
       setDevOverride: (v) => set({ devPremiumOverride: v }),
     }),
     {
-      name: 'mission-tracker-purchases',
+      name: 'emberly-purchases',
       storage: createJSONStorage(() => AsyncStorage),
       // Perzistuj jen dev override — reálný premium stav se vždy čerstvě načte z RC.
       partialize: (state) => ({ devPremiumOverride: state.devPremiumOverride }),

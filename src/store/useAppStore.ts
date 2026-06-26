@@ -109,7 +109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ activities: [], completions: [], frozenDates: [] });
     // .catch — v Expo Go react-native-android-widget neexistuje, import() samotný odmítne.
     import('@/widget/updateWidget')
-      .then(({ updateMissionWidget }) => updateMissionWidget())
+      .then(({ updateEmberlyWidget }) => updateEmberlyWidget())
       .catch(() => {});
   },
 
@@ -133,7 +133,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Fire-and-forget — widget update runs async after store is updated.
     // .catch — v Expo Go react-native-android-widget neexistuje, import() samotný odmítne.
     import('@/widget/updateWidget')
-      .then(({ updateMissionWidget }) => updateMissionWidget())
+      .then(({ updateEmberlyWidget }) => updateEmberlyWidget())
       .catch(() => {});
     return isNowCompleted;
   },

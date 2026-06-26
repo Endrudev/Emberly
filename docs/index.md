@@ -1,10 +1,10 @@
 ---
-title: Mission Tracker — Legal
+title: Emberly — Legal
 ---
 
-# Mission Tracker
+# Emberly
 
-Legal documents for the Mission Tracker app.
+Legal documents for the Emberly app.
 
 - [Zásady ochrany soukromí / Privacy Policy](./privacy-policy/)
 - [Podmínky použití / Terms of Service](./terms/)

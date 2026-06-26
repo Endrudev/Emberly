@@ -31,7 +31,7 @@ export const cs = {
     abbr: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const,
   },
   home: {
-    appTitle: 'Mission Tracker',
+    appTitle: 'Emberly',
     appTitleAccent: 'Tracker',
     title: 'Tento týden',
     empty: 'Zatím žádné aktivity. Přidej první klepnutím na +.',
@@ -415,7 +415,7 @@ export const cs = {
     variant4x2Label: 'Kompaktní (4×2)',
     addButton: 'Přidat',
     pinFallbackTitle: 'Přidej widget ručně',
-    pinFallbackBody: 'Podrž prst na ploše → Widgety → Mission Tracker.',
+    pinFallbackBody: 'Podrž prst na ploše → Widgety → Emberly.',
     nudgeTitle: '📲 Měj návyky na ploše',
     nudgeBody: 'Stačí jeden tap a odškrtáváš přímo z domovské obrazovky.',
     nudgeCta: 'Ukázat',
@@ -423,7 +423,7 @@ export const cs = {
     previewUnavailableInExpoGo: 'Náhled widgetu je dostupný jen v sestavené appce (ne v Expo Go).',
   },
   notification: {
-    channelName: 'Stav Mission Tracker',
+    channelName: 'Stav Emberly',
     channelDescription: 'Trvalá notifikace s denním streakem a progressem.',
     streakLabel: '🔥 Streak: %d dní',
     progressLabel: 'Dnes: %d/%d splněno',

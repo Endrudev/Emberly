@@ -81,7 +81,7 @@ export const useSettingsStore = create<SettingsState>()(
       setWidgetNudgeDismissed: (v) => set({ widgetNudgeDismissed: v }),
     }),
     {
-      name: 'mission-tracker-settings',
+      name: 'emberly-settings',
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

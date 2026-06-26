@@ -9,7 +9,7 @@
 
     android:resizeMode="horizontal"
 
-    android:description="@string/widget_missionwidget4x2_description"
+    android:description="@string/widget_emberlywidget4x2_description"
 
     android:initialLayout="@layout/rn_widget"
 

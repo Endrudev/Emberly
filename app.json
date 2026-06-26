@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Mission Tracker",
-    "slug": "mission-tracker",
+    "name": "Emberly",
+    "slug": "emberly",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "missiontracker",
+    "scheme": "emberly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.endru.missiontracker"
+      "bundleIdentifier": "com.endru.emberly"
     },
     "android": {
-      "package": "com.endru.missiontracker",
+      "package": "com.endru.emberly",
       "allowBackup": true,
       "permissions": [
         "POST_NOTIFICATIONS"
@@ -34,7 +34,7 @@
         "expo-notifications",
         {
           "color": "#6750A4",
-          "defaultChannel": "mission-tracker-status"
+          "defaultChannel": "emberly-status"
         }
       ],
       [
@@ -49,8 +49,8 @@
         {
           "widgets": [
             {
-              "name": "MissionWidget",
-              "label": "Mission Tracker",
+              "name": "EmberlyWidget",
+              "label": "Emberly",
               "description": "Dnešní aktivity a streak přehled",
               "targetCellWidth": 4,
               "targetCellHeight": 3,
@@ -62,8 +62,8 @@
               "resizeMode": "horizontal|vertical"
             },
             {
-              "name": "MissionWidget4x2",
-              "label": "Mission Tracker (kompakt)",
+              "name": "EmberlyWidget4x2",
+              "label": "Emberly (kompakt)",
               "description": "Dnešní aktivity a streak — kompaktní verze",
               "targetCellWidth": 4,
               "targetCellHeight": 2,

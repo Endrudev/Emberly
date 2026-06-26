@@ -1,4 +1,4 @@
-# Mission Tracker
+# Emberly
 
 Aplikace pro sledování pravidelných týdenních aktivit a budování návyků.
 Postavena na **Expo / React Native + TypeScript**, primárně cílí na Android, ale je

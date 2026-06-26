@@ -30,7 +30,7 @@ export const en = {
     abbr: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const,
   },
   home: {
-    appTitle: 'Mission Tracker',
+    appTitle: 'Emberly',
     appTitleAccent: 'Tracker',
     title: 'This week',
     empty: 'No activities yet. Tap + to add your first.',
@@ -413,7 +413,7 @@ export const en = {
     variant4x2Label: 'Compact (4×2)',
     addButton: 'Add',
     pinFallbackTitle: 'Add the widget manually',
-    pinFallbackBody: 'Long-press your home screen → Widgets → Mission Tracker.',
+    pinFallbackBody: 'Long-press your home screen → Widgets → Emberly.',
     nudgeTitle: '📲 Keep your habits on the home screen',
     nudgeBody: 'One tap and you can check off habits right from your home screen.',
     nudgeCta: 'Show me',
@@ -421,7 +421,7 @@ export const en = {
     previewUnavailableInExpoGo: 'Widget preview is only available in a built app (not in Expo Go).',
   },
   notification: {
-    channelName: 'Mission Tracker status',
+    channelName: 'Emberly status',
     channelDescription: 'Persistent notification with daily streak and progress.',
     streakLabel: '🔥 Streak: %d days',
     progressLabel: 'Today: %d/%d done',

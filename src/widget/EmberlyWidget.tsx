@@ -115,7 +115,7 @@ interface Props {
   data: WidgetData;
 }
 
-export function MissionWidget({ data }: Props) {
+export function EmberlyWidget({ data }: Props) {
   if (data.allCompletedToday) return <CelebrationWidget data={data} />;
   return <NormalWidget data={data} />;
 }
@@ -544,7 +544,7 @@ function StreakSection4x2({ data }: Props) {
   );
 }
 
-export function MissionWidget4x2({ data }: Props) {
+export function EmberlyWidget4x2({ data }: Props) {
   if (data.allCompletedToday) return <CelebrationWidget data={data} />;
   return (
     <FlexWidget

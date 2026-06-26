@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
 import { WidgetPreview } from 'react-native-android-widget';
 
-import { MissionWidget, MissionWidget4x2 } from '@/widget/MissionWidget';
+import { EmberlyWidget, EmberlyWidget4x2 } from '@/widget/EmberlyWidget';
 import {
   WIDGET_PAGE_SIZE,
   WIDGET_PAGE_SIZE_4X2,
@@ -84,7 +84,7 @@ function PreviewBlock({ label, activities }: { label: string; activities: Widget
   return (
     <>
       <Text style={{ color: '#fff', fontSize: 12, marginTop: 8 }}>{label}</Text>
-      <WidgetPreview renderWidget={() => <MissionWidget data={data} />} onClick={onClick} width={W} height={H} showBorder />
+      <WidgetPreview renderWidget={() => <EmberlyWidget data={data} />} onClick={onClick} width={W} height={H} showBorder />
     </>
   );
 }
@@ -94,7 +94,7 @@ function PreviewBlock4x2({ label, activities }: { label: string; activities: Wid
   return (
     <>
       <Text style={{ color: '#fff', fontSize: 12, marginTop: 8 }}>{label}</Text>
-      <WidgetPreview renderWidget={() => <MissionWidget4x2 data={data} />} onClick={onClick} width={W} height={H2} showBorder />
+      <WidgetPreview renderWidget={() => <EmberlyWidget4x2 data={data} />} onClick={onClick} width={W} height={H2} showBorder />
     </>
   );
 }

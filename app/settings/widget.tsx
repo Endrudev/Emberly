@@ -42,7 +42,7 @@ export default function WidgetShowcaseScreen() {
           <AnimatedPressable
             style={[styles.addButton, { backgroundColor: COLORS.primary }]}
             hapticStyle="light"
-            onPress={() => handleAdd('MissionWidget')}
+            onPress={() => handleAdd('EmberlyWidget')}
             accessibilityRole="button"
           >
             <Text style={styles.addButtonText}>{t.widget.addButton}</Text>
@@ -57,7 +57,7 @@ export default function WidgetShowcaseScreen() {
           <AnimatedPressable
             style={[styles.addButton, { backgroundColor: COLORS.primary }]}
             hapticStyle="light"
-            onPress={() => handleAdd('MissionWidget4x2')}
+            onPress={() => handleAdd('EmberlyWidget4x2')}
             accessibilityRole="button"
           >
             <Text style={styles.addButtonText}>{t.widget.addButton}</Text>

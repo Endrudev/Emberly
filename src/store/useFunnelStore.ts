@@ -57,7 +57,7 @@ export const useFunnelStore = create<FunnelState>()(
       reset: () => set({ stepIndex: 0, answers: EMPTY_ANSWERS }),
     }),
     {
-      name: 'mission-tracker-funnel',
+      name: 'emberly-funnel',
       storage: createJSONStorage(() => AsyncStorage),
       // Vlastní merge — zustand persist defaultně nahradí `answers` jako
       // celek persistovanou hodnotou (shallow merge jen na top-level klíčích

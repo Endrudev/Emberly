@@ -41,8 +41,8 @@ interface NativeWidgetModules {
     width: number;
     height: number;
   }>;
-  MissionWidget: ComponentType<{ data: WidgetData }>;
-  MissionWidget4x2: ComponentType<{ data: WidgetData }>;
+  EmberlyWidget: ComponentType<{ data: WidgetData }>;
+  EmberlyWidget4x2: ComponentType<{ data: WidgetData }>;
 }
 
 // undefined = ještě nezkoušeno, null = vyzkoušeno a nedostupné (Expo Go).
@@ -61,11 +61,11 @@ function loadNativeWidgetModules(): NativeWidgetModules | null {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const widgetLib = require('react-native-android-widget');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mission = require('../../widget/MissionWidget');
+    const mission = require('../../widget/EmberlyWidget');
     cachedModules = {
       WidgetPreview: widgetLib.WidgetPreview,
-      MissionWidget: mission.MissionWidget,
-      MissionWidget4x2: mission.MissionWidget4x2,
+      EmberlyWidget: mission.EmberlyWidget,
+      EmberlyWidget4x2: mission.EmberlyWidget4x2,
     };
   } catch {
     cachedModules = null;
@@ -80,7 +80,7 @@ interface WidgetShowcasePreviewProps {
 /**
  * Pixel-identical widget preview reused from the dev tool (`app/widget-preview.tsx`)
  * for the user-facing showcase in Settings — same render path as the real widget
- * (`MissionWidget`/`MissionWidget4x2`) and `WidgetPreview` from
+ * (`EmberlyWidget`/`EmberlyWidget4x2`) and `WidgetPreview` from
  * `react-native-android-widget`, just fed mock data instead of live store data.
  * Interactive (tap to toggle / page) so it demonstrates the actual value prop.
  */
@@ -150,18 +150,18 @@ export function WidgetShowcasePreview({ variant }: WidgetShowcasePreviewProps) {
     );
   }
 
-  const { WidgetPreview, MissionWidget, MissionWidget4x2 } = native;
+  const { WidgetPreview, EmberlyWidget, EmberlyWidget4x2 } = native;
 
   return variant === '4x3' ? (
     <WidgetPreview
-      renderWidget={() => <MissionWidget data={data} />}
+      renderWidget={() => <EmberlyWidget data={data} />}
       onClick={onClick}
       width={WIDTH}
       height={HEIGHT_4X3}
     />
   ) : (
     <WidgetPreview
-      renderWidget={() => <MissionWidget4x2 data={data} />}
+      renderWidget={() => <EmberlyWidget4x2 data={data} />}
       onClick={onClick}
       width={WIDTH}
       height={HEIGHT_4X2}

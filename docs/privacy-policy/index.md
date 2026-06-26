@@ -1,14 +1,14 @@
 ---
-title: Privacy Policy — Mission Tracker
+title: Privacy Policy — Emberly
 ---
 
-# Zásady ochrany soukromí — Mission Tracker
+# Zásady ochrany soukromí — Emberly
 
 **Účinnost od:** 22. 6. 2026
 
 ## 1. Kdo jsme
 
-Mission Tracker je mobilní aplikace pro sledování týdenních aktivit a budování
+Emberly je mobilní aplikace pro sledování týdenních aktivit a budování
 návyků. Provozovatelem (správcem osobních údajů) je:
 
 - **EndruDev**
@@ -132,13 +132,13 @@ Dotazy ohledně ochrany soukromí směřujte na: **n8n.socials@gmail.com**
 ---
 ---
 
-# Privacy Policy — Mission Tracker
+# Privacy Policy — Emberly
 
 **Effective date:** June 22, 2026
 
 ## 1. Who we are
 
-Mission Tracker is a mobile app for tracking weekly activities and building
+Emberly is a mobile app for tracking weekly activities and building
 habits. The data controller is:
 
 - **EndruDev**

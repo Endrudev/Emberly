@@ -3,7 +3,7 @@ import { getLocales } from 'expo-localization';
 
 export type WidgetLang = 'cs' | 'en';
 
-const SETTINGS_KEY = 'mission-tracker-settings';
+const SETTINGS_KEY = 'emberly-settings';
 
 /** Headless JS task nemá přístup k React hooks — jazyk čteme přímo z AsyncStorage. */
 export async function resolveWidgetLanguage(): Promise<WidgetLang> {
