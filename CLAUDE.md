@@ -378,6 +378,8 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 `emberly://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`.
 
 ## Stav implementace
+> **Pre-release checklist** (vše, co musí být hotové před prvním Google Play releasem) žije ve
+> vaultu: `dev/release-checklist.md` (sjednocuje legal-compliance + revenuecat-setup + launch-timeline).
 ```
 [x] 1.  Setup (Expo SDK 54, TS strict, Router v6, ESLint/Prettier)
 [x] 2.  DB vrstva (Drizzle schema, expo-sqlite v16, repositories, seed)

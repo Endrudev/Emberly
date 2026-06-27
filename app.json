@@ -83,6 +83,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "263b2050-726e-4767-8bc1-0bf19d84e88b"
+      }
+    },
+    "owner": "endev-studio"
   }
 }
