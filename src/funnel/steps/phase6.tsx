@@ -11,6 +11,7 @@ import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
 import { getRevenueCatUI, restorePurchases } from '@/purchases/purchases';
+import { hasRealRevenueCatKey } from '@/config/revenuecat';
 import { usePurchasesStore } from '@/store/usePurchasesStore';
 import { applyFunnelAnswers } from '../applyFunnelAnswers';
 import type { FunnelStepProps } from '../types';
@@ -41,7 +42,11 @@ export function PaywallStep(_props: FunnelStepProps) {
   const [finishing, setFinishing] = useState(false);
 
   // Lazy-load RC UI modul jen jednou. null v Expo Go → custom fallback.
-  const RevenueCatUI = useMemo(() => getRevenueCatUI(), []);
+  // Pozor: remote paywall renderuj jen s REÁLNÝM RC klíčem — v dev/preview buildu
+  // modul EXISTUJE (jde `require`), ale bez nakonfigurovaného RC + offeringu by
+  // `RevenueCatUI.Paywall` spadl. Bez klíče → custom fallback (stejný guard jako
+  // `isPurchasesAvailable()`).
+  const RevenueCatUI = useMemo(() => (hasRealRevenueCatKey() ? getRevenueCatUI() : null), []);
 
   useEffect(() => {
     const id = setTimeout(() => setCloseVisible(true), CLOSE_DELAY_MS);
