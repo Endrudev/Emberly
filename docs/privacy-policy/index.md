@@ -11,8 +11,8 @@ title: Privacy Policy — Emberly
 Emberly is a mobile app for tracking weekly activities and building
 habits. The data controller is:
 
-- **EndruDev**
-- Contact: n8n.socials@gmail.com
+- **Endev**
+- Contact: endevcomp@gmail.com
 
 ## 2. What data we process
 
@@ -127,7 +127,7 @@ this URL and in the app (Settings → About).
 
 ## 12. Contact
 
-For privacy questions, contact: **n8n.socials@gmail.com**
+For privacy questions, contact: **endevcomp@gmail.com**
 
 ---
 ---
@@ -141,8 +141,8 @@ For privacy questions, contact: **n8n.socials@gmail.com**
 Emberly je mobilní aplikace pro sledování týdenních aktivit a budování
 návyků. Provozovatelem (správcem osobních údajů) je:
 
-- **EndruDev**
-- Kontakt: n8n.socials@gmail.com
+- **Endev**
+- Kontakt: endevcomp@gmail.com
 
 ## 2. Jaká data zpracováváme
 
@@ -257,4 +257,4 @@ URL a v aplikaci (Nastavení → O aplikaci).
 
 ## 12. Kontakt
 
-Dotazy ohledně ochrany soukromí směřujte na: **n8n.socials@gmail.com**
+Dotazy ohledně ochrany soukromí směřujte na: **endevcomp@gmail.com**

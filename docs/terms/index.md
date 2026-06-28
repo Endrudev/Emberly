@@ -10,8 +10,8 @@ title: Terms of Service — Emberly
 
 Emberly (the "app") is operated by:
 
-- **EndruDev**
-- Contact: n8n.socials@gmail.com
+- **Endev**
+- Contact: endevcomp@gmail.com
 
 These terms govern the relationship between you and the provider when using
 the app distributed via Google Play.
@@ -77,7 +77,7 @@ mandatory consumer protection law gives you other rights.
 
 ## 10. Contact
 
-For questions about these terms, contact: **n8n.socials@gmail.com**
+For questions about these terms, contact: **endevcomp@gmail.com**
 
 ---
 ---
@@ -90,8 +90,8 @@ For questions about these terms, contact: **n8n.socials@gmail.com**
 
 Emberly (dále jen „aplikace") je provozována:
 
-- **EndruDev**
-- Kontakt: n8n.socials@gmail.com
+- **Endev**
+- Kontakt: endevcomp@gmail.com
 
 Tyto podmínky upravují vztah mezi vámi a provozovatelem při používání
 aplikace dostupné přes Google Play.
@@ -160,4 +160,4 @@ spotřebiteli zákon umožňuje jinak.
 
 ## 10. Kontakt
 
-Dotazy k těmto podmínkám směřujte na: **n8n.socials@gmail.com**
+Dotazy k těmto podmínkám směřujte na: **endevcomp@gmail.com**
