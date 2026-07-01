@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { TAB_BAR_SPACE } from './_layout';
@@ -24,6 +24,7 @@ import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { success, tapMedium } from '@/ui/anim/haptics';
 import { requestNotificationPermission } from '@/notifications/permissions';
+import { REVIEWER_UNLOCK_CODE } from '@/purchases/gating';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
 
 /** "HH:mm" → Date dnešního dne s daným časem — vstup pro <DateTimePicker>. */
@@ -102,6 +103,46 @@ export default function SettingsScreen() {
   const isPremium  = useIsPremium();
   const devOverride = usePurchasesStore((s) => s.devPremiumOverride);
   const setDevOverride = usePurchasesStore((s) => s.setDevOverride);
+  const reviewerUnlock = usePurchasesStore((s) => s.reviewerUnlock);
+  const setReviewerUnlock = usePurchasesStore((s) => s.setReviewerUnlock);
+
+  // Skrytý „reviewer unlock" — 7× klepnutí na verzi odhalí pole pro tajný kód,
+  // který odemkne premium bez nákupu (pro Google Play recenzenty). Viz
+  // REVIEWER_UNLOCK_CODE + usePurchasesStore.
+  const [versionTaps, setVersionTaps] = useState(0);
+  const [showReviewerInput, setShowReviewerInput] = useState(false);
+  const [reviewerCode, setReviewerCode] = useState('');
+
+  const handleVersionTap = useCallback(() => {
+    if (reviewerUnlock) return;
+    setVersionTaps((prev) => {
+      const next = prev + 1;
+      if (next >= 7) {
+        setShowReviewerInput(true);
+        return 0;
+      }
+      return next;
+    });
+  }, [reviewerUnlock]);
+
+  const handleReviewerCodeSubmit = useCallback(() => {
+    if (reviewerCode.trim().toUpperCase() === REVIEWER_UNLOCK_CODE) {
+      success();
+      setReviewerUnlock(true);
+      setShowReviewerInput(false);
+      setReviewerCode('');
+      Alert.alert('Reviewer access', 'Premium unlocked for review.');
+    } else {
+      Alert.alert('Reviewer access', 'Invalid code.');
+    }
+  }, [reviewerCode, setReviewerUnlock]);
+
+  const handleReviewerDisable = useCallback(() => {
+    Alert.alert('Reviewer access', 'Disable reviewer premium unlock?', [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.common.delete, style: 'destructive', onPress: () => setReviewerUnlock(false) },
+    ]);
+  }, [t, setReviewerUnlock]);
 
   const handleRestore = useCallback(() => {
     void restoreAndSync().then((premium) => {
@@ -454,8 +495,41 @@ export default function SettingsScreen() {
             label={t.settings.version}
             value="0.1.0"
             showArrow={false}
-            isLast={!__DEV__}
+            isLast={!__DEV__ && !showReviewerInput && !reviewerUnlock}
+            onPress={handleVersionTap}
           />
+          {/* Skryté pole pro reviewer kód — odhalí se po 7× klepnutí na verzi. */}
+          {showReviewerInput && !reviewerUnlock ? (
+            <View style={[styles.row, styles.rowBorder, { borderBottomColor: C.border }]}>
+              <View style={[styles.rowIcon, { backgroundColor: '#EEF0FF' }]}>
+                <Text style={styles.rowIconEmoji}>🔑</Text>
+              </View>
+              <TextInput
+                style={[styles.rowText, { flex: 1, color: C.isDark ? '#F2F2F7' : '#1A1A1A' }]}
+                placeholder="Reviewer code"
+                placeholderTextColor={C.textTertiary}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                autoFocus
+                value={reviewerCode}
+                onChangeText={setReviewerCode}
+                onSubmitEditing={handleReviewerCodeSubmit}
+                returnKeyType="done"
+              />
+            </View>
+          ) : null}
+          {reviewerUnlock ? (
+            <SettingsRow
+              {...rowProps}
+              icon="🔑"
+              iconBg="#EEF0FF"
+              label="Reviewer access"
+              value="Active — tap to disable"
+              showArrow={false}
+              isLast={!__DEV__}
+              onPress={handleReviewerDisable}
+            />
+          ) : null}
           {__DEV__ ? (
             <SettingsRow
               {...rowProps}

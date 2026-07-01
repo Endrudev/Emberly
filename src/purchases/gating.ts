@@ -38,3 +38,13 @@ export const STREAK_FREEZE_MONTHLY_QUOTA = 2;
 export function canUseStreakFreeze(isPremium: boolean): boolean {
   return isPremium;
 }
+
+/**
+ * Tajný kód pro skrytý „reviewer unlock" (Nastavení → 7× klepnutí na verzi →
+ * zadat tento kód). Odemkne premium bez nákupu, aby Google Play recenzenti
+ * mohli plně otestovat placené funkce (povinnost „App access" u appky s
+ * paywallem bez loginu). Klientský — konzistentní s tím, že celý gating je
+ * lokálně obejitelný; není to bezpečnostní hranice, jen splnění review procesu.
+ * Popis postupu je jen v „App access" pokynech pro recenzenta, ne v UI/marketingu.
+ */
+export const REVIEWER_UNLOCK_CODE = 'EMBER-REVIEW-2026';
