@@ -16,6 +16,7 @@ import { SegmentedPill } from '@/ui/components/SegmentedPill';
 import { CountUpText } from '@/ui/anim/CountUpText';
 import {
   computeActivityStats,
+  computeBestDailyStreak,
   computeCurrentActivityStreak,
   computeCurrentDailyStreak,
   toActivityForStreak,
@@ -24,7 +25,7 @@ import {
   computeBestWeekday,
   computeRangeStats,
   computeWeekdayBreakdown,
-  computeWeeklyTrend,
+  crossedMilestone,
   earliestCreatedIso,
 } from '@/domain/insights';
 import {
@@ -42,7 +43,28 @@ type Period = 'week' | 'month' | 'all';
 /** Zlatá pro 100% (stejná rodina jako "perfect" gradient na home headeru). */
 const GOLD = '#F2B01E';
 
-/** Jedna hero dlaždice (číslo + popisek). */
+type TileBadgeTone = 'gold' | 'up' | 'muted';
+
+function tileBadgeColors(tone: TileBadgeTone, isDark: boolean): { bg: string; color: string } {
+  if (tone === 'gold') {
+    return { bg: isDark ? 'rgba(242,176,30,0.18)' : '#FFF3D6', color: isDark ? '#F2B01E' : '#9A7A12' };
+  }
+  if (tone === 'up') {
+    return {
+      bg: isDark ? 'rgba(78,204,102,0.16)' : COLORS.primaryLight,
+      color: isDark ? '#6EDB89' : '#1E8A3A',
+    };
+  }
+  return { bg: isDark ? 'rgba(255,255,255,0.08)' : '#F0F0F0', color: isDark ? '#9BA39A' : '#7A8079' };
+}
+
+/** Odznak "▲/▼ N" vs. minulé srovnatelné období; `0` se ukáže jako `=`. */
+function deltaBadge(delta: number, suffix = ''): { text: string; tone: TileBadgeTone } {
+  if (delta === 0) return { text: '=', tone: 'muted' };
+  return { text: `${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}${suffix}`, tone: delta > 0 ? 'up' : 'muted' };
+}
+
+/** Jedna hero dlaždice (číslo + popisek), volitelně s malým odznakem (delta / rekord). */
 function Tile({
   emoji,
   value,
@@ -51,6 +73,8 @@ function Tile({
   bg,
   textColor,
   subColor,
+  badge,
+  isDark,
 }: {
   emoji: string;
   value: number;
@@ -59,41 +83,22 @@ function Tile({
   bg: string;
   textColor: string;
   subColor: string;
+  badge?: { text: string; tone: TileBadgeTone } | null;
+  isDark: boolean;
 }) {
+  const badgeColors = badge ? tileBadgeColors(badge.tone, isDark) : null;
   return (
     <View style={[styles.tile, { backgroundColor: bg }]}>
-      <Text style={styles.tileEmoji}>{emoji}</Text>
+      <View style={styles.tileTopRow}>
+        <Text style={styles.tileEmoji}>{emoji}</Text>
+        {badge && badgeColors ? (
+          <View style={[styles.tileBadge, { backgroundColor: badgeColors.bg }]}>
+            <Text style={[styles.tileBadgeText, { color: badgeColors.color }]}>{badge.text}</Text>
+          </View>
+        ) : null}
+      </View>
       <CountUpText value={value} suffix={suffix} style={[styles.tileValue, { color: textColor }]} />
       <Text style={[styles.tileLabel, { color: subColor }]}>{label}</Text>
-    </View>
-  );
-}
-
-/** Sloupcový trend graf: % uprostřed baru, 100% bar zlatý. */
-function TrendChart({ data, trackColor }: { data: number[]; trackColor: string }) {
-  return (
-    <View style={styles.trendRow}>
-      {data.map((rate, i) => {
-        const pct = Math.round(rate * 100);
-        const perfect = rate >= 0.999;
-        const isLast = i === data.length - 1;
-        const fillColor = perfect ? GOLD : isLast ? COLORS.primary : '#A6DDB4';
-        return (
-          <View key={i} style={styles.trendBarSlot}>
-            <View style={[styles.trendBarTrack, { backgroundColor: trackColor }]}>
-              <View
-                style={[
-                  styles.trendBarFill,
-                  { height: `${Math.max(8, pct)}%`, backgroundColor: fillColor },
-                ]}
-              />
-            </View>
-            <View style={styles.trendLabelWrap} pointerEvents="none">
-              <Text style={styles.trendLabel}>{pct}%</Text>
-            </View>
-          </View>
-        );
-      })}
     </View>
   );
 }
@@ -150,14 +155,17 @@ export default function StatsScreen() {
 
   const activities = useAppStore((s) => s.activities);
   const completions = useAppStore((s) => s.completions);
+  const frozenDates = useAppStore((s) => s.frozenDates);
   const isPremium = useIsPremium();
   const weekStartsOn = weekStartFlag(useSettingsStore((s) => s.weekStart));
   const today = todayIsoFn();
+  const yesterdayIso = useMemo(() => toIsoDate(addDays(parseIsoDate(today), -1)), [today]);
 
   const [period, setPeriod] = useState<Period>('week');
 
   const actsForStreak = useMemo(() => activities.map(toActivityForStreak), [activities]);
   const earliestIso = useMemo(() => earliestCreatedIso(actsForStreak), [actsForStreak]);
+  const frozenSet = useMemo(() => new Set(frozenDates), [frozenDates]);
 
   const hasData = activities.length > 0;
 
@@ -178,15 +186,42 @@ export default function StatsScreen() {
     [actsForStreak, completions, startIso, today],
   );
 
-  const currentStreak = useMemo(
-    () => computeCurrentDailyStreak(actsForStreak, completions, today),
-    [actsForStreak, completions, today],
-  );
+  // Stejné okno o krok dřív — základ pro delta odznaky na dlaždicích ("Vše" nemá
+  // smysluplné "minulé celé období", takže se u něj delta skrývá).
+  const prevRange = useMemo(() => {
+    if (period === 'all') return null;
+    const prevEndIso = toIsoDate(addDays(parseIsoDate(startIso), -1));
+    const prevStartIso = toIsoDate(addDays(parseIsoDate(startIso), -windowDays));
+    return computeRangeStats(actsForStreak, completions, prevStartIso, prevEndIso);
+  }, [period, startIso, windowDays, actsForStreak, completions]);
 
-  const trend = useMemo(
-    () => computeWeeklyTrend(actsForStreak, completions, today, 8, weekStartsOn),
-    [actsForStreak, completions, today, weekStartsOn],
+  const currentStreak = useMemo(
+    () => computeCurrentDailyStreak(actsForStreak, completions, today, frozenSet),
+    [actsForStreak, completions, today, frozenSet],
   );
+  const bestStreak = useMemo(
+    () => computeBestDailyStreak(actsForStreak, completions, today, frozenSet),
+    [actsForStreak, completions, today, frozenSet],
+  );
+  // Rekord "před dneškem" — pokud dnešní běžící streak posunul rekord dál, je
+  // to čerstvý osobní rekord hodný oslavy (ne jen shoda s jediným existujícím číslem).
+  const previousBestStreak = useMemo(
+    () => computeBestDailyStreak(actsForStreak, completions, yesterdayIso, frozenSet),
+    [actsForStreak, completions, yesterdayIso, frozenSet],
+  );
+  const isNewStreakRecord = previousBestStreak > 0 && bestStreak > previousBestStreak;
+
+  // Celoživotní čísla — nezávislá na přepínači období, vždy "od začátku".
+  const lifetimeRange = useMemo(
+    () => computeRangeStats(actsForStreak, completions, earliestIso ?? today, today),
+    [actsForStreak, completions, earliestIso, today],
+  );
+  const daysTracked = earliestIso ? diffDaysIso(earliestIso, today) + 1 : 0;
+  const yesterdayLifetimeTotal = useMemo(
+    () => computeRangeStats(actsForStreak, completions, earliestIso ?? today, yesterdayIso).totalCheckins,
+    [actsForStreak, completions, earliestIso, today, yesterdayIso],
+  );
+  const crossedCheckinMilestone = crossedMilestone(yesterdayLifetimeTotal, lifetimeRange.totalCheckins);
 
   const bestWeekday = useMemo(
     () => computeBestWeekday(actsForStreak, completions, today),
@@ -220,6 +255,18 @@ export default function StatsScreen() {
 
   const ratePct = Math.round(range.rate * 100);
 
+  const streakBadge =
+    bestStreak > 0
+      ? isNewStreakRecord
+        ? { text: t.stats.recordChip, tone: 'gold' as const }
+        : { text: t.stats.recordChipBest(bestStreak), tone: 'muted' as const }
+      : null;
+  const rateBadge = prevRange
+    ? deltaBadge(Math.round(range.rate * 100) - Math.round(prevRange.rate * 100), '%')
+    : null;
+  const checkinsBadge = prevRange ? deltaBadge(range.totalCheckins - prevRange.totalCheckins) : null;
+  const activeDaysBadge = prevRange ? deltaBadge(range.activeDays - prevRange.activeDays) : null;
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: C.BG }]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -243,6 +290,49 @@ export default function StatsScreen() {
               />
             </View>
 
+            {/* Celoživotní pás — vždy viditelný, nezávislý na přepínači období */}
+            <View style={styles.lifetimeBand}>
+              <Text style={styles.lifetimeLabel}>{t.stats.sinceStart(daysTracked)}</Text>
+              <View style={styles.lifetimeRow}>
+                <View style={styles.lifetimeStat}>
+                  <Text style={styles.lifetimeNum}>🔥{bestStreak}</Text>
+                  <Text style={styles.lifetimeSub}>{t.stats.lifetimeBestStreak}</Text>
+                </View>
+                <View style={styles.lifetimeDivider} />
+                <View style={styles.lifetimeStat}>
+                  <Text style={styles.lifetimeNum}>{lifetimeRange.totalCheckins}</Text>
+                  <Text style={styles.lifetimeSub}>{t.stats.lifetimeTotalCheckins}</Text>
+                </View>
+                <View style={styles.lifetimeDivider} />
+                <View style={styles.lifetimeStat}>
+                  <Text style={styles.lifetimeNum}>{lifetimeRange.activeDays}</Text>
+                  <Text style={styles.lifetimeSub}>{t.stats.tileActiveDays}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Oslavný moment — nový rekord streaku nebo překročený milník splnění */}
+            {crossedCheckinMilestone ? (
+              <View style={[styles.celebrateCard, { backgroundColor: C.circleCardBg }]}>
+                <Text style={styles.celebrateEmoji}>🎉</Text>
+                <Text style={[styles.celebrateTitle, { color: C.text }]}>
+                  {t.stats.celebrateMilestone(crossedCheckinMilestone)}
+                </Text>
+              </View>
+            ) : isNewStreakRecord ? (
+              <View style={[styles.celebrateCard, { backgroundColor: C.circleCardBg }]}>
+                <Text style={styles.celebrateEmoji}>🏆</Text>
+                <View style={styles.celebrateTextWrap}>
+                  <Text style={[styles.celebrateTitle, { color: C.text }]}>
+                    {t.stats.celebrateRecordTitle}
+                  </Text>
+                  <Text style={[styles.celebrateBody, { color: C.textSecondary }]}>
+                    {t.stats.celebrateRecordBody}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
             {/* Hero dlaždice */}
             <View style={styles.tileGrid}>
               <Tile
@@ -252,6 +342,8 @@ export default function StatsScreen() {
                 bg={C.surface}
                 textColor={C.text}
                 subColor={C.textSecondary}
+                badge={streakBadge}
+                isDark={C.isDark}
               />
               <Tile
                 emoji="🎯"
@@ -261,6 +353,8 @@ export default function StatsScreen() {
                 bg={C.surface}
                 textColor={C.text}
                 subColor={C.textSecondary}
+                badge={rateBadge}
+                isDark={C.isDark}
               />
               <Tile
                 emoji="✅"
@@ -269,6 +363,8 @@ export default function StatsScreen() {
                 bg={C.surface}
                 textColor={C.text}
                 subColor={C.textSecondary}
+                badge={checkinsBadge}
+                isDark={C.isDark}
               />
               <Tile
                 emoji="📅"
@@ -277,20 +373,13 @@ export default function StatsScreen() {
                 bg={C.surface}
                 textColor={C.text}
                 subColor={C.textSecondary}
+                badge={activeDaysBadge}
+                isDark={C.isDark}
               />
             </View>
 
             {isPremium ? (
               <>
-                {/* Trend */}
-                <View style={[styles.card, { backgroundColor: C.surface }]}>
-                  <Text style={[styles.cardTitle, { color: C.text }]}>{t.stats.trendTitle}</Text>
-                  <TrendChart
-                    data={trend.map((p) => p.rate)}
-                    trackColor={C.isDark ? '#2A2A2C' : '#F0F0F0'}
-                  />
-                </View>
-
                 {/* Konzistence (heatmapa) */}
                 <View style={[styles.card, { backgroundColor: C.surface }]}>
                   <Text style={[styles.cardTitle, { color: C.text }]}>
@@ -392,6 +481,67 @@ const styles = StyleSheet.create({
 
   periodRow: { marginBottom: 16 },
 
+  // Celoživotní pás — stejné proporce jako Summary karta na home (flat zelená, bílý text)
+  lifetimeBand: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 22,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+  },
+  lifetimeLabel: {
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.88,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 12,
+  },
+  lifetimeRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  lifetimeStat: { flex: 1 },
+  lifetimeNum: {
+    fontSize: 23,
+    fontFamily: FONTS.extraBold,
+    letterSpacing: -0.46,
+    color: '#FFFFFF',
+  },
+  lifetimeSub: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 3,
+  },
+  lifetimeDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    marginHorizontal: 14,
+  },
+
+  // Oslavná karta — rekord streaku / překročený milník splnění (fire akcent)
+  celebrateCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  celebrateEmoji: { fontSize: 22 },
+  celebrateTextWrap: { flex: 1 },
+  celebrateTitle: {
+    flex: 1,
+    fontSize: 14.5,
+    fontFamily: FONTS.bold,
+    lineHeight: 19,
+  },
+  celebrateBody: {
+    fontSize: 12.5,
+    fontFamily: FONTS.semiBold,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+
   // Hero tiles
   tileGrid: {
     flexDirection: 'row',
@@ -411,7 +561,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  tileEmoji: { fontSize: 20, marginBottom: 6 },
+  tileTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  tileEmoji: { fontSize: 20 },
+  tileBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  tileBadgeText: {
+    fontSize: 10.5,
+    fontFamily: FONTS.bold,
+  },
   tileValue: {
     fontSize: 30,
     fontFamily: FONTS.extraBold,
@@ -438,35 +603,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FONTS.bold,
     marginBottom: 14,
-  },
-
-  // Trend chart
-  trendRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 76,
-    gap: 8,
-  },
-  trendBarSlot: { flex: 1, height: '100%', justifyContent: 'flex-end' },
-  trendBarTrack: {
-    height: '100%',
-    borderRadius: 6,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  trendBarFill: {
-    width: '100%',
-    borderRadius: 6,
-  },
-  trendLabelWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trendLabel: {
-    fontSize: 9.5,
-    fontFamily: FONTS.bold,
-    color: '#2A2A2A',
   },
 
   // Weekday breakdown

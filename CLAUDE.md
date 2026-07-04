@@ -10,6 +10,14 @@ Kompletní dokumentace projektu (produkt, architektura, design, provoz, myšlen�
 
 Hub note (rozcestník pro vše): `00-index.md`
 
+**Zálohování vaultu:** vault je zrcadlený jako samostatný git repozitář **Emberly-docs**,
+pravidelně commitovaný a pushovaný do **soukromého** GitHub repa
+(`github.com/Endrudev/Emberly-docs`) — nezávisle na tomto kódovém repozitáři. Na jiných
+zařízeních (jiný Windows profil) může být zrcadlo naklonované na jiné cestě
+(např. `C:\Users\Ondřej\Desktop\_localRepos\Emberly-docs\Emberly\`) — pokud vault na
+očekávané cestě `ondra\...` neexistuje, zkontroluj, jestli zařízení místo toho nemá
+naklonované tohle git zrcadlo.
+
 Struktura vaultu:
 - `product/` — vize, persony, business rules, glossary, user journeys
 - `architecture/` — tech stack, state management, navigace
@@ -28,6 +36,31 @@ Struktura vaultu:
 - Nové poznámky piš přes `Write` tool na absolutní cestu (MCP obsidian server má bug při zápisu do podsložek — node se zasekne)
 - Dodržuj konvence existujících poznámek: frontmatter `tags` + `last_updated`, sekce oddělené `---`, `## Viz také` s wikilinks na konci
 
+### Postup — jak se k vaultu dostat a pracovat s ním na libovolném zařízení
+
+1. **Najdi vault.** Zkus primární cestu `C:\Users\ondra\Desktop\_obsidianProjects\Emberly\`.
+   Pokud na tomhle stroji neexistuje (jiný Windows profil), hledej git zrcadlo — typicky
+   `...\_localRepos\Emberly-docs\Emberly\`. Pokud není naklonované ani to, naklonuj ho:
+   ```bash
+   git clone https://github.com/Endrudev/Emberly-docs.git
+   ```
+   (soukromé repo — potřebuje oprávněný GitHub účet/token).
+2. **Čti od rozcestníku.** Otevři `00-index.md` (nebo `marketing/00-marketing-index.md` pro
+   marketing sekci) a odtud sleduj `[[wikilinky]]` — název odkazu = název souboru bez přípony
+   `.md`, hledej ho v odpovídající podsložce (Glob/Grep, pokud přesná cesta není jasná).
+3. **Uprav nebo přidej poznámku.** Piš přes `Write` tool na absolutní cestu (ne MCP obsidian
+   server — viz bug výše). Zachovej konvence: frontmatter (`tags`, `last_updated`), sekce
+   oddělené `---`, `## Viz také` s wikilinky na konci souboru. Aktualizuj `last_updated`.
+4. **Zazálohuj (commit + push).** Po netriviální dávce úprav (ne po každém řádku):
+   ```bash
+   cd <cesta ke git zrcadlu Emberly-docs>
+   git add Emberly/
+   git commit -m "docs: <stručný popis změny>"
+   git push origin main
+   ```
+   Push je vždy potřeba potvrdit s uživatelem předem (zásah do sdíleného vzdáleného repa),
+   pokud to explicitně nepovolil pro celou konverzaci.
+
 ## Jak spustit
 ```bash
 npm install --legacy-peer-deps
@@ -41,11 +74,28 @@ npm run lint                 # ESLint
 npm run db:generate          # Drizzle — vygeneruje nové SQL migrace ze schématu
 ```
 
+### Nové zařízení / Windows profil — přihlas Expo CLI (jednorázově)
+Na stroji, kde ještě nikdy neběžel `npx expo`, může být CLI nepřihlášené k Expo účtu.
+`expo start` pak čeká na interaktivní přihlašovací prompt a v neinteraktivním terminálu
+(spuštěno na pozadí/skriptem) spadne s `CommandError: Input is required, but 'npx expo' is
+in non-interactive mode`. Navenek to vypadá úplně stejně jako síťový problém — Expo Go furt
+hlásí stejnou `IOException: Failed to download remote update`, protože server se buď vůbec
+nerozjel, nebo krátce po startu spadl.
+
+**Fix (jednou na každém novém zařízení, před prvním `npm start`):**
+```bash
+npx expo login
+```
+
 ### Připojení telefonu (LAN mode) — ověřený postup
 1. PC i Android musí být na **stejné síti** (PC na Ethernetu, telefon na WiFi — stačí stejný router)
 2. Spusť `npm start` a **počkej** než terminál zobrazí `Android Bundled XXXXX ms`
 3. Teprve po bundlingu scannuj QR kód v Expo Go
 4. Port může být 8081 nebo 8082/8083 — to je normální, QR kód obsahuje správný port
+5. Pokud je na stroji Hyper-V/Docker Desktop/WSL (vlastní virtuální síťový adaptér vedle
+   WiFi), Expo CLI může do manifestu vložit špatnou LAN IP — ověř `hostUri` na
+   `http://localhost:8081/index.exp?platform=android&hostType=lan`, případně vynuť správnou
+   IP přes `$env:REACT_NATIVE_PACKAGER_HOSTNAME = "<skutečná WiFi IP>"` před `npm start`.
 
 ### Windows Firewall — nutná jednorázová konfigurace
 Po instalaci **Docker Desktop** (nebo jiného software s Hyper-V) se Windows Firewall resetuje

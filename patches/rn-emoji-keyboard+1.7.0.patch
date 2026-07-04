@@ -1,0 +1,80 @@
+diff --git a/node_modules/rn-emoji-keyboard/src/components/Icon.tsx b/node_modules/rn-emoji-keyboard/src/components/Icon.tsx
+index ce94438..21f588e 100644
+--- a/node_modules/rn-emoji-keyboard/src/components/Icon.tsx
++++ b/node_modules/rn-emoji-keyboard/src/components/Icon.tsx
+@@ -1,8 +1,29 @@
+-import * as React from 'react'
++import { MaterialCommunityIcons } from '@expo/vector-icons'
+ 
+ import type { IconNames } from '../types'
+ import { exhaustiveTypeCheck } from '../utils/exhaustiveTypeCheck'
+-import PngIcon from '../assets/icons/PngIcon'
++
++// PATCHED (Emberly): upstream renders these as tintColor'd <Image> PNGs, which
++// render as blank/invisible boxes on Android — a confirmed, unresolved upstream
++// bug (github.com/TheWidlarzGroup/rn-emoji-keyboard/issues/180). Vector glyphs
++// via @expo/vector-icons (already a dependency, used elsewhere in the app) sidestep
++// the bug entirely since they're font glyphs, not tinted raster images.
++const ICON_MAP: Record<IconNames | 'Close' | 'QuestionMark' | 'Backspace', string> = {
++  Smile: 'emoticon-outline',
++  Trees: 'pine-tree',
++  Pizza: 'pizza',
++  Plane: 'airplane',
++  Football: 'soccer',
++  Lightbulb: 'lightbulb-outline',
++  Flag: 'flag-outline',
++  Ban: 'cancel',
++  Users: 'account-group-outline',
++  Search: 'magnify',
++  Close: 'close',
++  Clock: 'clock-outline',
++  QuestionMark: 'help-circle-outline',
++  Backspace: 'backspace-outline',
++}
+ 
+ export const Icon = ({
+   iconName,
+@@ -16,37 +37,10 @@ export const Icon = ({
+   activeColor: string
+ }) => {
+   const color = isActive ? activeColor : normalColor
+-  switch (iconName) {
+-    case 'Smile':
+-      return <PngIcon fill={color} source={require('../assets/icons/smile.png')} />
+-    case 'Trees':
+-      return <PngIcon fill={color} source={require('../assets/icons/trees.png')} />
+-    case 'Pizza':
+-      return <PngIcon fill={color} source={require('../assets/icons/pizza.png')} />
+-    case 'Plane':
+-      return <PngIcon fill={color} source={require('../assets/icons/plane.png')} />
+-    case 'Football':
+-      return <PngIcon fill={color} source={require('../assets/icons/football.png')} />
+-    case 'Lightbulb':
+-      return <PngIcon fill={color} source={require('../assets/icons/lightbulb.png')} />
+-    case 'Flag':
+-      return <PngIcon fill={color} source={require('../assets/icons/flag.png')} />
+-    case 'Ban':
+-      return <PngIcon fill={color} source={require('../assets/icons/ban.png')} />
+-    case 'Users':
+-      return <PngIcon fill={color} source={require('../assets/icons/users.png')} />
+-    case 'Search':
+-      return <PngIcon fill={color} source={require('../assets/icons/search.png')} />
+-    case 'Close':
+-      return <PngIcon fill={color} source={require('../assets/icons/close.png')} />
+-    case 'Clock':
+-      return <PngIcon fill={color} source={require('../assets/icons/clock.png')} />
+-    case 'QuestionMark':
+-      return <PngIcon fill={color} source={require('../assets/icons/questionMark.png')} />
+-    case 'Backspace':
+-      return <PngIcon fill={color} source={require('../assets/icons/backspace.png')} />
+-    default:
+-      exhaustiveTypeCheck(iconName)
+-      return null
++  const name = ICON_MAP[iconName]
++  if (!name) {
++    exhaustiveTypeCheck(iconName as never)
++    return null
+   }
++  return <MaterialCommunityIcons name={name as never} size={22} color={color} />
+ }
+\ No newline at end of file

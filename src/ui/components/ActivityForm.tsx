@@ -3,10 +3,11 @@ import { ScrollView, StyleSheet, TextInput as RNTextInput, View } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import EmojiPicker, { cs as emojiPickerCs, en as emojiPickerEn } from 'rn-emoji-keyboard';
 
 import type { Activity, DayOfWeek } from '@/domain/types';
 import { orderedDayIndices, type WeekAnchor } from '@/domain/week';
-import { useTranslation } from '@/i18n';
+import { useTranslation, useResolvedLanguage } from '@/i18n';
 import { activityColors, COLORS, FONTS } from '@/ui/theme';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
@@ -85,94 +86,127 @@ interface ActivityFormProps {
  * Save lives in the hosting screen's header, not as an in-form button — the
  * screen triggers submission imperatively via the forwarded ref.
  */
-export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
-  function ActivityForm(
-    { initial, activityId, preview, weekStartsOn = 1, onSubmit, onSubmittingChange, onDelete },
-    ref,
-  ) {
-    const t = useTranslation();
-    const C = useAppTheme();
-    const insets = useSafeAreaInsets();
-    const displayDays = useMemo(() => orderedDayIndices(weekStartsOn), [weekStartsOn]);
-    const [name, setName] = useState(initial?.name ?? '');
-    const [emoji, setEmoji] = useState(initial?.emoji ?? POPULAR_EMOJI[0]!);
-    const [color, setColor] = useState<string>(initial?.color ?? activityColors[0] ?? '#4AABF5');
-    const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(
-      initial?.scheduledDays ?? [],
+export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(function ActivityForm(
+  { initial, activityId, preview, weekStartsOn = 1, onSubmit, onSubmittingChange, onDelete },
+  ref,
+) {
+  const t = useTranslation();
+  const C = useAppTheme();
+  const language = useResolvedLanguage();
+  const insets = useSafeAreaInsets();
+  const displayDays = useMemo(() => orderedDayIndices(weekStartsOn), [weekStartsOn]);
+  const [name, setName] = useState(initial?.name ?? '');
+  const [emoji, setEmoji] = useState(initial?.emoji ?? POPULAR_EMOJI[0]!);
+  const [color, setColor] = useState<string>(initial?.color ?? activityColors[0] ?? '#4AABF5');
+  const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(initial?.scheduledDays ?? []);
+  const [touched, setTouched] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const isCustomEmoji = !POPULAR_EMOJI.includes(emoji);
+
+  const nameError = touched && name.trim().length === 0;
+
+  function toggleDay(day: DayOfWeek) {
+    setScheduledDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort(),
     );
-    const [touched, setTouched] = useState(false);
+  }
 
-    const nameError = touched && name.trim().length === 0;
+  const activePreset: Preset = useMemo(() => {
+    if (sameDays(scheduledDays, ALL_DAYS_LIST)) return 'daily';
+    if (sameDays(scheduledDays, WEEKDAYS)) return 'weekdays';
+    if (sameDays(scheduledDays, WEEKEND)) return 'weekend';
+    return 'custom';
+  }, [scheduledDays]);
 
-    function toggleDay(day: DayOfWeek) {
-      setScheduledDays((prev) =>
-        prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort(),
-      );
+  function applyPreset(preset: Exclude<Preset, 'custom'>) {
+    setScheduledDays(
+      preset === 'daily' ? ALL_DAYS_LIST : preset === 'weekdays' ? WEEKDAYS : WEEKEND,
+    );
+  }
+
+  const scheduleSummary = useMemo(() => {
+    if (scheduledDays.length === 0) return '';
+    return [...scheduledDays]
+      .sort()
+      .map((d) => t.days.short[d])
+      .join(', ');
+  }, [scheduledDays, t]);
+
+  async function handleSubmit() {
+    setTouched(true);
+    if (name.trim().length === 0) return;
+    onSubmittingChange?.(true);
+    try {
+      await onSubmit({
+        name: name.trim(),
+        emoji,
+        color,
+        scheduledDays,
+      });
+    } finally {
+      onSubmittingChange?.(false);
     }
+  }
 
-    const activePreset: Preset = useMemo(() => {
-      if (sameDays(scheduledDays, ALL_DAYS_LIST)) return 'daily';
-      if (sameDays(scheduledDays, WEEKDAYS)) return 'weekdays';
-      if (sameDays(scheduledDays, WEEKEND)) return 'weekend';
-      return 'custom';
-    }, [scheduledDays]);
+  useImperativeHandle(ref, () => ({ submit: handleSubmit }));
 
-    function applyPreset(preset: Exclude<Preset, 'custom'>) {
-      setScheduledDays(preset === 'daily' ? ALL_DAYS_LIST : preset === 'weekdays' ? WEEKDAYS : WEEKEND);
-    }
+  const previewActivity: Activity = {
+    id: activityId ?? -1,
+    name: name.trim().length > 0 ? name : t.activity.nameLabel,
+    emoji,
+    color,
+    scheduledDays,
+    archived: false,
+    createdAt: 0,
+  };
 
-    const scheduleSummary = useMemo(() => {
-      if (scheduledDays.length === 0) return '';
-      return [...scheduledDays].sort().map((d) => t.days.short[d]).join(', ');
-    }, [scheduledDays, t]);
+  const chipBg = C.isDark ? '#3A3A3C' : '#F0F0F0';
+  const chipText = C.isDark ? '#ABABAB' : '#888888';
 
-    async function handleSubmit() {
-      setTouched(true);
-      if (name.trim().length === 0) return;
-      onSubmittingChange?.(true);
-      try {
-        await onSubmit({
-          name: name.trim(),
-          emoji,
-          color,
-          scheduledDays,
-        });
-      } finally {
-        onSubmittingChange?.(false);
-      }
-    }
+  // Namapováno na existující tokeny appky, ať plný emoji picker vypadá jako
+  // vlastní komponenta appky, ne jako vložená cizí knihovna.
+  const emojiPickerTheme = {
+    backdrop: 'rgba(0,0,0,0.4)',
+    knob: C.border,
+    container: C.surface,
+    header: C.text,
+    skinTonesContainer: C.surface,
+    category: {
+      icon: C.textTertiary,
+      iconActive: COLORS.primary,
+      container: 'transparent',
+      containerActive: COLORS.primaryLight,
+    },
+    search: {
+      background: chipBg,
+      text: C.text,
+      placeholder: C.textTertiary,
+      icon: C.textTertiary,
+    },
+    emoji: {
+      selected: COLORS.primaryLight,
+    },
+  };
 
-    useImperativeHandle(ref, () => ({ submit: handleSubmit }));
+  const PRESETS: Preset[] = ['daily', 'weekdays', 'weekend', 'custom'];
+  const presetLabel: Record<Preset, string> = {
+    daily: t.activity.presetDaily,
+    weekdays: t.activity.presetWeekdays,
+    weekend: t.activity.presetWeekend,
+    custom: t.activity.presetCustom,
+  };
 
-    const previewActivity: Activity = {
-      id: activityId ?? -1,
-      name: name.trim().length > 0 ? name : t.activity.nameLabel,
-      emoji,
-      color,
-      scheduledDays,
-      archived: false,
-      createdAt: 0,
-    };
-
-    const chipBg   = C.isDark ? '#3A3A3C' : '#F0F0F0';
-    const chipText = C.isDark ? '#ABABAB' : '#888888';
-
-    const PRESETS: Preset[] = ['daily', 'weekdays', 'weekend', 'custom'];
-    const presetLabel: Record<Preset, string> = {
-      daily: t.activity.presetDaily,
-      weekdays: t.activity.presetWeekdays,
-      weekend: t.activity.presetWeekend,
-      custom: t.activity.presetCustom,
-    };
-
-    return (
+  return (
+    <>
       <ScrollView
         contentContainerStyle={[styles.container, { paddingBottom: 32 + insets.bottom + 48 }]}
         keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: C.BG }}
       >
         {/* ── Preview ── */}
-        <Text style={[styles.sectionLabel, { color: C.textTertiary }]}>{t.activity.previewLabel}</Text>
+        <Text style={[styles.sectionLabel, { color: C.textTertiary }]}>
+          {t.activity.previewLabel}
+        </Text>
         <View pointerEvents="none">
           <ActivityRow
             activity={previewActivity}
@@ -202,7 +236,9 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
         {nameError ? <Text style={styles.errorText}>{t.activity.nameRequired}</Text> : null}
 
         {/* ── Appearance ── */}
-        <Text style={[styles.sectionLabel, { color: C.textTertiary }]}>{t.activity.appearanceLabel}</Text>
+        <Text style={[styles.sectionLabel, { color: C.textTertiary }]}>
+          {t.activity.appearanceLabel}
+        </Text>
         <View style={[styles.card, { backgroundColor: C.surface }]}>
           <Text style={[styles.subLabel, { color: C.text }]}>{t.activity.iconLabel}</Text>
           <View style={styles.emojiGrid}>
@@ -224,6 +260,22 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
                 </AnimatedPressable>
               );
             })}
+            <AnimatedPressable
+              hapticStyle="light"
+              onPress={() => setEmojiPickerOpen(true)}
+              style={[
+                styles.emojiCell,
+                { backgroundColor: chipBg, borderColor: isCustomEmoji ? color : 'transparent' },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t.activity.moreEmojiLabel}
+            >
+              {isCustomEmoji ? (
+                <Text style={styles.emojiText}>{emoji}</Text>
+              ) : (
+                <MaterialCommunityIcons name="dots-horizontal" size={22} color={chipText} />
+              )}
+            </AnimatedPressable>
           </View>
 
           <View style={[styles.divider, { backgroundColor: C.border }]} />
@@ -245,7 +297,9 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
                   accessibilityRole="button"
                   accessibilityLabel={`${t.activity.colorLabel} ${c}`}
                 >
-                  {selected ? <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" /> : null}
+                  {selected ? (
+                    <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />
+                  ) : null}
                 </AnimatedPressable>
               );
             })}
@@ -254,7 +308,9 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
 
         {/* ── Frequency ── */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionLabel, styles.sectionLabelNoMargin, { color: C.textTertiary }]}>
+          <Text
+            style={[styles.sectionLabel, styles.sectionLabelNoMargin, { color: C.textTertiary }]}
+          >
             {t.activity.frequencyLabel}
           </Text>
           <Text style={[styles.sectionMeta, { color: C.textTertiary }]}>
@@ -274,7 +330,11 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
                   style={[
                     styles.presetPill,
                     active
-                      ? { backgroundColor: 'transparent', borderColor: COLORS.primary, borderWidth: 1.5 }
+                      ? {
+                          backgroundColor: 'transparent',
+                          borderColor: COLORS.primary,
+                          borderWidth: 1.5,
+                        }
                       : { backgroundColor: chipBg, borderWidth: 1.5, borderColor: 'transparent' },
                   ]}
                   accessibilityRole="button"
@@ -296,7 +356,10 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
                   <AnimatedPressable
                     hapticStyle="light"
                     onPress={() => toggleDay(day)}
-                    style={[styles.dayPill, { backgroundColor: selected ? COLORS.primary : chipBg }]}
+                    style={[
+                      styles.dayPill,
+                      { backgroundColor: selected ? COLORS.primary : chipBg },
+                    ]}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                   >
@@ -310,7 +373,9 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
           </View>
 
           {scheduleSummary ? (
-            <Text style={[styles.scheduleSummary, { color: C.textTertiary }]}>{scheduleSummary}</Text>
+            <Text style={[styles.scheduleSummary, { color: C.textTertiary }]}>
+              {scheduleSummary}
+            </Text>
           ) : null}
         </View>
 
@@ -318,13 +383,26 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(
         {onDelete ? (
           <AnimatedPressable hapticStyle="light" onPress={onDelete} style={styles.deleteLink}>
             <MaterialCommunityIcons name="trash-can-outline" size={18} color={COLORS.error} />
-            <Text style={[styles.deleteLinkText, { color: COLORS.error }]}>{t.activity.deleteActivity}</Text>
+            <Text style={[styles.deleteLinkText, { color: COLORS.error }]}>
+              {t.activity.deleteActivity}
+            </Text>
           </AnimatedPressable>
         ) : null}
       </ScrollView>
-    );
-  },
-);
+
+      <EmojiPicker
+        open={emojiPickerOpen}
+        onClose={() => setEmojiPickerOpen(false)}
+        onEmojiSelected={(selected) => setEmoji(selected.emoji)}
+        enableSearchBar
+        enableRecentlyUsed
+        categoryPosition="top"
+        translation={language === 'cs' ? emojiPickerCs : emojiPickerEn}
+        theme={emojiPickerTheme}
+      />
+    </>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {

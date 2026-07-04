@@ -190,3 +190,18 @@ export function computeBestWeekday(
   }
   return best;
 }
+
+/** Zaokrouhlené celkové-počty-splnění milníky, které stojí za oslavu na dashboardu. */
+export const CHECKIN_MILESTONES = [50, 100, 250, 500, 1000, 2000, 5000] as const;
+
+/**
+ * Milník z `CHECKIN_MILESTONES` překročený mezi `before` (např. včerejší celkový
+ * počet splnění) a `after` (dnešní), nebo `null` pokud žádný nepadl. Používá se pro
+ * jednorázovou oslavnou kartu na dashboardu Statistik.
+ */
+export function crossedMilestone(before: number, after: number): number | null {
+  for (const m of CHECKIN_MILESTONES) {
+    if (before < m && after >= m) return m;
+  }
+  return null;
+}
