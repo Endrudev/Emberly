@@ -418,7 +418,21 @@ Home screen widget v `src/widget/` (EmberlyWidget.tsx layout, widgetData.ts DB a
 - **Plynulé animace nejdou** (RemoteViews) — wow efekty patří do appky. Viz vault `widgets/widget-animations-research.md`.
 - **Rychlé ladění layoutu:** dev obrazovka `app/widget-preview.tsx` (`WidgetPreview` = pixel-identický náhled) + `adb screencap`, bez rebuildů. Rebuild jen při změně velikosti.
 - **Sekce potřebují `width: 'match_parent'`** — LinearLayout je jinak nechá wrap_content/vlevo.
+- **Tři varianty:** `EmberlyWidget` (4×3, plná), `EmberlyWidget4x2` (kompakt), `EmberlyWidgetRing`
+  (2×2, jen streak kruh, žádná interaktivita krom `OPEN_APP`). `updateEmberlyWidget()` pushuje
+  live update po `toggleCompletion` na všechny tři paralelně (`Promise.all` +
+  `requestWidgetUpdate` na widget, který zrovna není na ploše, tiše selže — zachyceno).
 - Kompletní dokumentace: vault `widgets/android-widget-plan.md`.
+
+### App icon + splash screen
+`assets/icon.png` (512×512) → `app.json`: `icon`, `android.adaptiveIcon.foregroundImage`
+(pozadí `#2DB54A`), `expo-splash-screen` plugin (pozadí `#ECEDE8`, stejné jako appka).
+⚠️ **`android/` je v tomhle repu commitnutá** (kvůli widget-pin modulu) — změna `app.json` sama
+o sobě launcher ikonu/splash nepřegeneruje. Po každé změně spustit:
+```bash
+npx expo prebuild --platform android
+```
+Nepotřebuje Android SDK/Gradle, jen Node/Expo CLI — stejný princip jako sync XML u widgetu výše.
 
 ### Firewall po Docker/Hyper-V instalaci
 Instalace Docker Desktop povoluje Hyper-V a resetuje Windows Firewall výjimky.
