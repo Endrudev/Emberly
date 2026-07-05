@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Image, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -13,6 +13,9 @@ import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 
 const ROW_SLOT_HEIGHT = 64;
+
+// Vlastní ikona (assets/icons/flame.png) nahrazující 🔥 — viz vault design/visual-assets.md.
+const FLAME_ICON = require('../../../assets/icons/flame.png');
 
 interface ActivityRowProps {
   activity: Activity;
@@ -100,9 +103,10 @@ function ActivityRowImpl({
             {activity.name}
           </Text>
           {currentStreak > 0 ? (
-            <Text style={styles.streakText}>
-              🔥 {t.home.nDays(currentStreak)}
-            </Text>
+            <View style={styles.streakRow}>
+              <Image source={FLAME_ICON} style={styles.streakIcon} resizeMode="contain" />
+              <Text style={styles.streakText}>{t.home.nDays(currentStreak)}</Text>
+            </View>
           ) : (
             <Text style={styles.streakTextEmpty}> </Text>
           )}
@@ -221,11 +225,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.165,
     lineHeight: 21,
   },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  streakIcon: { width: 13, height: 13 },
   streakText: {
     fontSize: 12.5,
     fontFamily: FONTS.semiBold,
     color: '#FF8C42',
-    marginTop: 2,
   },
   streakTextEmpty: {
     fontSize: 12.5,

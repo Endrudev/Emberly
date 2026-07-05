@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  type ImageSourcePropType,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { TAB_BAR_SPACE } from './_layout';
@@ -13,6 +23,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppStore } from '@/store/useAppStore';
 import { useSettingsStore, type WeekStart } from '@/store/useSettingsStore';
 import { usePurchasesStore, useIsPremium } from '@/store/usePurchasesStore';
+import { seedDemoData } from '@/db/demoSeed';
 import { openPaywall, restoreAndSync } from '@/purchases/openPaywall';
 import { showManageSubscriptions } from '@/purchases/purchases';
 import { useAppTheme } from '@/ui/useAppTheme';
@@ -27,6 +38,27 @@ import { requestNotificationPermission } from '@/notifications/permissions';
 import { REVIEWER_UNLOCK_CODE } from '@/purchases/gating';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
 
+// Vlastní ikony (assets/icons/) nahrazující emoji — viz vault design/visual-assets.md.
+// Dvě dev-only řádky (🧪, 🔁) zatím emoji ikonu nemají, čekají na dodání assetu.
+const ICONS = {
+  bell: require('../../assets/icons/bell.png') as ImageSourcePropType,
+  alarmClock: require('../../assets/icons/alarm-clock.png') as ImageSourcePropType,
+  flame: require('../../assets/icons/flame.png') as ImageSourcePropType,
+  palette: require('../../assets/icons/palette.png') as ImageSourcePropType,
+  globe: require('../../assets/icons/globe.png') as ImageSourcePropType,
+  widget: require('../../assets/icons/widget.png') as ImageSourcePropType,
+  calendar: require('../../assets/icons/calendar.png') as ImageSourcePropType,
+  cloudBackup: require('../../assets/icons/cloud-backup.png') as ImageSourcePropType,
+  trash: require('../../assets/icons/trash.png') as ImageSourcePropType,
+  starFilled: require('../../assets/icons/star-filled.png') as ImageSourcePropType,
+  gear: require('../../assets/icons/gear.png') as ImageSourcePropType,
+  restore: require('../../assets/icons/restore.png') as ImageSourcePropType,
+  lock: require('../../assets/icons/lock.png') as ImageSourcePropType,
+  document: require('../../assets/icons/document.png') as ImageSourcePropType,
+  info: require('../../assets/icons/info.png') as ImageSourcePropType,
+  key: require('../../assets/icons/key.png') as ImageSourcePropType,
+};
+
 /** "HH:mm" → Date dnešního dne s daným časem — vstup pro <DateTimePicker>. */
 function timeStringToDate(time: string): Date {
   const [hourStr, minuteStr] = time.split(':');
@@ -38,7 +70,7 @@ function timeStringToDate(time: string): Date {
 // ─── Reusable settings row ────────────────────────────────────────────────────
 
 interface SettingsRowProps {
-  icon: string;
+  icon: string | ImageSourcePropType;
   iconBg: string;
   label: string;
   value?: string;
@@ -77,7 +109,11 @@ function SettingsRow({
       ]}
     >
       <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
-        <Text style={styles.rowIconEmoji}>{icon}</Text>
+        {typeof icon === 'string' ? (
+          <Text style={styles.rowIconEmoji}>{icon}</Text>
+        ) : (
+          <Image source={icon} style={styles.rowIconImage} resizeMode="contain" />
+        )}
       </View>
       <View style={styles.rowLabel}>
         <Text style={[styles.rowText, { color: textColor }]}>{label}</Text>
@@ -99,6 +135,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const activities = useAppStore((s) => s.activities);
   const resetAllData = useAppStore((s) => s.resetAllData);
+  const loadAll = useAppStore((s) => s.loadAll);
   const settings   = useSettingsStore();
   const isPremium  = useIsPremium();
   const devOverride = usePurchasesStore((s) => s.devPremiumOverride);
@@ -166,6 +203,27 @@ export default function SettingsScreen() {
       },
     ]);
   }, [t, resetAllData]);
+
+  // Dev-only: naplní appku ~100denní ukázkovou historií (solidní streak ve
+  // druhé nejvyšší tier kategorii) pro marketingové screenshoty. Zapne i
+  // premium dev override, ať jsou hned vidět i zamčené sekce Statistik.
+  const handleSeedDemoData = useCallback(() => {
+    tapMedium();
+    Alert.alert('Naplnit ukázkovými daty?', 'Přepíše to všechny současné aktivity a historii.', [
+      { text: t.common.cancel, style: 'cancel' },
+      {
+        text: t.common.confirm,
+        onPress: () => {
+          void seedDemoData()
+            .then(() => loadAll())
+            .then(() => {
+              setDevOverride(true);
+              success();
+            });
+        },
+      },
+    ]);
+  }, [t, loadAll, setDevOverride]);
 
   const [reminderTimePickerVisible, setReminderTimePickerVisible] = useState(false);
 
@@ -284,7 +342,7 @@ export default function SettingsScreen() {
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
-            icon="🔔"
+            icon={ICONS.bell}
             iconBg="#FFF0E8"
             label={t.settings.reminders}
             showArrow={false}
@@ -299,7 +357,7 @@ export default function SettingsScreen() {
             <>
               <SettingsRow
                 {...rowProps}
-                icon="⏰"
+                icon={ICONS.alarmClock}
                 iconBg="#FFF0E8"
                 label={t.settings.reminderTimeLabel}
                 value={settings.reminderTime}
@@ -307,7 +365,7 @@ export default function SettingsScreen() {
               />
               <SettingsRow
                 {...rowProps}
-                icon="🔥"
+                icon={ICONS.flame}
                 iconBg="#FFF0E8"
                 label={t.settings.streakReminderLabel}
                 showArrow={false}
@@ -322,7 +380,7 @@ export default function SettingsScreen() {
           ) : null}
           <SettingsRow
             {...rowProps}
-            icon="🎨"
+            icon={ICONS.palette}
             iconBg="#F0EEFF"
             label={t.settings.appearance}
             value={C.isDark ? t.settings.themeDark : t.settings.themeLight}
@@ -336,7 +394,7 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             {...rowProps}
-            icon="🌐"
+            icon={ICONS.globe}
             iconBg="#EEF4FF"
             label={t.settings.language}
             value={
@@ -350,14 +408,14 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             {...rowProps}
-            icon="📲"
+            icon={ICONS.widget}
             iconBg="#E8F7EB"
             label={t.widget.settingsRowLabel}
             onPress={() => router.push('/settings/widget')}
           />
           <SettingsRow
             {...rowProps}
-            icon="📅"
+            icon={ICONS.calendar}
             iconBg="#E8F4FE"
             label={t.settings.weekStartsOn}
             showArrow={false}
@@ -394,19 +452,29 @@ export default function SettingsScreen() {
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
-            icon="☁️"
+            icon={ICONS.cloudBackup}
             iconBg="#E8F4FE"
             label={t.settings.autoBackupLabel}
             showArrow={false}
           />
           <SettingsRow
             {...rowProps}
-            icon="🗑️"
+            icon={ICONS.trash}
             iconBg="#FFE8E8"
             label={t.settings.resetData}
             onPress={handleResetData}
-            isLast
+            isLast={!__DEV__}
           />
+          {__DEV__ ? (
+            <SettingsRow
+              {...rowProps}
+              icon="🧪"
+              iconBg="#F0EEFF"
+              label="Naplnit ukázkovými daty (dev)"
+              onPress={handleSeedDemoData}
+              isLast
+            />
+          ) : null}
         </Animated.View>
         <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
           {t.settings.autoBackupDescription}
@@ -421,7 +489,7 @@ export default function SettingsScreen() {
             <>
               <SettingsRow
                 {...rowProps}
-                icon="⭐"
+                icon={ICONS.starFilled}
                 iconBg="#FFF7E0"
                 label={t.premium.premiumActiveTitle}
                 value={t.premium.premiumActiveSubtitle}
@@ -429,7 +497,7 @@ export default function SettingsScreen() {
               />
               <SettingsRow
                 {...rowProps}
-                icon="⚙️"
+                icon={ICONS.gear}
                 iconBg="#E8F4FE"
                 label={t.premium.manageTitle}
                 onPress={() => void showManageSubscriptions()}
@@ -438,7 +506,7 @@ export default function SettingsScreen() {
           ) : (
             <SettingsRow
               {...rowProps}
-              icon="⭐"
+              icon={ICONS.starFilled}
               iconBg="#FFF7E0"
               label={t.premium.upgradeTitle}
               value={t.premium.upgradeSubtitle}
@@ -447,7 +515,7 @@ export default function SettingsScreen() {
           )}
           <SettingsRow
             {...rowProps}
-            icon="🔄"
+            icon={ICONS.restore}
             iconBg="#E8F7EB"
             label={t.premium.restoreTitle}
             onPress={handleRestore}
@@ -476,21 +544,21 @@ export default function SettingsScreen() {
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
           <SettingsRow
             {...rowProps}
-            icon="🔒"
+            icon={ICONS.lock}
             iconBg="#F0F2F5"
             label={t.settings.privacyPolicy}
             onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
           />
           <SettingsRow
             {...rowProps}
-            icon="📄"
+            icon={ICONS.document}
             iconBg="#F0F2F5"
             label={t.settings.termsOfService}
             onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
           />
           <SettingsRow
             {...rowProps}
-            icon="ℹ️"
+            icon={ICONS.info}
             iconBg="#F0F2F5"
             label={t.settings.version}
             value="0.1.0"
@@ -502,7 +570,7 @@ export default function SettingsScreen() {
           {showReviewerInput && !reviewerUnlock ? (
             <View style={[styles.row, styles.rowBorder, { borderBottomColor: C.border }]}>
               <View style={[styles.rowIcon, { backgroundColor: '#EEF0FF' }]}>
-                <Text style={styles.rowIconEmoji}>🔑</Text>
+                <Image source={ICONS.key} style={styles.rowIconImage} resizeMode="contain" />
               </View>
               <TextInput
                 style={[styles.rowText, { flex: 1, color: C.isDark ? '#F2F2F7' : '#1A1A1A' }]}
@@ -521,7 +589,7 @@ export default function SettingsScreen() {
           {reviewerUnlock ? (
             <SettingsRow
               {...rowProps}
-              icon="🔑"
+              icon={ICONS.key}
               iconBg="#EEF0FF"
               label="Reviewer access"
               value="Active — tap to disable"
@@ -628,6 +696,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowIconEmoji: { fontSize: 18 },
+  rowIconImage: { width: 20, height: 20 },
   rowLabel: { flex: 1 },
   rowText:  { fontSize: 15, fontFamily: FONTS.semiBold },
   rowValue: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: 1 },

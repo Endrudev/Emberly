@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Text } from 'react-native';
 import { WidgetPreview } from 'react-native-android-widget';
 
-import { EmberlyWidget, EmberlyWidget4x2 } from '@/widget/EmberlyWidget';
+import { EmberlyWidget, EmberlyWidget4x2, EmberlyWidgetRing } from '@/widget/EmberlyWidget';
 import {
   WIDGET_PAGE_SIZE,
   WIDGET_PAGE_SIZE_4X2,
@@ -42,6 +42,8 @@ const BASE = {
 const W = 360;
 const H = 342; // 4×3 widget — Samsung buňka ≈ 114dp × 3 = 342dp
 const H2 = 228; // 4×2 widget — Samsung buňka ≈ 114dp × 2 = 228dp
+const W_RING = 168; // 2×2 widget — čtvercová varianta, jen ring
+const H_RING = 168;
 
 function usePreviewState(activities: WidgetActivityData[], pageSize: number = WIDGET_PAGE_SIZE) {
   const [page, setPage] = useState(0);
@@ -99,6 +101,16 @@ function PreviewBlock4x2({ label, activities }: { label: string; activities: Wid
   );
 }
 
+function PreviewBlockRing({ label }: { label: string }) {
+  const { data } = usePreviewState(ALL_ACTIVITIES);
+  return (
+    <>
+      <Text style={{ color: '#fff', fontSize: 12, marginTop: 8 }}>{label}</Text>
+      <WidgetPreview renderWidget={() => <EmberlyWidgetRing data={data} />} width={W_RING} height={H_RING} showBorder />
+    </>
+  );
+}
+
 export default function WidgetPreviewScreen() {
   return (
     <ScrollView
@@ -109,6 +121,7 @@ export default function WidgetPreviewScreen() {
       <PreviewBlock label="5 návyků @ 4×3 (běžné)" activities={ALL_ACTIVITIES.slice(0, 5)} />
       <PreviewBlock4x2 label="8 návyků @ 4×2 (stránkování)" activities={ALL_ACTIVITIES} />
       <PreviewBlock4x2 label="5 návyků @ 4×2 (běžné)" activities={ALL_ACTIVITIES.slice(0, 5)} />
+      <PreviewBlockRing label="2×2 — jen streak kruh" />
     </ScrollView>
   );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
 import { completionRepo } from '@/data/completionRepo';
-import { EmberlyWidget, EmberlyWidget4x2 } from './EmberlyWidget';
+import { EmberlyWidget, EmberlyWidget4x2, EmberlyWidgetRing } from './EmberlyWidget';
 import { expireCelebration, getCachedWidgetState, getCelebrationRemainingMs, getWidgetData } from './widgetData';
 import { WIDGET_PAGE_SIZE, WIDGET_PAGE_SIZE_4X2, type WidgetData } from './widgetTypes';
 
@@ -19,7 +19,9 @@ function applyOptimisticToggle(cached: WidgetData, activityId: number, page: num
 }
 
 function getWidgetComponent(widgetName: string) {
-  return widgetName === 'EmberlyWidget4x2' ? EmberlyWidget4x2 : EmberlyWidget;
+  if (widgetName === 'EmberlyWidget4x2') return EmberlyWidget4x2;
+  if (widgetName === 'EmberlyWidgetRing') return EmberlyWidgetRing;
+  return EmberlyWidget;
 }
 
 async function renderAndAutoDismiss(

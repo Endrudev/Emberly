@@ -3,4 +3,7 @@
   <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
   <string name="widget_emberlywidget_description" translatable="false">Dnešní aktivity a streak přehled</string>
   <string name="widget_emberlywidget4x2_description" translatable="false">Dnešní aktivity a streak — kompaktní verze</string>
+  <string name="widget_emberlywidgetring_description" translatable="false">Jen streak kruh — kolik dní držíš sérii</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
 </resources>

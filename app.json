@@ -4,6 +4,7 @@
     "slug": "emberly",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "scheme": "emberly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,6 +15,10 @@
     "android": {
       "package": "com.endru.emberly",
       "allowBackup": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#2DB54A"
+      },
       "permissions": [
         "POST_NOTIFICATIONS"
       ],
@@ -30,6 +35,15 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#ECEDE8"
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -73,6 +87,19 @@
               "maxResizeHeight": "320dp",
               "updatePeriodMillis": 1800000,
               "resizeMode": "horizontal"
+            },
+            {
+              "name": "EmberlyWidgetRing",
+              "label": "Emberly (kruh)",
+              "description": "Jen streak kruh — kolik dní držíš sérii",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "minWidth": "150dp",
+              "minHeight": "150dp",
+              "maxResizeWidth": "280dp",
+              "maxResizeHeight": "280dp",
+              "updatePeriodMillis": 1800000,
+              "resizeMode": "horizontal|vertical"
             }
           ]
         }

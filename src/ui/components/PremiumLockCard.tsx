@@ -1,9 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { COLORS, FONTS } from '@/ui/theme';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
+
+// Vlastní ikona (assets/icons/lock.png) nahrazující 🔒 — viz vault design/visual-assets.md.
+const LOCK_ICON = require('../../../assets/icons/lock.png');
 
 interface PremiumLockCardProps {
   title: string;
@@ -21,7 +24,7 @@ export function PremiumLockCard({ title, body, ctaLabel, onUnlock }: PremiumLock
   const C = useAppTheme();
   return (
     <View style={[styles.card, { backgroundColor: C.surface }]}>
-      <Text style={styles.lockIcon}>🔒</Text>
+      <Image source={LOCK_ICON} style={styles.lockImage} resizeMode="contain" />
       <Text style={[styles.title, { color: C.text }]}>{title}</Text>
       <Text style={[styles.body, { color: C.textSecondary }]}>{body}</Text>
       <AnimatedPressable onPress={onUnlock} hapticStyle="medium" style={styles.cta}>
@@ -45,6 +48,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   lockIcon: { fontSize: 30, marginBottom: 10 },
+  lockImage: { width: 32, height: 32, marginBottom: 10 },
   title: {
     fontSize: 16,
     fontFamily: FONTS.bold,

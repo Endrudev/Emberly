@@ -1,5 +1,15 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Dimensions, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  Dimensions,
+  Image,
+  LayoutChangeEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ImageSourcePropType,
+} from 'react-native';
 import type { ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
@@ -60,6 +70,14 @@ const COLLAPSE = CIRCLE_H - BAR_H;
 const HEADER_GAP = 8;
 
 type HeaderTier = 'start' | 'pace' | 'perfect';
+
+// Vlastní ikony (assets/icons/) nahrazující emoji — viz vault design/visual-assets.md.
+const ICONS = {
+  flame: require('../../assets/icons/flame.png') as ImageSourcePropType,
+  celebrate: require('../../assets/icons/celebrate.png') as ImageSourcePropType,
+  target: require('../../assets/icons/target.png') as ImageSourcePropType,
+  partlyCloudy: require('../../assets/icons/partly-cloudy.png') as ImageSourcePropType,
+};
 
 /** Diagonal gradient behind the whole header card — pale mint normally,
  *  warm gold once the day/week is fully done. Clipped by headerZone's own
@@ -279,7 +297,7 @@ export default function HomeScreen() {
     headerPlanned > 0 && headerPct >= 100 ? 'perfect' : headerPct >= 50 ? 'pace' : 'start';
   const isHeaderPerfect = headerTier === 'perfect';
 
-  const tierEmoji = headerTier === 'pace' ? '🔥' : '🎉';
+  const tierIcon = headerTier === 'pace' ? ICONS.flame : ICONS.celebrate;
   const tierTitle =
     headerTier === 'perfect'
       ? t.home.tierPerfectTitle(periodNoun)
@@ -654,13 +672,13 @@ export default function HomeScreen() {
           ListEmptyComponent={
             !loaded ? null : activities.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>🎯</Text>
+                <Image source={ICONS.target} style={styles.emptyIcon} resizeMode="contain" />
                 <Text style={[styles.emptyTitle, { color: textPrimary }]}>{t.home.appTitle}</Text>
                 <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
               </View>
             ) : isListToday ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyEmoji}>🌤️</Text>
+                <Image source={ICONS.partlyCloudy} style={styles.emptyIcon} resizeMode="contain" />
                 <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.noHabitsToday}</Text>
               </View>
             ) : null
@@ -729,11 +747,12 @@ export default function HomeScreen() {
                   entering={reduceMotion ? undefined : FadeInDown.duration(280)}
                 >
                   <View style={[styles.tierPill, { backgroundColor: headerTheme.pillBg }]}>
+                    <Image source={tierIcon} style={styles.tierPillIcon} resizeMode="contain" />
                     <Text
                       style={[styles.tierPillText, { color: headerTheme.pillText }]}
                       numberOfLines={2}
                     >
-                      {tierEmoji} {tierTitle}
+                      {tierTitle}
                     </Text>
                   </View>
                 </ReAnimated.View>
@@ -915,6 +934,9 @@ const styles = StyleSheet.create({
   // Tiered message pill — narrow on purpose so 2-word titles wrap to two
   // lines, matching the compact "badge" look from the reference design.
   tierPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
     alignSelf: 'flex-start',
     maxWidth: 112,
     borderRadius: 14,
@@ -926,7 +948,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FONTS.bold,
     lineHeight: 17,
+    flexShrink: 1,
   },
+  tierPillIcon: { width: 15, height: 15, marginTop: 1 },
 
   summaryLine: {
     fontSize: 16,
@@ -1071,6 +1095,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
+  emptyIcon: { width: 60, height: 60, marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontFamily: FONTS.bold, marginBottom: 8 },
   emptyBody:  { fontSize: 14, fontFamily: FONTS.semiBold, textAlign: 'center' },
 

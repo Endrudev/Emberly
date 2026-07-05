@@ -139,10 +139,7 @@ export const en = {
     bestDayInsight: (day: string) => `You're most consistent on ${day}.`,
     emptyTitle: 'Nothing here yet',
     emptyBody: 'Start checking off habits and your stats will show up here.',
-    // ── Lifetime band + celebration moments (stats hero redesign) ──
-    sinceStart: (n: number) => `Since day one · ${n} ${n === 1 ? 'day' : 'days'}`,
-    lifetimeBestStreak: 'Best streak',
-    lifetimeTotalCheckins: 'Total check-ins',
+    // ── Celebration moments (stats hero redesign) ──
     recordChip: '🏆 record',
     recordChipBest: (n: number) => `record: ${n}`,
     celebrateRecordTitle: 'New personal record! 🏆',
@@ -169,7 +166,7 @@ export const en = {
     ] as const,
   },
   streakFreeze: {
-    title: '❄️ Streak protection',
+    title: 'Streak protection',
     remaining: (n: number, quota: number) =>
       `${n}/${quota} protection${n === 1 ? '' : 's'} left this month`,
     usedOn: (dates: string) => `Used on: ${dates}`,

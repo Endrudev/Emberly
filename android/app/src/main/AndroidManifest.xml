@@ -48,5 +48,12 @@
       </intent-filter>
       <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_emberlywidget4x2"/>
     </receiver>
+    <receiver android:name=".widget.EmberlyWidgetRing" android:exported="false" android:label="Emberly (kruh)">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+        <action android:name="com.endru.emberly.WIDGET_CLICK"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/widgetprovider_emberlywidgetring"/>
+    </receiver>
   </application>
 </manifest>

@@ -140,10 +140,7 @@ export const cs = {
     bestDayInsight: (day: string) => `Nejvíc ti jde ${day}.`,
     emptyTitle: 'Zatím tu nic není',
     emptyBody: 'Začni odškrtávat návyky a tvoje statistiky se tu objeví.',
-    // ── Celoživotní pás + oslavné momenty (redesign hero zóny) ──
-    sinceStart: (n: number) => `Od začátku · ${n} ${n === 1 ? 'den' : n < 5 ? 'dny' : 'dní'}`,
-    lifetimeBestStreak: 'Nejlepší streak',
-    lifetimeTotalCheckins: 'Splnění celkem',
+    // ── Oslavné momenty (redesign hero zóny) ──
     recordChip: '🏆 rekord',
     recordChipBest: (n: number) => `rekord: ${n}`,
     celebrateRecordTitle: 'Nový osobní rekord! 🏆',
@@ -170,7 +167,7 @@ export const cs = {
     ] as const,
   },
   streakFreeze: {
-    title: '❄️ Ochrana série',
+    title: 'Ochrana série',
     remaining: (n: number, quota: number) =>
       `${n}/${quota} ${n === 1 ? 'ochrana' : n >= 2 && n <= 4 ? 'ochrany' : 'ochran'} zbývá tento měsíc`,
     usedOn: (dates: string) => `Použito: ${dates}`,

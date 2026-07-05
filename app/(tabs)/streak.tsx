@@ -26,6 +26,11 @@ import { parseIsoDate, todayIso as todayIsoFn } from '@/domain/week';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation, useDateLocale } from '@/i18n';
 
+// Vlastní ikony (assets/icons/) nahrazující emoji — viz vault design/visual-assets.md.
+const LOCK_ICON = require('../../assets/icons/lock.png');
+const STAR_ICON = require('../../assets/icons/star-filled.png');
+const SNOWFLAKE_ICON = require('../../assets/icons/snowflake.png');
+
 /** Animovaný progress bar (fill 0→target). Respektuje reduce motion. */
 function ProgressBar({
   progress,
@@ -130,7 +135,7 @@ export default function StreakScreen() {
             />
             {heroLocked ? (
               <View style={styles.heroLockChip}>
-                <Text style={styles.heroLockChipText}>🔒</Text>
+                <Image source={LOCK_ICON} style={styles.heroLockChipIcon} resizeMode="contain" />
               </View>
             ) : null}
           </Animated.View>
@@ -192,7 +197,7 @@ export default function StreakScreen() {
                   />
                   {premiumLocked ? (
                     <View style={styles.collectionLockChip}>
-                      <Text style={styles.collectionLockChipText}>🔒</Text>
+                      <Image source={LOCK_ICON} style={styles.collectionLockChipIcon} resizeMode="contain" />
                     </View>
                   ) : earned ? (
                     <View style={styles.collectionCheck}>
@@ -221,10 +226,14 @@ export default function StreakScreen() {
         >
           <View style={styles.freezeHeader}>
             <Image source={FROZEN_FLAME} style={styles.freezeFlame} resizeMode="contain" />
-            <Text style={[styles.freezeTitle, { color: C.text }]}>{t.streakFreeze.title}</Text>
+            <View style={styles.freezeTitleRow}>
+              <Image source={SNOWFLAKE_ICON} style={styles.freezeTitleIcon} resizeMode="contain" />
+              <Text style={[styles.freezeTitle, { color: C.text }]}>{t.streakFreeze.title}</Text>
+            </View>
             {isPremium ? null : (
               <View style={styles.premiumChip}>
-                <Text style={styles.premiumChipText}>⭐ {t.premium.badge}</Text>
+                <Image source={STAR_ICON} style={styles.premiumChipIcon} resizeMode="contain" />
+                <Text style={styles.premiumChipText}>{t.premium.badge}</Text>
               </View>
             )}
           </View>
@@ -294,6 +303,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroLockChipText: { fontSize: 16 },
+  heroLockChipIcon: { width: 17, height: 17 },
   streakCount: {
     fontSize: 46,
     fontFamily: FONTS.extraBold,
@@ -364,6 +374,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   collectionLockChipText: { fontSize: 11 },
+  collectionLockChipIcon: { width: 12, height: 12 },
   collectionCheck: {
     position: 'absolute',
     bottom: -2,
@@ -399,17 +410,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   freezeFlame: { width: 48, height: 48 },
-  freezeTitle: {
+  freezeTitleRow: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  freezeTitleIcon: { width: 16, height: 16 },
+  freezeTitle: {
     fontSize: 16,
     fontFamily: FONTS.bold,
   },
   premiumChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#FFF3D6',
     borderRadius: 9,
     paddingHorizontal: 9,
     paddingVertical: 4,
   },
+  premiumChipIcon: { width: 11, height: 11 },
   premiumChipText: {
     color: '#9A7A12',
     fontSize: 10.5,

@@ -444,7 +444,7 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 [x] R3. DM Sans font + typography tokens + grouped activity card + #ECEDE8 BG
 [x] 9.  Persistentní notifikace (Android) — lokální L1/L2 připomínky (src/notifications/)
 [x] 13. Onboarding funnel (17 obrazovek, 6 fází) — nahradil starý 3-krokový onboarding
-[x] 14. Android home screen widget (4×3 + 4×2) + pin-to-home (widget-pin modul)
+[x] 14. Android home screen widget (4×3 + 4×2 + 2×2 ring-only) + pin-to-home (widget-pin modul)
 [ ] 10. Export/Import JSON
 [ ] 11. Nastavení (funkční — theme, week start, streak goal)
 [ ] 12. Polish (animace, haptika, a11y)

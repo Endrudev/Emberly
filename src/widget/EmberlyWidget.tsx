@@ -684,6 +684,52 @@ function ActivityTile4x2({
   );
 }
 
+// ── 2×2 ring-only widget ─────────────────────────────────────────────────────
+// Jen streak kruh, bez aktivit/day trackeru/headline textu — nejmenší varianta,
+// pro uživatele co chtějí na ploše jen "kolik dní držím sérii".
+
+const RING_SIZE_2X2 = 104;
+
+export function EmberlyWidgetRing({ data }: Props) {
+  return (
+    <FlexWidget
+      clickAction="OPEN_APP"
+      style={{
+        flex: 1,
+        height: 'match_parent',
+        width: 'match_parent',
+        backgroundColor: C.card,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: C.cardBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <OverlapWidget style={{ width: RING_SIZE_2X2, height: RING_SIZE_2X2 }}>
+        <SvgWidget
+          svg={buildStreakSvg(data.progressToNextBadge)}
+          style={{ width: RING_SIZE_2X2, height: RING_SIZE_2X2 }}
+        />
+        <FlexWidget
+          style={{
+            width: RING_SIZE_2X2,
+            height: RING_SIZE_2X2,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <SvgWidget svg={buildFireSvg(C.orange)} style={{ width: 24, height: 24 }} />
+          <TextWidget
+            text={String(data.currentStreak)}
+            style={{ fontSize: 30, fontWeight: 'bold', color: C.textPrimary }}
+          />
+        </FlexWidget>
+      </OverlapWidget>
+    </FlexWidget>
+  );
+}
+
 // ── Day tracker ───────────────────────────────────────────────────────────────
 
 function DayTracker({ weekDays }: { weekDays: WidgetWeekDay[] }) {

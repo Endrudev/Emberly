@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
@@ -19,6 +19,9 @@ import { tapLight, tapMedium } from '@/ui/anim/haptics';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { EditMinusButton } from './EditMinusButton';
+
+// Vlastní ikona (assets/icons/flame.png) nahrazující 🔥 — viz vault design/visual-assets.md.
+const FLAME_ICON = require('../../../assets/icons/flame.png');
 
 interface TodayActivityRowProps {
   activity: Activity;
@@ -154,9 +157,12 @@ function TodayActivityRowImpl({
             {activity.name}
           </Text>
           {currentStreak > 0 ? (
-            <Text style={[styles.metaText, { color: metaColor }]} numberOfLines={1}>
-              🔥 {t.home.nDays(currentStreak)}
-            </Text>
+            <View style={styles.metaRow}>
+              <Image source={FLAME_ICON} style={styles.metaIcon} resizeMode="contain" />
+              <Text style={[styles.metaText, { color: metaColor }]} numberOfLines={1}>
+                {t.home.nDays(currentStreak)}
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -253,10 +259,16 @@ const styles = StyleSheet.create({
     letterSpacing: -0.165,
     lineHeight: 21,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  metaIcon: { width: 13, height: 13 },
   metaText: {
     fontSize: 12.5,
     fontFamily: FONTS.semiBold,
-    marginTop: 3,
   },
 
   // Fixed-size slot the checkbox and edit button cross-fade within, so

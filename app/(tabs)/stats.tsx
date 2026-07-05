@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, type ImageSourcePropType } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
@@ -40,6 +40,18 @@ import { useTranslation } from '@/i18n';
 
 type Period = 'week' | 'month' | 'all';
 
+// Vlastní ikony (assets/icons/) nahrazující emoji — viz vault design/visual-assets.md.
+const ICONS = {
+  barChart: require('../../assets/icons/bar-chart.png') as ImageSourcePropType,
+  flame: require('../../assets/icons/flame.png') as ImageSourcePropType,
+  target: require('../../assets/icons/target.png') as ImageSourcePropType,
+  checkBadge: require('../../assets/icons/check-badge.png') as ImageSourcePropType,
+  calendar: require('../../assets/icons/calendar.png') as ImageSourcePropType,
+  celebrate: require('../../assets/icons/celebrate.png') as ImageSourcePropType,
+  trophy: require('../../assets/icons/trophy.png') as ImageSourcePropType,
+  lightbulb: require('../../assets/icons/lightbulb.png') as ImageSourcePropType,
+};
+
 /** Zlatá pro 100% (stejná rodina jako "perfect" gradient na home headeru). */
 const GOLD = '#F2B01E';
 
@@ -66,7 +78,7 @@ function deltaBadge(delta: number, suffix = ''): { text: string; tone: TileBadge
 
 /** Jedna hero dlaždice (číslo + popisek), volitelně s malým odznakem (delta / rekord). */
 function Tile({
-  emoji,
+  icon,
   value,
   suffix,
   label,
@@ -76,7 +88,7 @@ function Tile({
   badge,
   isDark,
 }: {
-  emoji: string;
+  icon: ImageSourcePropType;
   value: number;
   suffix?: string;
   label: string;
@@ -90,7 +102,7 @@ function Tile({
   return (
     <View style={[styles.tile, { backgroundColor: bg }]}>
       <View style={styles.tileTopRow}>
-        <Text style={styles.tileEmoji}>{emoji}</Text>
+        <Image source={icon} style={styles.tileIcon} resizeMode="contain" />
         {badge && badgeColors ? (
           <View style={[styles.tileBadge, { backgroundColor: badgeColors.bg }]}>
             <Text style={[styles.tileBadgeText, { color: badgeColors.color }]}>{badge.text}</Text>
@@ -216,7 +228,6 @@ export default function StatsScreen() {
     () => computeRangeStats(actsForStreak, completions, earliestIso ?? today, today),
     [actsForStreak, completions, earliestIso, today],
   );
-  const daysTracked = earliestIso ? diffDaysIso(earliestIso, today) + 1 : 0;
   const yesterdayLifetimeTotal = useMemo(
     () => computeRangeStats(actsForStreak, completions, earliestIso ?? today, yesterdayIso).totalCheckins,
     [actsForStreak, completions, earliestIso, today, yesterdayIso],
@@ -274,7 +285,7 @@ export default function StatsScreen() {
 
         {!hasData ? (
           <View style={[styles.emptyCard, { backgroundColor: C.surface }]}>
-            <Text style={styles.emptyEmoji}>📊</Text>
+            <Image source={ICONS.barChart} style={styles.emptyIcon} resizeMode="contain" />
             <Text style={[styles.emptyTitle, { color: C.text }]}>{t.stats.emptyTitle}</Text>
             <Text style={[styles.emptyBody, { color: C.textSecondary }]}>{t.stats.emptyBody}</Text>
           </View>
@@ -290,53 +301,10 @@ export default function StatsScreen() {
               />
             </View>
 
-            {/* Celoživotní pás — vždy viditelný, nezávislý na přepínači období */}
-            <View style={styles.lifetimeBand}>
-              <Text style={styles.lifetimeLabel}>{t.stats.sinceStart(daysTracked)}</Text>
-              <View style={styles.lifetimeRow}>
-                <View style={styles.lifetimeStat}>
-                  <Text style={styles.lifetimeNum}>🔥{bestStreak}</Text>
-                  <Text style={styles.lifetimeSub}>{t.stats.lifetimeBestStreak}</Text>
-                </View>
-                <View style={styles.lifetimeDivider} />
-                <View style={styles.lifetimeStat}>
-                  <Text style={styles.lifetimeNum}>{lifetimeRange.totalCheckins}</Text>
-                  <Text style={styles.lifetimeSub}>{t.stats.lifetimeTotalCheckins}</Text>
-                </View>
-                <View style={styles.lifetimeDivider} />
-                <View style={styles.lifetimeStat}>
-                  <Text style={styles.lifetimeNum}>{lifetimeRange.activeDays}</Text>
-                  <Text style={styles.lifetimeSub}>{t.stats.tileActiveDays}</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Oslavný moment — nový rekord streaku nebo překročený milník splnění */}
-            {crossedCheckinMilestone ? (
-              <View style={[styles.celebrateCard, { backgroundColor: C.circleCardBg }]}>
-                <Text style={styles.celebrateEmoji}>🎉</Text>
-                <Text style={[styles.celebrateTitle, { color: C.text }]}>
-                  {t.stats.celebrateMilestone(crossedCheckinMilestone)}
-                </Text>
-              </View>
-            ) : isNewStreakRecord ? (
-              <View style={[styles.celebrateCard, { backgroundColor: C.circleCardBg }]}>
-                <Text style={styles.celebrateEmoji}>🏆</Text>
-                <View style={styles.celebrateTextWrap}>
-                  <Text style={[styles.celebrateTitle, { color: C.text }]}>
-                    {t.stats.celebrateRecordTitle}
-                  </Text>
-                  <Text style={[styles.celebrateBody, { color: C.textSecondary }]}>
-                    {t.stats.celebrateRecordBody}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-
             {/* Hero dlaždice */}
             <View style={styles.tileGrid}>
               <Tile
-                emoji="🔥"
+                icon={ICONS.flame}
                 value={currentStreak}
                 label={t.stats.tileCurrentStreak}
                 bg={C.surface}
@@ -346,7 +314,7 @@ export default function StatsScreen() {
                 isDark={C.isDark}
               />
               <Tile
-                emoji="🎯"
+                icon={ICONS.target}
                 value={ratePct}
                 suffix="%"
                 label={t.stats.tileSuccessRate}
@@ -357,7 +325,7 @@ export default function StatsScreen() {
                 isDark={C.isDark}
               />
               <Tile
-                emoji="✅"
+                icon={ICONS.checkBadge}
                 value={range.totalCheckins}
                 label={t.stats.tileCheckins}
                 bg={C.surface}
@@ -367,7 +335,7 @@ export default function StatsScreen() {
                 isDark={C.isDark}
               />
               <Tile
-                emoji="📅"
+                icon={ICONS.calendar}
                 value={range.activeDays}
                 label={t.stats.tileActiveDays}
                 bg={C.surface}
@@ -377,6 +345,28 @@ export default function StatsScreen() {
                 isDark={C.isDark}
               />
             </View>
+
+            {/* Oslavný moment — nový rekord streaku nebo překročený milník splnění */}
+            {crossedCheckinMilestone ? (
+              <View style={[styles.celebrateCard, { backgroundColor: C.circleCardBg }]}>
+                <Image source={ICONS.celebrate} style={styles.celebrateIcon} resizeMode="contain" />
+                <Text style={[styles.celebrateTitle, { color: C.text }]}>
+                  {t.stats.celebrateMilestone(crossedCheckinMilestone)}
+                </Text>
+              </View>
+            ) : isNewStreakRecord ? (
+              <View style={[styles.celebrateCard, { backgroundColor: C.circleCardBg }]}>
+                <Image source={ICONS.trophy} style={styles.celebrateIcon} resizeMode="contain" />
+                <View style={styles.celebrateTextWrap}>
+                  <Text style={[styles.celebrateTitle, { color: C.text }]}>
+                    {t.stats.celebrateRecordTitle}
+                  </Text>
+                  <Text style={[styles.celebrateBody, { color: C.textSecondary }]}>
+                    {t.stats.celebrateRecordBody}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
             {isPremium ? (
               <>
@@ -409,9 +399,12 @@ export default function StatsScreen() {
                               </Text>
                               <View style={styles.habitMeta}>
                                 {streak > 0 ? (
-                                  <Text style={[styles.habitStreak, { color: C.textSecondary }]}>
-                                    🔥{streak}
-                                  </Text>
+                                  <View style={styles.habitStreakRow}>
+                                    <Image source={ICONS.flame} style={styles.habitStreakIcon} resizeMode="contain" />
+                                    <Text style={[styles.habitStreak, { color: C.textSecondary }]}>
+                                      {streak}
+                                    </Text>
+                                  </View>
                                 ) : null}
                                 <Text style={[styles.habitPct, { color: activity.color }]}>
                                   {pct}%
@@ -446,7 +439,7 @@ export default function StatsScreen() {
                       labelColor={C.textSecondary}
                     />
                     <View style={styles.insightRow}>
-                      <Text style={styles.insightEmoji}>💡</Text>
+                      <Image source={ICONS.lightbulb} style={styles.insightIcon} resizeMode="contain" />
                       <Text style={[styles.insightText, { color: C.text }]}>
                         {t.stats.bestDayInsight(t.days.long[bestWeekday.dow])}
                       </Text>
@@ -481,43 +474,6 @@ const styles = StyleSheet.create({
 
   periodRow: { marginBottom: 16 },
 
-  // Celoživotní pás — stejné proporce jako Summary karta na home (flat zelená, bílý text)
-  lifetimeBand: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 22,
-    paddingVertical: 15,
-    paddingHorizontal: 18,
-    marginBottom: 12,
-  },
-  lifetimeLabel: {
-    fontSize: 11,
-    fontFamily: FONTS.bold,
-    letterSpacing: 0.88,
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.85)',
-    marginBottom: 12,
-  },
-  lifetimeRow: { flexDirection: 'row', alignItems: 'flex-end' },
-  lifetimeStat: { flex: 1 },
-  lifetimeNum: {
-    fontSize: 23,
-    fontFamily: FONTS.extraBold,
-    letterSpacing: -0.46,
-    color: '#FFFFFF',
-  },
-  lifetimeSub: {
-    fontSize: 11,
-    fontFamily: FONTS.semiBold,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 3,
-  },
-  lifetimeDivider: {
-    width: 1,
-    alignSelf: 'stretch',
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    marginHorizontal: 14,
-  },
-
   // Oslavná karta — rekord streaku / překročený milník splnění (fire akcent)
   celebrateCard: {
     borderRadius: 16,
@@ -528,6 +484,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   celebrateEmoji: { fontSize: 22 },
+  celebrateIcon: { width: 24, height: 24 },
   celebrateTextWrap: { flex: 1 },
   celebrateTitle: {
     flex: 1,
@@ -568,6 +525,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   tileEmoji: { fontSize: 20 },
+  tileIcon: { width: 22, height: 22 },
   tileBadge: {
     borderRadius: 8,
     paddingHorizontal: 6,
@@ -651,6 +609,8 @@ const styles = StyleSheet.create({
   habitName: { fontSize: 14, fontFamily: FONTS.semiBold, flex: 1, marginRight: 8 },
   habitMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   habitStreak: { fontSize: 12.5, fontFamily: FONTS.semiBold },
+  habitStreakRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  habitStreakIcon: { width: 13, height: 13 },
   habitPct: { fontSize: 14, fontFamily: FONTS.bold },
   progressTrack: {
     height: 8,
@@ -664,6 +624,7 @@ const styles = StyleSheet.create({
 
   // Insight
   insightEmoji: { fontSize: 22 },
+  insightIcon: { width: 22, height: 22 },
   insightText: { flex: 1, fontSize: 14, fontFamily: FONTS.semiBold, lineHeight: 19 },
 
   // Empty
@@ -678,6 +639,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   emptyEmoji: { fontSize: 32, marginBottom: 10 },
+  emptyIcon: { width: 36, height: 36, marginBottom: 10 },
   emptyTitle: { fontSize: 16, fontFamily: FONTS.bold, textAlign: 'center' },
   emptyBody: {
     fontSize: 13,
