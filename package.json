@@ -28,6 +28,7 @@
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.36.4",
     "expo": "~54.0.35",
+    "expo-application": "~7.0.8",
     "expo-constants": "~18.0.13",
     "expo-device": "~8.0.10",
     "expo-document-picker": "~14.0.8",
@@ -75,6 +76,7 @@
     "jest-expo": "~54.0.17",
     "patch-package": "^8.0.1",
     "prettier": "^3.3.3",
+    "sharp": "^0.35.3",
     "typescript": "~5.9.2"
   },
   "private": true,

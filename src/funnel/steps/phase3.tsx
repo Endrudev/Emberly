@@ -236,10 +236,6 @@ export function ScienceStep({ progress, canGoBack, onNext, onBack }: FunnelStepP
         <Image source={EMBERLY.happy} style={styles.mascotMedium} resizeMode="contain" />
         <Text style={styles.title}>{t.funnel.scienceStep.title}</Text>
         <Text style={styles.subtitle}>{t.funnel.scienceStep.subtitle}</Text>
-        <View style={styles.reviewCard}>
-          <Text style={styles.stars}>★★★★★</Text>
-          <Text style={styles.reviewCount}>{t.funnel.scienceStep.reviewCount}</Text>
-        </View>
       </View>
     </FunnelScreen>
   );
@@ -355,23 +351,5 @@ const styles = StyleSheet.create({
     transform: [{ scale: WIDGET_PREVIEW_SCALE }],
     marginHorizontal: -(WIDGET_PREVIEW_WIDTH * (1 - WIDGET_PREVIEW_SCALE)) / 2,
     marginVertical: -(WIDGET_PREVIEW_HEIGHT_4X3 * (1 - WIDGET_PREVIEW_SCALE)) / 2,
-  },
-  reviewCard: {
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 8,
-  },
-  stars: {
-    fontSize: 18,
-    color: COLORS.orange,
-  },
-  reviewCount: {
-    fontSize: 13,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textSecondary,
   },
 });

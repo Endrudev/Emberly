@@ -176,7 +176,7 @@ export const cs = {
   },
   settings: {
     title: 'Nastavení',
-    trackingSince: (since: string) => `Sleduje od ${since}`,
+    trackingSinceLabel: 'Sledování od',
     preferencesSection: 'PŘEDVOLBY',
     reminders: 'Připomínky',
     reminderTimeLabel: 'Čas připomínky',
@@ -212,6 +212,14 @@ export const cs = {
     resetConfirmBody: 'Všechny aktivity a historie budou nenávratně smazány.',
     privacyPolicy: 'Zásady ochrany soukromí',
     termsOfService: 'Podmínky použití',
+    betaSection: 'Beta',
+    reportProblem: 'Nahlásit problém',
+    reportProblemEmailSubject: 'Emberly beta – bug report',
+    reportProblemEmailBody: (appVersion: string, device: string, os: string) =>
+      `Verze appky: ${appVersion}\nZařízení: ${device}\nOS: ${os}\n\nPopiš, co se stalo:\n`,
+    reportProblemErrorTitle: 'Nepodařilo se otevřít',
+    reportProblemErrorBody: (email: string) => `Napiš nám prosím ručně na ${email}.`,
+    replayOnboardingLabel: 'Znovu projít onboarding',
     about: 'O aplikaci',
     version: 'Verze',
     theme: 'Téma',
@@ -250,8 +258,7 @@ export const cs = {
     },
     promise: {
       title: 'Většina lidí to vzdá. Ty ne.',
-      // TODO social-proof: nahradit reálnými před launchem
-      subtitle: 'Lidé, co dokončí nastavení, drží sérii 30+ dní.',
+      subtitle: 'Emberly je stavěné přesně na tohle — udržet tě v sérii i ve dnech, kdy se nechce.',
       cta: 'Chci to taky',
     },
     categoriesStep: {
@@ -329,8 +336,6 @@ export const cs = {
     scienceStep: {
       title: 'Návyk se tvoří ~66 dní.',
       subtitle: 'Provedeme tě každým z nich.',
-      // TODO social-proof: nahradit reálnými před launchem
-      reviewCount: '12 000+ lidí už začalo',
     },
     projectionStep: {
       title: 'Tady budeš.',
@@ -374,8 +379,6 @@ export const cs = {
       cta: 'Vyzkoušet zdarma',
       restore: 'Obnovit nákup',
       restoreNoneFound: 'Žádné předplatné k obnovení.',
-      // TODO social-proof: nahradit reálnými před launchem
-      socialProof: 'Připojilo se 12 000+ lidí',
       closeAccessibilityLabel: 'Zavřít',
       disclosure:
         'Předplatné se automaticky obnovuje, dokud ho nezrušíš. Zrušit ho můžeš kdykoliv ve správě předplatných na Google Play. Účtuje se po skončení 7denní bezplatné zkušební doby.',
@@ -431,11 +434,34 @@ export const cs = {
   notification: {
     channelName: 'Stav Emberly',
     channelDescription: 'Trvalá notifikace s denním streakem a progressem.',
+    remindersChannelName: 'Připomínky',
     streakLabel: '🔥 Streak: %d dní',
     progressLabel: 'Dnes: %d/%d splněno',
     permissionRequiredTitle: 'Povolení notifikací',
     permissionRequiredBody:
       'Pro zobrazení denního streaku potřebujeme oprávnění k zobrazování notifikací.',
+  },
+  // Skrytý "reviewer unlock" v Nastavení (7× klepnutí na verzi) — pro Google Play recenzenty.
+  reviewer: {
+    title: 'Přístup pro recenzenta',
+    unlockedBody: 'Premium odemčeno pro recenzi.',
+    invalidCode: 'Neplatný kód.',
+    disableConfirmBody: 'Vypnout odemčení premium pro recenzenta?',
+    codePlaceholder: 'Kód recenzenta',
+    activeValue: 'Aktivní — klepnutím vypneš',
+  },
+  // Dev-only nástroje v Nastavení (__DEV__ gated), viz sekce "Data"/"O aplikaci".
+  devTools: {
+    seedDemoLabel: 'Naplnit ukázkovými daty (dev)',
+    seedDemoConfirmTitle: 'Naplnit ukázkovými daty?',
+    seedDemoConfirmBody: 'Přepíše to všechny současné aktivity a historii.',
+  },
+  // Fallback obrazovka AppErrorBoundary — čteno přes getTranslation() (ne useTranslation()
+  // hook), protože boundary obaluje appku i nad providery, které mohly být zrovna rozbité.
+  errorBoundary: {
+    title: 'Něco se pokazilo',
+    body: 'V appce nastala neočekávaná chyba. Zkus to prosím znovu — pokud problém přetrvá, appku restartuj.',
+    retry: 'Zkusit znovu',
   },
 } as const;
 

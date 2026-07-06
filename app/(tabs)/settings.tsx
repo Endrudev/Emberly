@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,16 +29,17 @@ import { seedDemoData } from '@/db/demoSeed';
 import { openPaywall, restoreAndSync } from '@/purchases/openPaywall';
 import { showManageSubscriptions } from '@/purchases/purchases';
 import { useAppTheme } from '@/ui/useAppTheme';
-import { COLORS, FONTS } from '@/ui/theme';
+import { FONTS } from '@/ui/theme';
 import { useTranslation, useDateLocale } from '@/i18n';
 import { AnimatedToggle } from '@/ui/components/AnimatedToggle';
 import { SegmentedPill } from '@/ui/components/SegmentedPill';
-import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { success, tapMedium } from '@/ui/anim/haptics';
 import { requestNotificationPermission } from '@/notifications/permissions';
 import { REVIEWER_UNLOCK_CODE } from '@/purchases/gating';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
+import { FEEDBACK_EMAIL, FEEDBACK_DISCORD_URL, hasRealDiscordUrl } from '@/config/feedback';
+import * as Device from 'expo-device';
 
 // Vlastní ikony (assets/icons/) nahrazující emoji — viz vault design/visual-assets.md.
 // Dvě dev-only řádky (🧪, 🔁) zatím emoji ikonu nemají, čekají na dodání assetu.
@@ -57,6 +60,7 @@ const ICONS = {
   document: require('../../assets/icons/document.png') as ImageSourcePropType,
   info: require('../../assets/icons/info.png') as ImageSourcePropType,
   key: require('../../assets/icons/key.png') as ImageSourcePropType,
+  lightbulb: require('../../assets/icons/lightbulb.png') as ImageSourcePropType,
 };
 
 /** "HH:mm" → Date dnešního dne s daným časem — vstup pro <DateTimePicker>. */
@@ -168,14 +172,14 @@ export default function SettingsScreen() {
       setReviewerUnlock(true);
       setShowReviewerInput(false);
       setReviewerCode('');
-      Alert.alert('Reviewer access', 'Premium unlocked for review.');
+      Alert.alert(t.reviewer.title, t.reviewer.unlockedBody);
     } else {
-      Alert.alert('Reviewer access', 'Invalid code.');
+      Alert.alert(t.reviewer.title, t.reviewer.invalidCode);
     }
-  }, [reviewerCode, setReviewerUnlock]);
+  }, [t, reviewerCode, setReviewerUnlock]);
 
   const handleReviewerDisable = useCallback(() => {
-    Alert.alert('Reviewer access', 'Disable reviewer premium unlock?', [
+    Alert.alert(t.reviewer.title, t.reviewer.disableConfirmBody, [
       { text: t.common.cancel, style: 'cancel' },
       { text: t.common.delete, style: 'destructive', onPress: () => setReviewerUnlock(false) },
     ]);
@@ -209,7 +213,7 @@ export default function SettingsScreen() {
   // premium dev override, ať jsou hned vidět i zamčené sekce Statistik.
   const handleSeedDemoData = useCallback(() => {
     tapMedium();
-    Alert.alert('Naplnit ukázkovými daty?', 'Přepíše to všechny současné aktivity a historii.', [
+    Alert.alert(t.devTools.seedDemoConfirmTitle, t.devTools.seedDemoConfirmBody, [
       { text: t.common.cancel, style: 'cancel' },
       {
         text: t.common.confirm,
@@ -264,6 +268,33 @@ export default function SettingsScreen() {
     [t, settings],
   );
 
+  // Application.native*Version čte skutečné hodnoty z buildu (ne z app.json) — v Expo Go
+  // ale nemusí být dostupné, proto fallback na Constants.expoConfig.version.
+  const appVersion =
+    Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '—';
+  const buildVersion = Application.nativeBuildVersion;
+  const versionLabel = buildVersion ? `${appVersion} (build ${buildVersion})` : appVersion;
+
+  const handleReportProblem = useCallback(() => {
+    try {
+      if (hasRealDiscordUrl()) {
+        void Linking.openURL(FEEDBACK_DISCORD_URL);
+        return;
+      }
+      const body = t.settings.reportProblemEmailBody(
+        versionLabel,
+        Device.modelName ?? '—',
+        Device.osVersion ?? '—',
+      );
+      const mailtoUrl = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(
+        t.settings.reportProblemEmailSubject,
+      )}&body=${encodeURIComponent(body)}`;
+      void Linking.openURL(mailtoUrl);
+    } catch {
+      Alert.alert(t.settings.reportProblemErrorTitle, t.settings.reportProblemErrorBody(FEEDBACK_EMAIL));
+    }
+  }, [t, versionLabel]);
+
   const trackingSince = useMemo(() => {
     if (settings.trackingSinceMs) {
       return format(new Date(settings.trackingSinceMs), 'MMM yyyy', { locale: dateLocale });
@@ -277,16 +308,6 @@ export default function SettingsScreen() {
     }
     return null;
   }, [settings.trackingSinceMs, activities, dateLocale]);
-
-  const initials = useMemo(() => {
-    const name = settings.userName.trim();
-    if (!name) return 'MT';
-    return name
-      .split(' ')
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase() ?? '')
-      .join('');
-  }, [settings.userName]);
 
   // Shared props passed to every SettingsRow for dark mode adaptation
   const rowProps = { isDark: C.isDark, border: C.border, rowPressedBg: C.rowPressed };
@@ -312,28 +333,6 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         <Text style={[styles.pageTitle, { color: C.text }]}>{t.settings.title}</Text>
-
-        {/* ── Profile card ── */}
-        <AnimatedPressable
-          style={[styles.profileCard, surfaceAnimStyle]}
-          hapticStyle="none"
-          onPress={() => {}}
-        >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.profileName, { color: C.text }]}>
-              {settings.userName || 'Emberly'}
-            </Text>
-            {trackingSince ? (
-              <Text style={[styles.profileSince, { color: C.textSecondary }]}>
-                {t.settings.trackingSince(trackingSince)}
-              </Text>
-            ) : null}
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={C.isDark ? '#555' : '#CCC'} />
-        </AnimatedPressable>
 
         {/* ── Preferences ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
@@ -394,20 +393,6 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             {...rowProps}
-            icon={ICONS.globe}
-            iconBg="#EEF4FF"
-            label={t.settings.language}
-            value={
-              settings.language === 'cs'
-                ? t.settings.languageCz
-                : settings.language === 'en'
-                  ? t.settings.languageEn
-                  : t.settings.languageAuto
-            }
-            onPress={() => router.push('/settings/language')}
-          />
-          <SettingsRow
-            {...rowProps}
             icon={ICONS.widget}
             iconBg="#E8F7EB"
             label={t.widget.settingsRowLabel}
@@ -427,6 +412,20 @@ export default function SettingsScreen() {
                 isDark={C.isDark}
               />
             }
+          />
+          <SettingsRow
+            {...rowProps}
+            icon={ICONS.globe}
+            iconBg="#EEF4FF"
+            label={t.settings.language}
+            value={
+              settings.language === 'cs'
+                ? t.settings.languageCz
+                : settings.language === 'en'
+                  ? t.settings.languageEn
+                  : t.settings.languageAuto
+            }
+            onPress={() => router.push('/settings/language')}
             isLast
           />
         </Animated.View>
@@ -444,41 +443,6 @@ export default function SettingsScreen() {
             }}
           />
         ) : null}
-
-        {/* ── Data ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
-          {t.settings.dataSection}
-        </Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.cloudBackup}
-            iconBg="#E8F4FE"
-            label={t.settings.autoBackupLabel}
-            showArrow={false}
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.trash}
-            iconBg="#FFE8E8"
-            label={t.settings.resetData}
-            onPress={handleResetData}
-            isLast={!__DEV__}
-          />
-          {__DEV__ ? (
-            <SettingsRow
-              {...rowProps}
-              icon="🧪"
-              iconBg="#F0EEFF"
-              label="Naplnit ukázkovými daty (dev)"
-              onPress={handleSeedDemoData}
-              isLast
-            />
-          ) : null}
-        </Animated.View>
-        <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
-          {t.settings.autoBackupDescription}
-        </Text>
 
         {/* ── Subscription ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
@@ -539,6 +503,32 @@ export default function SettingsScreen() {
           ) : null}
         </Animated.View>
 
+        {/* ── Beta ── */}
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+          {t.settings.betaSection}
+        </Text>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
+          <SettingsRow
+            {...rowProps}
+            icon={ICONS.lightbulb}
+            iconBg="#FFF4E5"
+            label={t.settings.reportProblem}
+            onPress={handleReportProblem}
+          />
+          {/* TODO beta-only: remove before production launch */}
+          <SettingsRow
+            {...rowProps}
+            icon={ICONS.restore}
+            iconBg="#E8F7EB"
+            label={t.settings.replayOnboardingLabel}
+            onPress={() => {
+              settings.resetOnboarding();
+              router.replace('/funnel');
+            }}
+            isLast
+          />
+        </Animated.View>
+
         {/* ── About ── */}
         <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>
         <Animated.View style={[styles.section, surfaceAnimStyle]}>
@@ -561,9 +551,9 @@ export default function SettingsScreen() {
             icon={ICONS.info}
             iconBg="#F0F2F5"
             label={t.settings.version}
-            value="0.1.0"
+            value={versionLabel}
             showArrow={false}
-            isLast={!__DEV__ && !showReviewerInput && !reviewerUnlock}
+            isLast={!showReviewerInput && !reviewerUnlock}
             onPress={handleVersionTap}
           />
           {/* Skryté pole pro reviewer kód — odhalí se po 7× klepnutí na verzi. */}
@@ -574,7 +564,7 @@ export default function SettingsScreen() {
               </View>
               <TextInput
                 style={[styles.rowText, { flex: 1, color: C.isDark ? '#F2F2F7' : '#1A1A1A' }]}
-                placeholder="Reviewer code"
+                placeholder={t.reviewer.codePlaceholder}
                 placeholderTextColor={C.textTertiary}
                 autoCapitalize="characters"
                 autoCorrect={false}
@@ -591,28 +581,59 @@ export default function SettingsScreen() {
               {...rowProps}
               icon={ICONS.key}
               iconBg="#EEF0FF"
-              label="Reviewer access"
-              value="Active — tap to disable"
+              label={t.reviewer.title}
+              value={t.reviewer.activeValue}
               showArrow={false}
-              isLast={!__DEV__}
+              isLast
               onPress={handleReviewerDisable}
             />
           ) : null}
+        </Animated.View>
+
+        {/* ── Data ── */}
+        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+          {t.settings.dataSection}
+        </Text>
+        <Animated.View style={[styles.section, surfaceAnimStyle]}>
+          {trackingSince ? (
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.calendar}
+              iconBg="#E8F4FE"
+              label={t.settings.trackingSinceLabel}
+              value={trackingSince}
+              showArrow={false}
+            />
+          ) : null}
+          <SettingsRow
+            {...rowProps}
+            icon={ICONS.cloudBackup}
+            iconBg="#E8F4FE"
+            label={t.settings.autoBackupLabel}
+            showArrow={false}
+          />
+          <SettingsRow
+            {...rowProps}
+            icon={ICONS.trash}
+            iconBg="#FFE8E8"
+            label={t.settings.resetData}
+            onPress={handleResetData}
+            isLast={!__DEV__}
+          />
           {__DEV__ ? (
             <SettingsRow
               {...rowProps}
-              icon="🔁"
-              iconBg="#FFF0E8"
-              label="Restartovat onboarding (dev)"
-              showArrow={false}
+              icon="🧪"
+              iconBg="#F0EEFF"
+              label={t.devTools.seedDemoLabel}
+              onPress={handleSeedDemoData}
               isLast
-              onPress={() => {
-                settings.resetOnboarding();
-                router.replace('/funnel');
-              }}
             />
           ) : null}
         </Animated.View>
+        <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
+          {t.settings.autoBackupDescription}
+        </Text>
 
       </ScrollView>
       </Animated.View>
@@ -629,30 +650,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     letterSpacing: -0.56,
   },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  profileName: { fontSize: 16, fontFamily: FONTS.bold },
-  profileSince: { fontSize: 12, fontFamily: FONTS.semiBold, marginTop: 2 },
   sectionTitle: {
     fontSize: 12,
     fontFamily: FONTS.extraBold,

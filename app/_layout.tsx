@@ -20,6 +20,10 @@ import { ensureReminderChannel } from '@/notifications/channel';
 import { useReminderSync } from '@/notifications/useReminderSync';
 import { usePurchasesSync } from '@/purchases/usePurchasesSync';
 import { useStreakFreezeSync } from '@/purchases/useStreakFreezeSync';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { darkTheme, lightTheme } from '@/ui/theme';
+import { useTranslation } from '@/i18n';
+import { AppErrorBoundary } from '@/ui/components/AppErrorBoundary';
 
 // Register widget task handler at module level (before React mounts).
 // On non-Android platforms react-native-android-widget is a no-op.
@@ -48,9 +52,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-import { useSettingsStore } from '@/store/useSettingsStore';
-import { darkTheme, lightTheme } from '@/ui/theme';
-import { useTranslation } from '@/i18n';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -88,9 +89,11 @@ export default function RootLayout() {
 
   // Android notification channel for reminders — safe to ensure unconditionally,
   // it's a no-op if it already exists and nothing fires without permission + scheduling.
+  // Re-runs on language change too — setNotificationChannelAsync updates the display
+  // name of an existing channel (unlike importance/sound, which are immutable).
   useEffect(() => {
-    void ensureReminderChannel();
-  }, []);
+    void ensureReminderChannel(t.notification.remindersChannelName);
+  }, [t]);
 
   // WAL checkpoint při přechodu appky do pozadí — ať je `.db` self-contained
   // pro Android Auto Backup (záloha nezahrnuje `-wal`/`-shm`).
@@ -122,60 +125,69 @@ export default function RootLayout() {
   }, [isLoading, error, lastNotificationResponse, settings.onboardingCompleted, router]);
 
   return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <PaperProvider theme={theme}>
-          <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
+    <AppErrorBoundary>
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <PaperProvider theme={theme}>
+            <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
 
-          {error ? (
-            <View
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 24,
-                backgroundColor: theme.colors.background,
-              }}
-            >
-              <Text variant="titleMedium" style={{ color: theme.colors.error, textAlign: 'center' }}>
-                {t.common.dbError(error.message)}
-              </Text>
-            </View>
-          ) : isLoading ? (
-            // Block screen mount until fonts + DB + persisted settings are ready.
-            // Mounting <Stack> early causes Home to lay out with fallback font
-            // metrics; cached dimensions then persist after fonts swap in,
-            // breaking spacing until a manual refresh.
-            <View
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: theme.colors.background,
-              }}
-            >
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-          ) : (
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: theme.colors.background },
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="activity/new"
-                options={{ presentation: 'modal', headerShown: true, title: t.activity.newTitle }}
-              />
-              <Stack.Screen
-                name="activity/[id]"
-                options={{ presentation: 'modal', headerShown: true, title: t.activity.editTitle }}
-              />
-            </Stack>
-          )}
-        </PaperProvider>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
+            {error ? (
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 24,
+                  backgroundColor: theme.colors.background,
+                }}
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.error, textAlign: 'center' }}
+                >
+                  {t.common.dbError(error.message)}
+                </Text>
+              </View>
+            ) : isLoading ? (
+              // Block screen mount until fonts + DB + persisted settings are ready.
+              // Mounting <Stack> early causes Home to lay out with fallback font
+              // metrics; cached dimensions then persist after fonts swap in,
+              // breaking spacing until a manual refresh.
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.colors.background,
+                }}
+              >
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
+            ) : (
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: theme.colors.background },
+                }}
+              >
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="activity/new"
+                  options={{ presentation: 'modal', headerShown: true, title: t.activity.newTitle }}
+                />
+                <Stack.Screen
+                  name="activity/[id]"
+                  options={{
+                    presentation: 'modal',
+                    headerShown: true,
+                    title: t.activity.editTitle,
+                  }}
+                />
+              </Stack>
+            )}
+          </PaperProvider>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </AppErrorBoundary>
   );
 }

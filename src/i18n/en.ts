@@ -175,7 +175,7 @@ export const en = {
   },
   settings: {
     title: 'Settings',
-    trackingSince: (since: string) => `Tracking since ${since}`,
+    trackingSinceLabel: 'Tracking since',
     preferencesSection: 'PREFERENCES',
     reminders: 'Reminders',
     reminderTimeLabel: 'Reminder time',
@@ -211,6 +211,14 @@ export const en = {
     resetConfirmBody: 'All activities and history will be permanently deleted.',
     privacyPolicy: 'Privacy policy',
     termsOfService: 'Terms of service',
+    betaSection: 'Beta',
+    reportProblem: 'Report a problem',
+    reportProblemEmailSubject: 'Emberly beta – bug report',
+    reportProblemEmailBody: (appVersion: string, device: string, os: string) =>
+      `App version: ${appVersion}\nDevice: ${device}\nOS: ${os}\n\nDescribe what happened:\n`,
+    reportProblemErrorTitle: 'Couldn\'t open',
+    reportProblemErrorBody: (email: string) => `Please email us manually at ${email}.`,
+    replayOnboardingLabel: 'Replay onboarding',
     about: 'About',
     version: 'Version',
     theme: 'Theme',
@@ -248,8 +256,7 @@ export const en = {
     },
     promise: {
       title: "Most people quit. You won't.",
-      // TODO social-proof: nahradit reálnými před launchem
-      subtitle: 'People who finish setup keep a 30+ day streak.',
+      subtitle: "Emberly is built for exactly that — to keep your streak alive even on the days you don't feel like it.",
       cta: 'I want that too',
     },
     categoriesStep: {
@@ -327,8 +334,6 @@ export const en = {
     scienceStep: {
       title: 'Habits take ~66 days.',
       subtitle: "We'll guide you through every one.",
-      // TODO social-proof: nahradit reálnými před launchem
-      reviewCount: '12,000+ people already started',
     },
     projectionStep: {
       title: "Here's where you'll be.",
@@ -372,8 +377,6 @@ export const en = {
       cta: 'Start free trial',
       restore: 'Restore purchase',
       restoreNoneFound: 'No subscription found to restore.',
-      // TODO social-proof: nahradit reálnými před launchem
-      socialProof: '12,000+ people joined',
       closeAccessibilityLabel: 'Close',
       disclosure:
         'Subscription auto-renews until cancelled. You can cancel anytime in your Google Play subscriptions. Billing starts after the 7-day free trial.',
@@ -429,11 +432,30 @@ export const en = {
   notification: {
     channelName: 'Emberly status',
     channelDescription: 'Persistent notification with daily streak and progress.',
+    remindersChannelName: 'Reminders',
     streakLabel: '🔥 Streak: %d days',
     progressLabel: 'Today: %d/%d done',
     permissionRequiredTitle: 'Notification permission',
     permissionRequiredBody:
       'We need notification permission to show your daily streak.',
+  },
+  reviewer: {
+    title: 'Reviewer access',
+    unlockedBody: 'Premium unlocked for review.',
+    invalidCode: 'Invalid code.',
+    disableConfirmBody: 'Disable reviewer premium unlock?',
+    codePlaceholder: 'Reviewer code',
+    activeValue: 'Active — tap to disable',
+  },
+  devTools: {
+    seedDemoLabel: 'Seed demo data (dev)',
+    seedDemoConfirmTitle: 'Fill with demo data?',
+    seedDemoConfirmBody: 'This will overwrite all current activities and history.',
+  },
+  errorBoundary: {
+    title: 'Something went wrong',
+    body: 'An unexpected error occurred. Please try again — if the problem persists, restart the app.',
+    retry: 'Try again',
   },
 } as const;
 

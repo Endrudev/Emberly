@@ -181,11 +181,6 @@ export function PaywallStep(_props: FunnelStepProps) {
           )}
         </AnimatedPressable>
 
-        <Text style={styles.socialProof}>
-          {/* TODO social-proof: nahradit reálnými před launchem */}
-          ★★★★★ {p.socialProof}
-        </Text>
-
         <AnimatedPressable onPress={handleRestore} hapticStyle="light">
           <Text style={styles.restore}>{p.restore}</Text>
         </AnimatedPressable>
@@ -338,12 +333,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FONTS.bold,
     letterSpacing: 0.2,
-  },
-  socialProof: {
-    fontSize: 12,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
   },
   restore: {
     fontSize: 13,
