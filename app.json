@@ -16,7 +16,7 @@
       "package": "com.endru.emberly",
       "allowBackup": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/icon-adaptive-foreground.png",
         "backgroundColor": "#2DB54A"
       },
       "permissions": [

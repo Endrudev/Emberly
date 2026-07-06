@@ -10,14 +10,22 @@ import {
 import { useResolvedLanguage, useTranslation } from '@/i18n';
 import { COLORS, FONTS } from '@/ui/theme';
 
-const MOCK_ACTIVITIES: WidgetActivityData[] = [
-  { id: 1, name: 'Meditace', emoji: '🧘', color: '#8B5CF6', isCompleted: true },
-  { id: 2, name: 'Procházka', emoji: '🚶', color: '#3BA9F0', isCompleted: true },
-  { id: 3, name: 'Program', emoji: '🤓', color: '#34C759', isCompleted: true },
-  { id: 4, name: 'Běh', emoji: '🏃', color: '#FF6B5C', isCompleted: false },
-  { id: 5, name: 'Voda', emoji: '💧', color: '#2BC4D4', isCompleted: false },
-  { id: 6, name: 'Čtení', emoji: '📚', color: '#F59E0B', isCompleted: false },
+// Mock data pro widget náhled (Nastavení + krok 10 funnelu) — jméno se
+// zobrazuje na dlaždici jako literární text, proto musí být jazykové (na
+// rozdíl od barvy/emoji, které jsou univerzální).
+const MOCK_ACTIVITY_BASE: Omit<WidgetActivityData, 'name'>[] = [
+  { id: 1, emoji: '🧘', color: '#8B5CF6', isCompleted: true },
+  { id: 2, emoji: '🚶', color: '#3BA9F0', isCompleted: true },
+  { id: 3, emoji: '🤓', color: '#34C759', isCompleted: true },
+  { id: 4, emoji: '🏃', color: '#FF6B5C', isCompleted: false },
+  { id: 5, emoji: '💧', color: '#2BC4D4', isCompleted: false },
+  { id: 6, emoji: '📚', color: '#F59E0B', isCompleted: false },
 ];
+
+const MOCK_ACTIVITY_NAMES: Record<'cs' | 'en', string[]> = {
+  cs: ['Meditace', 'Procházka', 'Program', 'Běh', 'Voda', 'Čtení'],
+  en: ['Meditate', 'Walk', 'Study', 'Run', 'Water', 'Read'],
+};
 
 const DAY_LABELS: Record<'cs' | 'en', string[]> = {
   cs: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'],
@@ -89,11 +97,16 @@ export function WidgetShowcasePreview({ variant }: WidgetShowcasePreviewProps) {
   const t = useTranslation();
   const [page, setPage] = useState(0);
   const [completed, setCompleted] = useState<Set<number>>(
-    () => new Set(MOCK_ACTIVITIES.filter((a) => a.isCompleted).map((a) => a.id)),
+    () => new Set(MOCK_ACTIVITY_BASE.filter((a) => a.isCompleted).map((a) => a.id)),
   );
 
+  const mockActivities: WidgetActivityData[] = MOCK_ACTIVITY_BASE.map((a, i) => ({
+    ...a,
+    name: MOCK_ACTIVITY_NAMES[lang][i]!,
+  }));
+
   const pageSize = variant === '4x2' ? WIDGET_PAGE_SIZE_4X2 : WIDGET_PAGE_SIZE;
-  const activities = MOCK_ACTIVITIES.map((a) => ({ ...a, isCompleted: completed.has(a.id) }));
+  const activities = mockActivities.map((a) => ({ ...a, isCompleted: completed.has(a.id) }));
   const totalPages = Math.max(1, Math.ceil(activities.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
   const pageActivities = activities.slice(safePage * pageSize, safePage * pageSize + pageSize);

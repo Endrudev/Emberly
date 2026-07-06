@@ -51,7 +51,13 @@ Struktura vaultu:
 3. **Uprav nebo přidej poznámku.** Piš přes `Write` tool na absolutní cestu (ne MCP obsidian
    server — viz bug výše). Zachovej konvence: frontmatter (`tags`, `last_updated`), sekce
    oddělené `---`, `## Viz také` s wikilinky na konci souboru. Aktualizuj `last_updated`.
-4. **Zazálohuj (commit + push).** Po netriviální dávce úprav (ne po každém řádku):
+4. **Před zálohou zkontroluj drift.** Než uděláš commit+push (v appce i ve vaultu), projdi,
+   jestli mezi vaultem a skutečným stavem appky/kódu/Play Console nevznikl rozpor — checklist
+   položka označená jako nehotová, ale reálně už hotová (nebo naopak), zastaralá URL/hodnota,
+   nové rozhodnutí, které vault ještě nezná. Pokud ano, oprav to **v téže dávce**, ne jako
+   samostatný úkol později — commit/push je přirozený checkpoint na sync dokumentace se
+   realitou, nevynechávej ho jen proto, že o drift nikdo výslovně nepožádal.
+5. **Zazálohuj (commit + push).** Po netriviální dávce úprav (ne po každém řádku):
    ```bash
    cd <cesta ke git zrcadlu Emberly-docs>
    git add Emberly/
@@ -72,6 +78,27 @@ npm test                     # Jest unit testy (25 testů, suite streaks + week)
 npm run typecheck            # tsc --noEmit
 npm run lint                 # ESLint
 npm run db:generate          # Drizzle — vygeneruje nové SQL migrace ze schématu
+```
+
+### Preview build — instalovatelné APK pro testery (mimo Expo Go)
+Pro sdílení appky s beta testery (Reddit nábor, kamarádi) bez Expo Go a bez Google Play —
+`eas.json` už má profil `preview` (internal distribution, `buildType: apk`).
+
+```bash
+npx eas-cli build --profile preview --platform android
+```
+
+⚠️ **Použij `npx eas-cli`, ne holé `eas`** — global `eas` CLI není na tomhle stroji
+nainstalované/na PATH, takže samotné `eas build ...` spadne na "not recognized". `npx eas-cli`
+funguje bez globální instalace (stáhne/spustí balíček přes npx).
+
+Po dokončení buildu (cloud, pár minut) EAS vrátí odkaz na stažení `.apk` — pošli ho přímo
+testerovi, nemusí mít Expo Go ani být na Play Store testing tracku. Vyžaduje `eas login`
+(jednou na zařízení) a projekt už je přes `eas.json` napojený.
+
+Pro **produkční signed AAB** (Play Store Closed testing, viz vault `dev/release-checklist.md`):
+```bash
+npx eas-cli build --profile production --platform android
 ```
 
 ### Nové zařízení / Windows profil — přihlas Expo CLI (jednorázově)
@@ -425,8 +452,26 @@ Home screen widget v `src/widget/` (EmberlyWidget.tsx layout, widgetData.ts DB a
 - Kompletní dokumentace: vault `widgets/android-widget-plan.md`.
 
 ### App icon + splash screen
-`assets/icon.png` (512×512) → `app.json`: `icon`, `android.adaptiveIcon.foregroundImage`
-(pozadí `#2DB54A`), `expo-splash-screen` plugin (pozadí `#ECEDE8`, stejné jako appka).
+`assets/icon.png` (512×512, plný čtvercový ikona — iOS/splash/store listing) vs.
+`assets/icon-adaptive-foreground.png` (1024×1024, **transparentní pozadí**, postavička
+zmenšená a vycentrovaná — jen pro Android launcher). `app.json`: `icon` → `icon.png`,
+`android.adaptiveIcon.foregroundImage` → `icon-adaptive-foreground.png` (pozadí `#2DB54A`),
+`expo-splash-screen` plugin (pozadí `#ECEDE8`, stejné jako appka).
+
+⚠️ **Android adaptive icon safe zone: obsah musí být max ~58–61 % šířky/výšky 108×108dp
+plátna** (oficiální bezpečná zóna je 66/108 = 61,1 %, reálné OEM launchery ořezávají/zoomují
+ještě agresivněji, proto cílit spíš ~58 %). `icon.png` samotný je navržený jako plný čtverec (postavička ~72 % výšky plátna) — to je OK
+pro iOS/splash/store, ale použitý přímo jako `foregroundImage` způsobí, že launcher masking
+postavičce useřízne špičku plamene i nohy (obecná vlastnost Android adaptive icons, ne bug
+konkrétní appky/knihovny). Navíc `icon.png` má **opaque bílé pozadí** (ne transparentní) — jako
+`foregroundImage` by úplně překrylo `backgroundColor: "#2DB54A"` a zelené pozadí by se nikdy
+nezobrazilo.
+**Řešení použité teď:** samostatný `icon-adaptive-foreground.png` — flood-fill od okrajů (bílé
+pozadí → transparentní, izolované bílé highlighty uvnitř postavičky zůstanou), ořez na tight
+bounding box, zmenšení na ~58 % delší strany, vycentrováno na 1024×1024 transparentní plátno.
+Skript (Node + `sharp`, dev dependency) není v repu — při dalších změnách maskota přegenerovat
+podle stejného postupu (crop → shrink to ≤60 % → center on transparent canvas).
+
 ⚠️ **`android/` je v tomhle repu commitnutá** (kvůli widget-pin modulu) — změna `app.json` sama
 o sobě launcher ikonu/splash nepřegeneruje. Po každé změně spustit:
 ```bash
