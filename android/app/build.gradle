@@ -110,8 +110,14 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
+            // ⚠️ Tenhle řádek se týká jen LOKÁLNÍCH buildů (`expo run:android --variant
+            // release` / holý gradle) — appka se buildí přes EAS (`eas.json`), a EAS Build
+            // při cloud buildu vlastní release credentials injektuje jinam (dočasně
+            // generovaný `eas-build.gradle` + `credentials.json`, ne tenhle soubor), takže
+            // finální AAB je podepsaný správně bez ohledu na tenhle řádek. Neexistuje tu
+            // žádný lokální `signingConfigs.release` blok, protože appka nemá svůj vlastní
+            // upload keystore v repu — nezkoušej lokálně dělat `bundleRelease`/`assembleRelease`
+            // a čekat platný podpis pro Play Store, skončí to podepsané timhle debug klíčem.
             signingConfig signingConfigs.debug
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
