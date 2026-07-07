@@ -27,7 +27,7 @@ import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation, useDateLocale } from '@/i18n';
 
 // Vlastní ikony (assets/icons/) nahrazující emoji — viz vault design/visual-assets.md.
-const LOCK_ICON = require('../../assets/icons/lock.png');
+const LOCK_ICON = require('../../assets/icons/premium-lock.png');
 const STAR_ICON = require('../../assets/icons/star-filled.png');
 const SNOWFLAKE_ICON = require('../../assets/icons/snowflake.png');
 

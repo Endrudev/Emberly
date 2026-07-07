@@ -5,8 +5,8 @@ import { COLORS, FONTS } from '@/ui/theme';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 
-// Vlastní ikona (assets/icons/lock.png) nahrazující 🔒 — viz vault design/visual-assets.md.
-const LOCK_ICON = require('../../../assets/icons/lock.png');
+// Vlastní ikona (assets/icons/premium-lock.png) nahrazující 🔒 — viz vault design/visual-assets.md.
+const LOCK_ICON = require('../../../assets/icons/premium-lock.png');
 
 interface PremiumLockCardProps {
   title: string;
