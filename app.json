@@ -94,10 +94,10 @@
               "description": "Jen streak kruh — kolik dní držíš sérii",
               "targetCellWidth": 2,
               "targetCellHeight": 2,
-              "minWidth": "150dp",
-              "minHeight": "140dp",
-              "maxResizeWidth": "280dp",
-              "maxResizeHeight": "280dp",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "maxResizeWidth": "250dp",
+              "maxResizeHeight": "250dp",
               "updatePeriodMillis": 1800000,
               "resizeMode": "horizontal|vertical"
             }
