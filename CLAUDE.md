@@ -441,6 +441,13 @@ per-frame layout animace `height`) — scroll-driven přes `useAnimatedScrollHan
 ### Android widget (react-native-android-widget)
 Home screen widget v `src/widget/` (EmberlyWidget.tsx layout, widgetData.ts DB agregátor, widgetTaskHandler.ts headless task). Běží jako **Headless JS** v app procesu → přímý SQLite přístup.
 - **Velikost: app.json + `android/.../xml/widgetprovider_emberlywidget.xml` MUSÍ být v sync.** Prebuild generuje XML z app.json — úprava jen XML se po rebuildu vrátí. Aktuálně 4×3 (`targetCellWidth 4`, `targetCellHeight 3`).
+- ⚠️ **`minWidth`/`minHeight` musí sedět na oficiální Android vzorec `n × 70 − 30` dp** (n = počet
+  buněk), jinak launcher zaokrouhlí widget na víc buněk, než deklaruje `targetCellWidth`/
+  `targetCellHeight` — ten atribut totiž platí **jen na Androidu 12+ a jen u launcherů, co ho
+  respektují**; jinak (starší Android, nebo launcher co ho ignoruje) se velikost v pickeru počítá
+  čistě z `minWidth`/`minHeight`. Pro 2 buňky je to **110dp**, ne o kus víc "pro jistotu" — cokoli
+  nad touhle hodnotou riskuje přeskok na další buňku (reálně se to stalo: 140dp u `EmberlyWidgetRing`
+  se zaokrouhlilo na 3 řádky místo 2, viz commit `e08af3a`).
 - **Horizontální scroll nejde** (RemoteViews) → návyky stránkované šipkami (`clickAction WIDGET_PAGE`, stránka přes `clickActionData`, stateless).
 - **Plynulé animace nejdou** (RemoteViews) — wow efekty patří do appky. Viz vault `widgets/widget-animations-research.md`.
 - **Rychlé ladění layoutu:** dev obrazovka `app/widget-preview.tsx` (`WidgetPreview` = pixel-identický náhled) + `adb screencap`, bez rebuildů. Rebuild jen při změně velikosti.
