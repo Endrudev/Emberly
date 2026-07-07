@@ -420,6 +420,7 @@ export const en = {
       "Check off habits right from your phone's home screen — your streak and today's progress stay in view.",
     variant4x3Label: 'Full (4×3)',
     variant4x2Label: 'Compact (4×2)',
+    variantRingLabel: 'Ring (2×2)',
     addButton: 'Add',
     pinFallbackTitle: 'Add the widget manually',
     pinFallbackBody: 'Long-press your home screen → Widgets → Emberly.',

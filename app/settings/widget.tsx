@@ -63,6 +63,21 @@ export default function WidgetShowcaseScreen() {
             <Text style={styles.addButtonText}>{t.widget.addButton}</Text>
           </AnimatedPressable>
         </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.variantLabel, { color: C.text }]}>{t.widget.variantRingLabel}</Text>
+          <View style={styles.previewWrap}>
+            <WidgetShowcasePreview variant="ring" />
+          </View>
+          <AnimatedPressable
+            style={[styles.addButton, { backgroundColor: COLORS.primary }]}
+            hapticStyle="light"
+            onPress={() => handleAdd('EmberlyWidgetRing')}
+            accessibilityRole="button"
+          >
+            <Text style={styles.addButtonText}>{t.widget.addButton}</Text>
+          </AnimatedPressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

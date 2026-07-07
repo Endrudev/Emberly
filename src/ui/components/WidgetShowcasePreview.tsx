@@ -37,10 +37,17 @@ const DAY_LABELS: Record<'cs' | 'en', string[]> = {
 export const WIDGET_PREVIEW_WIDTH = 360;
 export const WIDGET_PREVIEW_HEIGHT_4X3 = 342; // Samsung buňka ≈ 114dp × 3
 export const WIDGET_PREVIEW_HEIGHT_4X2 = 228; // Samsung buňka ≈ 114dp × 2
+// Ring je 2 sloupce × 2 řádky (app.json: minWidth 150dp / minHeight 140dp,
+// stejný poměr 75dp/sloupec, 70dp/řádek jako 4x3 a 4x2) — poloviční šířka,
+// stejná výška jako 4x2 (obojí 2 řádky).
+export const WIDGET_PREVIEW_WIDTH_RING = 180;
+export const WIDGET_PREVIEW_HEIGHT_RING = WIDGET_PREVIEW_HEIGHT_4X2;
 
 const WIDTH = WIDGET_PREVIEW_WIDTH;
 const HEIGHT_4X3 = WIDGET_PREVIEW_HEIGHT_4X3;
 const HEIGHT_4X2 = WIDGET_PREVIEW_HEIGHT_4X2;
+const WIDTH_RING = WIDGET_PREVIEW_WIDTH_RING;
+const HEIGHT_RING = WIDGET_PREVIEW_HEIGHT_RING;
 
 interface NativeWidgetModules {
   WidgetPreview: ComponentType<{
@@ -51,6 +58,7 @@ interface NativeWidgetModules {
   }>;
   EmberlyWidget: ComponentType<{ data: WidgetData }>;
   EmberlyWidget4x2: ComponentType<{ data: WidgetData }>;
+  EmberlyWidgetRing: ComponentType<{ data: WidgetData }>;
 }
 
 // undefined = ještě nezkoušeno, null = vyzkoušeno a nedostupné (Expo Go).
@@ -74,6 +82,7 @@ function loadNativeWidgetModules(): NativeWidgetModules | null {
       WidgetPreview: widgetLib.WidgetPreview,
       EmberlyWidget: mission.EmberlyWidget,
       EmberlyWidget4x2: mission.EmberlyWidget4x2,
+      EmberlyWidgetRing: mission.EmberlyWidgetRing,
     };
   } catch {
     cachedModules = null;
@@ -82,7 +91,7 @@ function loadNativeWidgetModules(): NativeWidgetModules | null {
 }
 
 interface WidgetShowcasePreviewProps {
-  variant: '4x3' | '4x2';
+  variant: '4x3' | '4x2' | 'ring';
 }
 
 /**
@@ -153,7 +162,12 @@ export function WidgetShowcasePreview({ variant }: WidgetShowcasePreviewProps) {
   }
 
   const native = loadNativeWidgetModules();
-  const size = variant === '4x3' ? { width: WIDTH, height: HEIGHT_4X3 } : { width: WIDTH, height: HEIGHT_4X2 };
+  const size =
+    variant === '4x3'
+      ? { width: WIDTH, height: HEIGHT_4X3 }
+      : variant === 'ring'
+        ? { width: WIDTH_RING, height: HEIGHT_RING }
+        : { width: WIDTH, height: HEIGHT_4X2 };
 
   if (!native) {
     return (
@@ -163,16 +177,29 @@ export function WidgetShowcasePreview({ variant }: WidgetShowcasePreviewProps) {
     );
   }
 
-  const { WidgetPreview, EmberlyWidget, EmberlyWidget4x2 } = native;
+  const { WidgetPreview, EmberlyWidget, EmberlyWidget4x2, EmberlyWidgetRing } = native;
 
-  return variant === '4x3' ? (
-    <WidgetPreview
-      renderWidget={() => <EmberlyWidget data={data} />}
-      onClick={onClick}
-      width={WIDTH}
-      height={HEIGHT_4X3}
-    />
-  ) : (
+  if (variant === '4x3') {
+    return (
+      <WidgetPreview
+        renderWidget={() => <EmberlyWidget data={data} />}
+        onClick={onClick}
+        width={WIDTH}
+        height={HEIGHT_4X3}
+      />
+    );
+  }
+  if (variant === 'ring') {
+    return (
+      <WidgetPreview
+        renderWidget={() => <EmberlyWidgetRing data={data} />}
+        onClick={onClick}
+        width={WIDTH_RING}
+        height={HEIGHT_RING}
+      />
+    );
+  }
+  return (
     <WidgetPreview
       renderWidget={() => <EmberlyWidget4x2 data={data} />}
       onClick={onClick}

@@ -95,7 +95,7 @@
               "targetCellWidth": 2,
               "targetCellHeight": 2,
               "minWidth": "150dp",
-              "minHeight": "150dp",
+              "minHeight": "140dp",
               "maxResizeWidth": "280dp",
               "maxResizeHeight": "280dp",
               "updatePeriodMillis": 1800000,

@@ -422,6 +422,7 @@ export const cs = {
       'Odškrtávej návyky přímo z plochy telefonu — streak i dnešní progress máš pořád na očích.',
     variant4x3Label: 'Plný (4×3)',
     variant4x2Label: 'Kompaktní (4×2)',
+    variantRingLabel: 'Kruh (2×2)',
     addButton: 'Přidat',
     pinFallbackTitle: 'Přidej widget ručně',
     pinFallbackBody: 'Podrž prst na ploše → Widgety → Emberly.',
