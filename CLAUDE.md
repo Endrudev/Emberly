@@ -472,6 +472,14 @@ bounding box, zmenšení na ~58 % delší strany, vycentrováno na 1024×1024 tr
 Skript (Node + `sharp`, dev dependency) není v repu — při dalších změnách maskota přegenerovat
 podle stejného postupu (crop → shrink to ≤60 % → center on transparent canvas).
 
+⚠️ **De-fringe krok navíc (2026-07-07):** samotný flood-fill nechal podél celé siluety tenký
+prstenec **poloprůhledných bílo-šedých pixelů** (antialiasing vůči původnímu bílému pozadí,
+< 0,4 % pixelů) — na bílém pozadí neviditelné, ale na jakémkoli barevném/tmavém pozadí appky
+(ikona, screenshoty) vytvářely viditelnou bílou "svatozář" kolem obrysu. Oprava: libovolný pixel
+s `0 < alpha < 255` nastavit na `alpha = 0` (žádný pokus o rekonstrukci barvy — při tak nízké
+alfě je to numericky nestabilní a přestřeluje do černé). Při dalším re-exportu maskota tenhle
+krok zopakovat po flood-fillu, ideálně ho rovnou zahrnout do stejného skriptu.
+
 ⚠️ **`android/` je v tomhle repu commitnutá** (kvůli widget-pin modulu) — změna `app.json` sama
 o sobě launcher ikonu/splash nepřegeneruje. Po každé změně spustit:
 ```bash
