@@ -36,7 +36,7 @@ import { SegmentedPill } from '@/ui/components/SegmentedPill';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { success, tapMedium } from '@/ui/anim/haptics';
 import { requestNotificationPermission } from '@/notifications/permissions';
-import { REVIEWER_UNLOCK_CODE } from '@/purchases/gating';
+import { REVIEWER_UNLOCK_CODE, TESTER_LIFETIME_CODE } from '@/purchases/gating';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
 import { FEEDBACK_EMAIL, FEEDBACK_DISCORD_URL, hasRealDiscordUrl } from '@/config/feedback';
 import * as Device from 'expo-device';
@@ -146,16 +146,20 @@ export default function SettingsScreen() {
   const setDevOverride = usePurchasesStore((s) => s.setDevOverride);
   const reviewerUnlock = usePurchasesStore((s) => s.reviewerUnlock);
   const setReviewerUnlock = usePurchasesStore((s) => s.setReviewerUnlock);
+  const testerLifetimeUnlock = usePurchasesStore((s) => s.testerLifetimeUnlock);
+  const setTesterLifetimeUnlock = usePurchasesStore((s) => s.setTesterLifetimeUnlock);
 
-  // Skrytý „reviewer unlock" — 7× klepnutí na verzi odhalí pole pro tajný kód,
-  // který odemkne premium bez nákupu (pro Google Play recenzenty). Viz
-  // REVIEWER_UNLOCK_CODE + usePurchasesStore.
+  // Skrytý „reviewer unlock" — 7× klepnutí na verzi odhalí pole pro tajný kód.
+  // Stejné pole přijímá i REVIEWER_UNLOCK_CODE (Google recenzent) i
+  // TESTER_LIFETIME_CODE (odměna pro beta testery po skončení testingu) —
+  // podle toho, který sedí, se nastaví odpovídající perzistentní stav.
   const [versionTaps, setVersionTaps] = useState(0);
   const [showReviewerInput, setShowReviewerInput] = useState(false);
   const [reviewerCode, setReviewerCode] = useState('');
+  const anyCodeUnlockActive = reviewerUnlock || testerLifetimeUnlock;
 
   const handleVersionTap = useCallback(() => {
-    if (reviewerUnlock) return;
+    if (anyCodeUnlockActive) return;
     setVersionTaps((prev) => {
       const next = prev + 1;
       if (next >= 7) {
@@ -164,19 +168,26 @@ export default function SettingsScreen() {
       }
       return next;
     });
-  }, [reviewerUnlock]);
+  }, [anyCodeUnlockActive]);
 
   const handleReviewerCodeSubmit = useCallback(() => {
-    if (reviewerCode.trim().toUpperCase() === REVIEWER_UNLOCK_CODE) {
+    const code = reviewerCode.trim().toUpperCase();
+    if (code === REVIEWER_UNLOCK_CODE) {
       success();
       setReviewerUnlock(true);
       setShowReviewerInput(false);
       setReviewerCode('');
       Alert.alert(t.reviewer.title, t.reviewer.unlockedBody);
+    } else if (code === TESTER_LIFETIME_CODE) {
+      success();
+      setTesterLifetimeUnlock(true);
+      setShowReviewerInput(false);
+      setReviewerCode('');
+      Alert.alert(t.testerLifetime.title, t.testerLifetime.unlockedBody);
     } else {
       Alert.alert(t.reviewer.title, t.reviewer.invalidCode);
     }
-  }, [t, reviewerCode, setReviewerUnlock]);
+  }, [t, reviewerCode, setReviewerUnlock, setTesterLifetimeUnlock]);
 
   const handleReviewerDisable = useCallback(() => {
     Alert.alert(t.reviewer.title, t.reviewer.disableConfirmBody, [
@@ -184,6 +195,13 @@ export default function SettingsScreen() {
       { text: t.common.delete, style: 'destructive', onPress: () => setReviewerUnlock(false) },
     ]);
   }, [t, setReviewerUnlock]);
+
+  const handleTesterLifetimeDisable = useCallback(() => {
+    Alert.alert(t.testerLifetime.title, t.testerLifetime.disableConfirmBody, [
+      { text: t.common.cancel, style: 'cancel' },
+      { text: t.common.delete, style: 'destructive', onPress: () => setTesterLifetimeUnlock(false) },
+    ]);
+  }, [t, setTesterLifetimeUnlock]);
 
   const handleRestore = useCallback(() => {
     void restoreAndSync().then((premium) => {
@@ -553,11 +571,12 @@ export default function SettingsScreen() {
             label={t.settings.version}
             value={versionLabel}
             showArrow={false}
-            isLast={!showReviewerInput && !reviewerUnlock}
+            isLast={!showReviewerInput && !anyCodeUnlockActive}
             onPress={handleVersionTap}
           />
-          {/* Skryté pole pro reviewer kód — odhalí se po 7× klepnutí na verzi. */}
-          {showReviewerInput && !reviewerUnlock ? (
+          {/* Skryté pole pro kód — odhalí se po 7× klepnutí na verzi. Přijímá jak
+              reviewer kód, tak kód doživotního premia pro testery. */}
+          {showReviewerInput && !anyCodeUnlockActive ? (
             <View style={[styles.row, styles.rowBorder, { borderBottomColor: C.border }]}>
               <View style={[styles.rowIcon, { backgroundColor: '#EEF0FF' }]}>
                 <Image source={ICONS.key} style={styles.rowIconImage} resizeMode="contain" />
@@ -584,8 +603,20 @@ export default function SettingsScreen() {
               label={t.reviewer.title}
               value={t.reviewer.activeValue}
               showArrow={false}
-              isLast
+              isLast={!testerLifetimeUnlock}
               onPress={handleReviewerDisable}
+            />
+          ) : null}
+          {testerLifetimeUnlock ? (
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.key}
+              iconBg="#EEF0FF"
+              label={t.testerLifetime.title}
+              value={t.reviewer.activeValue}
+              showArrow={false}
+              isLast
+              onPress={handleTesterLifetimeDisable}
             />
           ) : null}
         </Animated.View>

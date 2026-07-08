@@ -445,8 +445,13 @@ export const en = {
     unlockedBody: 'Premium unlocked for review.',
     invalidCode: 'Invalid code.',
     disableConfirmBody: 'Disable reviewer premium unlock?',
-    codePlaceholder: 'Reviewer code',
+    codePlaceholder: 'Enter code',
     activeValue: 'Active — tap to disable',
+  },
+  testerLifetime: {
+    title: 'Lifetime premium',
+    unlockedBody: 'Premium unlocked for life. Thanks for testing! 🔥',
+    disableConfirmBody: 'Turn off lifetime premium?',
   },
   devTools: {
     seedDemoLabel: 'Seed demo data (dev)',

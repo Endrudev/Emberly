@@ -443,13 +443,22 @@ export const cs = {
       'Pro zobrazení denního streaku potřebujeme oprávnění k zobrazování notifikací.',
   },
   // Skrytý "reviewer unlock" v Nastavení (7× klepnutí na verzi) — pro Google Play recenzenty.
+  // Stejné pole přijímá i kód pro testerLifetime (viz níže), placeholder je proto obecný.
   reviewer: {
     title: 'Přístup pro recenzenta',
     unlockedBody: 'Premium odemčeno pro recenzi.',
     invalidCode: 'Neplatný kód.',
     disableConfirmBody: 'Vypnout odemčení premium pro recenzenta?',
-    codePlaceholder: 'Kód recenzenta',
+    codePlaceholder: 'Zadejte kód',
     activeValue: 'Aktivní — klepnutím vypneš',
+  },
+  // Doživotní premium pro beta testery — odměna po skončení úspěšného testingu,
+  // kód se rozdává ručně (Discord/e-mail). Stejné skryté pole jako reviewer (7×
+  // klepnutí na verzi v Nastavení).
+  testerLifetime: {
+    title: 'Doživotní premium',
+    unlockedBody: 'Premium odemčeno natrvalo. Díky za testování! 🔥',
+    disableConfirmBody: 'Vypnout doživotní premium?',
   },
   // Dev-only nástroje v Nastavení (__DEV__ gated), viz sekce "Data"/"O aplikaci".
   devTools: {

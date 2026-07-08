@@ -48,3 +48,13 @@ export function canUseStreakFreeze(isPremium: boolean): boolean {
  * Popis postupu je jen v „App access" pokynech pro recenzenta, ne v UI/marketingu.
  */
 export const REVIEWER_UNLOCK_CODE = 'EMBER-REVIEW-2026';
+
+/**
+ * Odměna pro beta testery — kdo se po skončení úspěšného closed testingu
+ * ozve, dostane tenhle kód a premium mu zůstane **natrvalo** (na rozdíl od
+ * `BETA_PREMIUM_DEFAULT` v `usePurchasesStore.ts`, což je jen dočasný
+ * přepínač pro celou betu, smaže se před produkčním launchem). Kód se
+ * rozdává ručně (Discord/e-mail), ne automaticky — proto zůstává i po
+ * odstranění `BETA_PREMIUM_DEFAULT` funkční přes `testerLifetimeUnlock`.
+ */
+export const TESTER_LIFETIME_CODE = 'EMBER-TESTER-LIFETIME';
