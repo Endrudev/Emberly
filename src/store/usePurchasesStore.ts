@@ -57,13 +57,19 @@ export const usePurchasesStore = create<PurchasesState>()(
   ),
 );
 
+// TODO beta-only: appka jde testerům s premium zapnutým napřed, ať nemusí ručně zadávat
+// reviewer kód. Smazat před produkčním launchem (spolu s tímhle řádkem zmizí i komentář).
+const BETA_PREMIUM_DEFAULT = true;
+
 /**
  * Efektivní premium stav (jediný selektor, který má UI používat pro gating):
+ *  0. `BETA_PREMIUM_DEFAULT` (beta-only, viz TODO výše),
  *  1. `reviewerUnlock` (skrytý, i v produkci) — pro Google recenzenty,
  *  2. `devPremiumOverride` (jen v __DEV__) — pro lokální testování gates,
  *  3. jinak reálný RC stav.
  */
 export function selectIsPremium(state: PurchasesState): boolean {
+  if (BETA_PREMIUM_DEFAULT) return true;
   if (state.reviewerUnlock) return true;
   if (__DEV__ && state.devPremiumOverride !== null) return state.devPremiumOverride;
   return state.isPremium;

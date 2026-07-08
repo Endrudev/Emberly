@@ -101,6 +101,21 @@ Pro **produkční signed AAB** (Play Store Closed testing, viz vault `dev/releas
 npx eas-cli build --profile production --platform android
 ```
 
+⚠️ **Před vydáním tohohle příkazu vždy nejdřív posoudit a zvýšit verzi appky.** Kdykoli
+uživatel řekne, že chce nový produkční build (nebo přímo požádá o tenhle command), projdi
+změny od poslední verze (git log od posledního version bumpu, ne jen poslední zprávu v
+konverzaci) a podle velikosti změn navrhni/proveď bump v **obou** místech:
+- `app.json` → `expo.version`
+- `android/app/build.gradle` → `versionName` (řádek `versionCode` NECHAT beze změny —
+  to řeší EAS `autoIncrement` sám vzdáleně, viz `eas.json` `appVersionSource: remote`)
+
+Velikost bumpu podle skutečné povahy změn (semver), ne automaticky vždy PATCH:
+- Drobné opravy/kosmetika/malá vylepšení → **PATCH** (`0.1.0` → `0.1.1`)
+- Nová funkce / netriviální změna chování (i bez breaking change) → **MINOR** (`0.1.1` → `0.2.0`)
+- Zásadní/nekompatibilní změna → **MAJOR** (zatím nerelevantní, appka je pre-1.0)
+
+Viz i vault `dev/beta-feedback-workflow.md` sekce "Verzování a buildy (EAS)".
+
 ### Nové zařízení / Windows profil — přihlas Expo CLI (jednorázově)
 Na stroji, kde ještě nikdy neběžel `npx expo`, může být CLI nepřihlášené k Expo účtu.
 `expo start` pak čeká na interaktivní přihlašovací prompt a v neinteraktivním terminálu
