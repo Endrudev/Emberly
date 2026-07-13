@@ -1,18 +1,13 @@
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Image, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { DayCheckbox } from './DayCheckbox';
 import type { Activity } from '@/domain/types';
 import { dowOf, parseIsoDate } from '@/domain/week';
-import { COLORS, FONTS, getPastelColor } from '@/ui/theme';
+import { FONTS, getPastelColor } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
-import { useReduceMotion } from '@/ui/anim/useReduceMotion';
-
-const ROW_SLOT_HEIGHT = 64;
 
 // Vlastní ikona (assets/icons/flame.png) nahrazující 🔥 — viz vault design/visual-assets.md.
 const FLAME_ICON = require('../../../assets/icons/flame.png');
@@ -26,11 +21,11 @@ interface ActivityRowProps {
   /** Stable callback — receives the activity id so one fn serves every row. */
   onToggle: (activityId: number, dateIso: string) => void;
   onOpen?: (activityId: number) => void;
-  /** List edit mode (toggled from the section header) — cross-fades the day
-   *  checkboxes (non-interactive anyway while editing) into Edit/Delete. */
-  editMode?: boolean;
-  onEdit?: (activityId: number) => void;
-  onDelete?: (activityId: number) => void;
+  /** Resolved category name (parent looks it up by `activity.categoryId`) —
+   *  undefined/null hides the chip entirely (unassigned habit). */
+  categoryName?: string | null;
+  /** Opens the quick category picker — tapping the always-visible chip. */
+  onOpenCategoryPicker?: (activityId: number) => void;
   /** Adapts card surface + text colours to dark theme. */
   isDark?: boolean;
   /** Overrides the card's outer margin — used by the activity form's live preview. */
@@ -45,23 +40,21 @@ function ActivityRowImpl({
   currentStreak = 0,
   onToggle,
   onOpen,
-  editMode = false,
-  onEdit,
-  onDelete,
+  categoryName,
+  onOpenCategoryPicker,
   isDark = false,
   style,
 }: ActivityRowProps) {
   const t = useTranslation();
-  const reduceMotion = useReduceMotion();
   const scheduledSet = useMemo(() => new Set(activity.scheduledDays), [activity.scheduledDays]);
 
   // Dynamic colour tokens
-  const cardBg    = isDark ? '#2C2C2E' : '#FFFFFF';
+  const cardBg = isDark ? '#2C2C2E' : '#FFFFFF';
   const nameColor = isDark ? '#F2F2F7' : '#1A1A1A';
-  const tagColor  = isDark ? '#8E8E93' : '#9A9A9A';
-  const badgeBg   = getPastelColor(activity.color);
-  const editBg    = isDark ? 'rgba(76,141,240,0.18)' : '#EEF4FF';
-  const deleteBg  = isDark ? 'rgba(255,68,68,0.18)' : '#FFE8E8';
+  const tagColor = isDark ? '#8E8E93' : '#9A9A9A';
+  const badgeBg = getPastelColor(activity.color);
+  const chipBg = isDark ? '#3A3A3C' : '#F0F0F0';
+  const chipFg = isDark ? '#ABABAB' : '#777777';
 
   // Schedule tag: "Everyday" or abbreviated days list
   const scheduleLabel = useMemo(() => {
@@ -69,47 +62,48 @@ function ActivityRowImpl({
     return activity.scheduledDays.map((d) => t.days.short[d]).join(', ');
   }, [activity.scheduledDays, t]);
 
-  // ── Days row ↔ Edit/Delete actions cross-fade (driven by editMode) ────────
-  const editProgress = useSharedValue(editMode ? 1 : 0);
-  useEffect(() => {
-    editProgress.value = reduceMotion
-      ? editMode ? 1 : 0
-      : withTiming(editMode ? 1 : 0, { duration: 200 });
-  }, [editMode, reduceMotion, editProgress]);
-
-  const daysLayerStyle = useAnimatedStyle(() => ({ opacity: 1 - editProgress.value }));
-  const actionsLayerStyle = useAnimatedStyle(() => ({ opacity: editProgress.value }));
-
   return (
     <Pressable
-      onPress={editMode && onEdit ? () => onEdit(activity.id) : undefined}
-      onLongPress={!editMode && onOpen ? () => onOpen(activity.id) : undefined}
+      onLongPress={onOpen ? () => onOpen(activity.id) : undefined}
       delayLongPress={400}
       android_ripple={{ color: `${activity.color}18` }}
       style={[styles.card, { backgroundColor: cardBg }, style]}
       accessibilityRole="button"
       accessibilityLabel={activity.name}
     >
-      {/* ── Header row: badge | name+streak | tag ── */}
+      {/* ── Header row: badge | name+streak+category | tag ── */}
       <View style={styles.headerRow}>
         {/* Pastel badge */}
         <View style={[styles.badge, { backgroundColor: badgeBg }]}>
           <Text style={styles.badgeEmoji}>{activity.emoji}</Text>
         </View>
 
-        {/* Name + streak */}
+        {/* Name + streak + category chip */}
         <View style={styles.nameBlock}>
           <Text style={[styles.name, { color: nameColor }]} numberOfLines={1}>
             {activity.name}
           </Text>
-          {currentStreak > 0 ? (
-            <View style={styles.streakRow}>
-              <Image source={FLAME_ICON} style={styles.streakIcon} resizeMode="contain" />
-              <Text style={styles.streakText}>{t.home.nDays(currentStreak)}</Text>
-            </View>
-          ) : (
-            <Text style={styles.streakTextEmpty}> </Text>
-          )}
+          <View style={styles.metaRow}>
+            {currentStreak > 0 ? (
+              <View style={styles.streakRow}>
+                <Image source={FLAME_ICON} style={styles.streakIcon} resizeMode="contain" />
+                <Text style={styles.streakText}>{t.home.nDays(currentStreak)}</Text>
+              </View>
+            ) : null}
+            {categoryName ? (
+              <AnimatedPressable
+                hapticStyle="light"
+                onPress={() => onOpenCategoryPicker?.(activity.id)}
+                style={[styles.categoryChip, { backgroundColor: chipBg }]}
+                accessibilityRole="button"
+                accessibilityLabel={`${t.activity.categoryLabel}: ${categoryName}`}
+              >
+                <Text style={[styles.categoryChipText, { color: chipFg }]} numberOfLines={1}>
+                  {categoryName}
+                </Text>
+              </AnimatedPressable>
+            ) : null}
+          </View>
         </View>
 
         {/* Schedule tag — plain text, no pill */}
@@ -118,62 +112,22 @@ function ActivityRowImpl({
         </Text>
       </View>
 
-      {/* ── Slot: day checkboxes (normal) ↔ Edit/Delete buttons (edit mode) ── */}
-      <View style={styles.slot}>
-        <Animated.View
-          style={[styles.slotLayer, daysLayerStyle]}
-          pointerEvents={editMode ? 'none' : 'auto'}
-        >
-          <View style={styles.daysRow}>
-            {weekDates.map((dateIso) => {
-              const day = dowOf(parseIsoDate(dateIso));
-              return (
-                <DayCheckbox
-                  key={dateIso}
-                  day={day}
-                  color={activity.color}
-                  completed={completedByDate.has(dateIso)}
-                  scheduled={scheduledSet.has(day)}
-                  isToday={dateIso === todayIso}
-                  disabled={editMode}
-                  onPress={() => onToggle(activity.id, dateIso)}
-                />
-              );
-            })}
-          </View>
-        </Animated.View>
-
-        <Animated.View
-          style={[styles.slotLayer, actionsLayerStyle]}
-          pointerEvents={editMode ? 'auto' : 'none'}
-        >
-          <View style={styles.editActionsRow}>
-            <View style={styles.actionButtonWrap}>
-              <AnimatedPressable
-                style={[styles.actionButton, { backgroundColor: editBg }]}
-                hapticStyle="light"
-                onPress={() => onEdit?.(activity.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t.common.edit} – ${activity.name}`}
-              >
-                <MaterialCommunityIcons name="pencil-outline" size={16} color="#4C8DF0" />
-                <Text style={[styles.actionButtonText, { color: '#4C8DF0' }]}>{t.common.edit}</Text>
-              </AnimatedPressable>
-            </View>
-            <View style={styles.actionButtonWrap}>
-              <AnimatedPressable
-                style={[styles.actionButton, { backgroundColor: deleteBg }]}
-                hapticStyle="light"
-                onPress={() => onDelete?.(activity.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t.common.delete} – ${activity.name}`}
-              >
-                <MaterialCommunityIcons name="delete-outline" size={16} color={COLORS.error} />
-                <Text style={[styles.actionButtonText, { color: COLORS.error }]}>{t.common.delete}</Text>
-              </AnimatedPressable>
-            </View>
-          </View>
-        </Animated.View>
+      {/* ── Day checkboxes ── */}
+      <View style={styles.daysRow}>
+        {weekDates.map((dateIso) => {
+          const day = dowOf(parseIsoDate(dateIso));
+          return (
+            <DayCheckbox
+              key={dateIso}
+              day={day}
+              color={activity.color}
+              completed={completedByDate.has(dateIso)}
+              scheduled={scheduledSet.has(day)}
+              isToday={dateIso === todayIso}
+              onPress={() => onToggle(activity.id, dateIso)}
+            />
+          );
+        })}
       </View>
     </Pressable>
   );
@@ -225,11 +179,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.165,
     lineHeight: 21,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 3,
+    minHeight: 15,
+  },
   streakRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 2,
   },
   streakIcon: { width: 13, height: 13 },
   streakText: {
@@ -237,9 +197,15 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     color: '#FF8C42',
   },
-  streakTextEmpty: {
-    fontSize: 12.5,
-    marginTop: 2,
+  categoryChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    maxWidth: 120,
+  },
+  categoryChipText: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
   },
 
   // "Everyday" / "Po, Út, ..." schedule tag — plain text, right-aligned
@@ -251,44 +217,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Fixed-size slot the days row and edit actions cross-fade within, so
-  // swapping never shifts row layout.
-  slot: {
-    height: ROW_SLOT_HEIGHT,
-  },
-  slotLayer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-  },
-
   daysRow: {
     flexDirection: 'row',
     gap: 0,
-  },
-
-  editActionsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 10,
-  },
-  // The actual flex item — AnimatedPressable only forwards `style` to an
-  // inner wrapper, never to the Pressable itself, so `flex: 1` has to live
-  // on a real sibling-level View or it resolves against nothing and the
-  // button collapses to zero width.
-  actionButtonWrap: {
-    flex: 1,
-  },
-  actionButton: {
-    width: '100%',
-    height: 40,
-    borderRadius: 12,
-    flexDirection: 'row',
+    height: 64,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  actionButtonText: {
-    fontSize: 13.5,
-    fontFamily: FONTS.semiBold,
   },
 });

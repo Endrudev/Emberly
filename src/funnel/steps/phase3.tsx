@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { format, subDays } from 'date-fns';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
@@ -40,6 +45,8 @@ const HOW_IT_WORKS_ACTIVITY: Activity = {
   color: COLORS.primary,
   scheduledDays: [0, 1, 2, 3, 4, 5, 6],
   archived: false,
+  categoryId: null,
+  sortOrder: 0,
   createdAt: subDays(new Date(), 30).getTime(),
 };
 const HOW_IT_WORKS_INITIAL_DONE = new Set(
@@ -72,7 +79,9 @@ function GrowthBar({
   const height = useSharedValue(reduceMotion ? targetHeight : 4);
 
   useEffect(() => {
-    height.value = reduceMotion ? targetHeight : withDelay(delay, withTiming(targetHeight, { duration: 380 }));
+    height.value = reduceMotion
+      ? targetHeight
+      : withDelay(delay, withTiming(targetHeight, { duration: 380 }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -175,6 +184,8 @@ const HEATMAP_ACTIVITIES: Activity[] = [
     color: COLORS.primary,
     scheduledDays: [0, 1, 2, 3, 4, 5, 6],
     archived: false,
+    categoryId: null,
+  sortOrder: 0,
     createdAt: subDays(new Date(), 100).getTime(),
   },
   {
@@ -184,17 +195,20 @@ const HEATMAP_ACTIVITIES: Activity[] = [
     color: COLORS.orange,
     scheduledDays: [0, 1, 2, 3, 4, 5, 6],
     archived: false,
+    categoryId: null,
+  sortOrder: 0,
     createdAt: subDays(new Date(), 100).getTime(),
   },
 ];
-const HEATMAP_COMPLETIONS: Completion[] = Array.from({ length: 100 }, (_, i) => i)
-  .flatMap((daysAgo) => {
+const HEATMAP_COMPLETIONS: Completion[] = Array.from({ length: 100 }, (_, i) => i).flatMap(
+  (daysAgo) => {
     const date = format(subDays(new Date(), daysAgo), 'yyyy-MM-dd');
     const out: Completion[] = [];
     if (daysAgo % 3 !== 0) out.push({ activityId: -1, date, completedAt: 0 });
     if (daysAgo % 4 !== 0) out.push({ activityId: -2, date, completedAt: 0 });
     return out;
-  });
+  },
+);
 
 export function WidgetStep({ progress, canGoBack, onNext, onBack }: FunnelStepProps) {
   const t = useTranslation();

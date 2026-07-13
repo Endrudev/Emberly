@@ -1,13 +1,18 @@
-import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput as RNTextInput, View } from 'react-native';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Keyboard, ScrollView, StyleSheet, TextInput as RNTextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import EmojiPicker, { cs as emojiPickerCs, en as emojiPickerEn } from 'rn-emoji-keyboard';
+import EmojiPicker, {
+  cs as emojiPickerCs,
+  en as emojiPickerEn,
+  de as emojiPickerDe,
+} from 'rn-emoji-keyboard';
 
 import type { Activity, DayOfWeek } from '@/domain/types';
 import { orderedDayIndices, type WeekAnchor } from '@/domain/week';
 import { useTranslation, useResolvedLanguage } from '@/i18n';
+import { useAppStore } from '@/store/useAppStore';
 import { activityColors, COLORS, FONTS } from '@/ui/theme';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
@@ -53,6 +58,7 @@ export interface ActivityFormValues {
   emoji: string;
   color: string;
   scheduledDays: DayOfWeek[];
+  categoryId: number | null;
 }
 
 export interface ActivityFormHandle {
@@ -99,9 +105,63 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(fu
   const [emoji, setEmoji] = useState(initial?.emoji ?? POPULAR_EMOJI[0]!);
   const [color, setColor] = useState<string>(initial?.color ?? activityColors[0] ?? '#4AABF5');
   const [scheduledDays, setScheduledDays] = useState<DayOfWeek[]>(initial?.scheduledDays ?? []);
+  const [categoryId, setCategoryId] = useState<number | null>(initial?.categoryId ?? null);
   const [touched, setTouched] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const isCustomEmoji = !POPULAR_EMOJI.includes(emoji);
+
+  // ── Kategorie — čistě vizuální seskupení, vytváří se inline (žádná
+  // samostatná "Spravovat kategorie" obrazovka, viz thinking/backlog.md). ──
+  const categories = useAppStore((s) => s.categories);
+  const createCategory = useAppStore((s) => s.createCategory);
+  const [newCategoryName, setNewCategoryName] = useState<string | null>(null);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // The Kategorie section sits near the very end of the form (right above
+  // the Delete link) — there isn't enough content below it for a plain
+  // `scrollToEnd()` to have anywhere left to scroll to once the keyboard
+  // covers that area. Tracking real keyboard height and adding it as extra
+  // bottom padding (below) guarantees enough scroll range exists for the
+  // field to actually clear the keyboard, not just "scroll as far as
+  // possible and hope it's enough".
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (keyboardHeight > 0 && newCategoryName !== null) {
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    }
+  }, [keyboardHeight, newCategoryName]);
+
+  function scrollNewCategoryIntoView() {
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  }
+
+  async function handleCreateCategory() {
+    const name = newCategoryName?.trim();
+    if (!name) {
+      setNewCategoryName(null);
+      return;
+    }
+    setCreatingCategory(true);
+    try {
+      const created = await createCategory(name);
+      setCategoryId(created.id);
+      setNewCategoryName(null);
+    } finally {
+      setCreatingCategory(false);
+    }
+  }
 
   const nameError = touched && name.trim().length === 0;
 
@@ -142,6 +202,7 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(fu
         emoji,
         color,
         scheduledDays,
+        categoryId,
       });
     } finally {
       onSubmittingChange?.(false);
@@ -158,6 +219,8 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(fu
     scheduledDays,
     archived: false,
     createdAt: 0,
+    categoryId,
+    sortOrder: 0,
   };
 
   const chipBg = C.isDark ? '#3A3A3C' : '#F0F0F0';
@@ -199,7 +262,11 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(fu
   return (
     <>
       <ScrollView
-        contentContainerStyle={[styles.container, { paddingBottom: 32 + insets.bottom + 48 }]}
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 32 + insets.bottom + 48 + keyboardHeight },
+        ]}
         keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: C.BG }}
       >
@@ -379,6 +446,98 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(fu
           ) : null}
         </View>
 
+        {/* ── Kategorie (volitelné, čistě vizuální seskupení) ── */}
+        <Text style={[styles.sectionLabel, { color: C.textTertiary }]}>
+          {t.activity.categoryLabel}
+        </Text>
+        <View style={[styles.card, { backgroundColor: C.surface }]}>
+          <View style={styles.presetRow}>
+            {categories.map((cat) => {
+              const selected = categoryId === cat.id;
+              return (
+                <AnimatedPressable
+                  key={cat.id}
+                  hapticStyle="light"
+                  onPress={() => setCategoryId(selected ? null : cat.id)}
+                  style={[
+                    styles.presetPill,
+                    selected
+                      ? {
+                          backgroundColor: 'transparent',
+                          borderColor: COLORS.primary,
+                          borderWidth: 1.5,
+                        }
+                      : { backgroundColor: chipBg, borderWidth: 1.5, borderColor: 'transparent' },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                >
+                  <Text
+                    style={[styles.presetText, { color: selected ? COLORS.primary : chipText }]}
+                  >
+                    {cat.name}
+                  </Text>
+                </AnimatedPressable>
+              );
+            })}
+            {newCategoryName === null ? (
+              <AnimatedPressable
+                hapticStyle="light"
+                onPress={() => {
+                  setNewCategoryName('');
+                  scrollNewCategoryIntoView();
+                }}
+                style={[
+                  styles.presetPill,
+                  { backgroundColor: chipBg, borderWidth: 1.5, borderColor: 'transparent' },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={t.activity.newCategoryLabel}
+              >
+                <Text style={[styles.presetText, { color: chipText }]}>
+                  + {t.activity.newCategoryLabel}
+                </Text>
+              </AnimatedPressable>
+            ) : null}
+          </View>
+
+          {newCategoryName !== null ? (
+            <View style={styles.newCategoryRow}>
+              <RNTextInput
+                style={[styles.newCategoryInput, { color: C.text, backgroundColor: chipBg }]}
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+                onSubmitEditing={handleCreateCategory}
+                onFocus={scrollNewCategoryIntoView}
+                placeholder={t.activity.newCategoryPlaceholder}
+                placeholderTextColor={C.textTertiary}
+                autoFocus
+                editable={!creatingCategory}
+              />
+              <AnimatedPressable
+                hapticStyle="light"
+                onPress={handleCreateCategory}
+                disabled={creatingCategory}
+                style={styles.newCategoryBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t.common.done}
+              >
+                <MaterialCommunityIcons name="check" size={18} color={COLORS.primary} />
+              </AnimatedPressable>
+              <AnimatedPressable
+                hapticStyle="light"
+                onPress={() => setNewCategoryName(null)}
+                disabled={creatingCategory}
+                style={styles.newCategoryBtn}
+                accessibilityRole="button"
+                accessibilityLabel={t.common.cancel}
+              >
+                <MaterialCommunityIcons name="close" size={18} color={chipText} />
+              </AnimatedPressable>
+            </View>
+          ) : null}
+        </View>
+
         {/* ── Delete ── */}
         {onDelete ? (
           <AnimatedPressable hapticStyle="light" onPress={onDelete} style={styles.deleteLink}>
@@ -397,7 +556,9 @@ export const ActivityForm = forwardRef<ActivityFormHandle, ActivityFormProps>(fu
         enableSearchBar
         enableRecentlyUsed
         categoryPosition="top"
-        translation={language === 'cs' ? emojiPickerCs : emojiPickerEn}
+        translation={
+          language === 'cs' ? emojiPickerCs : language === 'de' ? emojiPickerDe : emojiPickerEn
+        }
         theme={emojiPickerTheme}
       />
     </>
@@ -539,6 +700,28 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.semiBold,
     textAlign: 'center',
     marginTop: 14,
+  },
+
+  newCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  newCategoryInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: FONTS.semiBold,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  newCategoryBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   deleteLink: {

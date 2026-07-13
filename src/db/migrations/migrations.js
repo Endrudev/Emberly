@@ -19,6 +19,20 @@ const journal = {
       tag: '0001_jittery_snowbird',
       breakpoints: true,
     },
+    {
+      idx: 2,
+      version: '6',
+      when: 1783964791877,
+      tag: '0002_shocking_jetstream',
+      breakpoints: true,
+    },
+    {
+      idx: 3,
+      version: '6',
+      when: 1783967255801,
+      tag: '0003_nappy_fat_cobra',
+      breakpoints: true,
+    },
   ],
 };
 
@@ -51,10 +65,33 @@ const m0001 = `CREATE TABLE \`streak_freezes\` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX \`uniq_streak_freeze_date\` ON \`streak_freezes\` (\`date\`);`;
 
+const m0002 = `CREATE TABLE \`categories\` (
+\t\`id\` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+\t\`name\` text NOT NULL,
+\t\`created_at\` integer DEFAULT (unixepoch() * 1000) NOT NULL
+);
+--> statement-breakpoint
+ALTER TABLE \`activities\` ADD \`category_id\` integer REFERENCES \`categories\`(\`id\`) ON DELETE SET NULL;`;
+
+const m0003 = `ALTER TABLE \`activities\` ADD \`sort_order\` integer DEFAULT 0 NOT NULL;
+--> statement-breakpoint
+ALTER TABLE \`categories\` ADD \`sort_order\` integer DEFAULT 0 NOT NULL;
+--> statement-breakpoint
+UPDATE \`activities\` SET \`sort_order\` = (
+  SELECT COUNT(*) FROM \`activities\` a2
+  WHERE (a2.category_id IS \`activities\`.\`category_id\`) AND a2.id <= \`activities\`.id
+) - 1;
+--> statement-breakpoint
+UPDATE \`categories\` SET \`sort_order\` = (
+  SELECT COUNT(*) FROM \`categories\` c2 WHERE c2.id <= \`categories\`.id
+) - 1;`;
+
 export default {
   journal,
   migrations: {
     m0000,
     m0001,
+    m0002,
+    m0003,
   },
 };

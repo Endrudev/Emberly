@@ -22,14 +22,16 @@ const MOCK_ACTIVITY_BASE: Omit<WidgetActivityData, 'name'>[] = [
   { id: 6, emoji: '📚', color: '#F59E0B', isCompleted: false },
 ];
 
-const MOCK_ACTIVITY_NAMES: Record<'cs' | 'en', string[]> = {
+const MOCK_ACTIVITY_NAMES: Record<'cs' | 'en' | 'de', string[]> = {
   cs: ['Meditace', 'Procházka', 'Program', 'Běh', 'Voda', 'Čtení'],
   en: ['Meditate', 'Walk', 'Study', 'Run', 'Water', 'Read'],
+  de: ['Meditation', 'Spaziergang', 'Lernen', 'Laufen', 'Wasser', 'Lesen'],
 };
 
-const DAY_LABELS: Record<'cs' | 'en', string[]> = {
+const DAY_LABELS: Record<'cs' | 'en' | 'de', string[]> = {
   cs: ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'],
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
 };
 
 // Exportováno — krok 10 funnelu potřebuje tyhle rozměry pro zmenšení

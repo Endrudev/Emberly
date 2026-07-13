@@ -131,6 +131,7 @@ export default function EditActivityScreen() {
           emoji: activity.emoji,
           color: activity.color,
           scheduledDays: activity.scheduledDays,
+          categoryId: activity.categoryId,
         }}
         preview={{
           weekDates: currentWeekDates,

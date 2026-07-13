@@ -27,6 +27,8 @@ import { ActivityRow } from '@/ui/components/ActivityRow';
 import { TodayActivityRow } from '@/ui/components/TodayActivityRow';
 import { CircularProgress } from '@/ui/components/CircularProgress';
 import { ActivityActionSheet } from '@/ui/components/ActivityActionSheet';
+import { CategoryPickerSheet } from '@/ui/components/CategoryPickerSheet';
+import { ManageHabitsView } from '@/ui/components/ManageHabitsView';
 import { TAB_BAR_SPACE } from './_layout';
 import { dowOf, parseIsoDate, todayIso as todayIsoFn, weekDates } from '@/domain/week';
 import {
@@ -63,7 +65,7 @@ const CARD_W = SCREEN_W - 32;
 // Circle card: paddingVertical 18×2 + ring 84 ≈ 120, round up
 const CIRCLE_H = 124;
 // Bar card: paddingVertical 12×2 + (label 13 + gap 10 + bar 6) ≈ 51, round up
-const BAR_H    = 56;
+const BAR_H = 56;
 // How far the header slides up as it collapses (= height it gives back).
 const COLLAPSE = CIRCLE_H - BAR_H;
 // Gap below the header before the list content starts.
@@ -105,6 +107,12 @@ function HeaderGradient({ isPerfect, isDark }: { isPerfect: boolean; isDark: boo
 
 type ViewMode = 'today' | 'weekly';
 
+/** Discriminated union for the (optionally category-grouped) FlatList data —
+ *  see `listItems` below for how/when headers get inserted. */
+type ListItem =
+  | { kind: 'header'; key: string; label: string }
+  | { kind: 'activity'; key: string; activity: Activity };
+
 const EMPTY_SET: ReadonlySet<string> = new Set();
 
 /** Spring for the Today/Weekly segment pill — gentle, no overshoot. */
@@ -117,7 +125,7 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const VIEW_MODES: { key: ViewMode; label: string }[] = [
-    { key: 'today',  label: t.home.viewToday  },
+    { key: 'today', label: t.home.viewToday },
     { key: 'weekly', label: t.home.viewWeekly },
   ];
   const [viewMode, setViewMode] = useState<ViewMode>('today');
@@ -141,7 +149,9 @@ export default function HomeScreen() {
   // so scrolling pays zero per-frame layout cost).
   const headerZoneAnimStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: -interpolate(scrollY.value, [0, COLLAPSE], [0, COLLAPSE], Extrapolation.CLAMP) },
+      {
+        translateY: -interpolate(scrollY.value, [0, COLLAPSE], [0, COLLAPSE], Extrapolation.CLAMP),
+      },
     ],
   }));
   // Circle fades out in the first 65% of the collapse.
@@ -157,21 +167,26 @@ export default function HomeScreen() {
   const paperTheme = useTheme();
   const isDark = paperTheme.dark;
 
-  const BG          = isDark ? '#1C1C1E' : '#ECEDE8';
+  const BG = isDark ? '#1C1C1E' : '#ECEDE8';
   const textPrimary = isDark ? '#F2F2F7' : '#1A1A1A';
-  const textMuted   = isDark ? '#8E8E93' : '#999999';
-  const textSec     = isDark ? '#ABABAB' : '#666666';
+  const textMuted = isDark ? '#8E8E93' : '#999999';
+  const textSec = isDark ? '#ABABAB' : '#666666';
 
   // ── Store ─────────────────────────────────────────────────────────────────
-  const activities       = useAppStore((s) => s.activities);
-  const completions      = useAppStore((s) => s.completions);
+  const activities = useAppStore((s) => s.activities);
+  const categories = useAppStore((s) => s.categories);
+  const completions = useAppStore((s) => s.completions);
   const currentWeekStart = useAppStore((s) => s.currentWeekStart);
-  const loaded           = useAppStore((s) => s.loaded);
-  const loadAll          = useAppStore((s) => s.loadAll);
+  const loaded = useAppStore((s) => s.loaded);
+  const loadAll = useAppStore((s) => s.loadAll);
   const toggleCompletion = useAppStore((s) => s.toggleCompletion);
-  const deleteActivity   = useAppStore((s) => s.deleteActivity);
-  const goToCurrentWeek  = useAppStore((s) => s.goToCurrentWeek);
-  const isPremium        = useIsPremium();
+  const deleteActivity = useAppStore((s) => s.deleteActivity);
+  const goToCurrentWeek = useAppStore((s) => s.goToCurrentWeek);
+  const createCategory = useAppStore((s) => s.createCategory);
+  const setActivityCategory = useAppStore((s) => s.setActivityCategory);
+  const reorderActivities = useAppStore((s) => s.reorderActivities);
+  const reorderCategories = useAppStore((s) => s.reorderCategories);
+  const isPremium = useIsPremium();
 
   // Přidání návyku — free uživatel má limit (FREE_HABIT_LIMIT). Při dosažení
   // limitu nabídne paywall místo otevření formuláře. Seed z funnelu limitem
@@ -222,9 +237,7 @@ export default function HomeScreen() {
   );
 
   const progressRatio =
-    weekProgress.plannedCount > 0
-      ? weekProgress.completedCount / weekProgress.plannedCount
-      : 0;
+    weekProgress.plannedCount > 0 ? weekProgress.completedCount / weekProgress.plannedCount : 0;
   const progressPct = Math.round(progressRatio * 100);
 
   const activityStreaks = useMemo(() => {
@@ -240,7 +253,10 @@ export default function HomeScreen() {
     const map = new Map<number, Set<string>>();
     for (const c of completions) {
       let set = map.get(c.activityId);
-      if (!set) { set = new Set(); map.set(c.activityId, set); }
+      if (!set) {
+        set = new Set();
+        map.set(c.activityId, set);
+      }
       set.add(c.date);
     }
     return map;
@@ -274,22 +290,21 @@ export default function HomeScreen() {
   );
 
   const todayPlannedCount = todayActivities.length;
-  const todayRatio =
-    todayPlannedCount > 0 ? todayCompletedCount / todayPlannedCount : 0;
+  const todayRatio = todayPlannedCount > 0 ? todayCompletedCount / todayPlannedCount : 0;
   const todayPct = Math.round(todayRatio * 100);
   const todayLeft = Math.max(0, todayPlannedCount - todayCompletedCount);
 
   // ── Header data (mode-dependent) ──────────────────────────────────────────
   const isToday = viewMode === 'today';
   const headerVisible = isToday ? todayPlannedCount > 0 : weekProgress.plannedCount > 0;
-  const headerLabel  = isToday ? t.home.todayLabel : t.home.thisWeekLabel;
-  const headerCount  = isToday
+  const headerLabel = isToday ? t.home.todayLabel : t.home.thisWeekLabel;
+  const headerCount = isToday
     ? t.home.completedCount(todayCompletedCount, todayPlannedCount)
     : t.home.completedCount(weekProgress.completedCount, weekProgress.plannedCount);
-  const headerRatio     = isToday ? todayRatio : progressRatio;
-  const headerPct       = isToday ? todayPct   : progressPct;
+  const headerRatio = isToday ? todayRatio : progressRatio;
+  const headerPct = isToday ? todayPct : progressPct;
   const headerCompleted = isToday ? todayCompletedCount : weekProgress.completedCount;
-  const headerPlanned   = isToday ? todayPlannedCount   : weekProgress.plannedCount;
+  const headerPlanned = isToday ? todayPlannedCount : weekProgress.plannedCount;
   const periodWord = isToday ? t.home.periodToday : t.home.periodThisWeek;
   const periodNoun = isToday ? t.home.periodDayNoun : t.home.periodWeekNoun;
 
@@ -338,11 +353,15 @@ export default function HomeScreen() {
   // re-renders of this screen (onLayout measuring, celebration state, etc.)
   // no longer re-render the whole list.
   const handleToggle = useCallback(
-    (activityId: number, dateIso: string) => { void toggleCompletion(activityId, dateIso); },
+    (activityId: number, dateIso: string) => {
+      void toggleCompletion(activityId, dateIso);
+    },
     [toggleCompletion],
   );
   const handleToggleToday = useCallback(
-    (activityId: number) => { void toggleCompletion(activityId, today); },
+    (activityId: number) => {
+      void toggleCompletion(activityId, today);
+    },
     [toggleCompletion, today],
   );
   // ── Activity action sheet (Edit / Delete) ──────────────────────────────────
@@ -352,10 +371,9 @@ export default function HomeScreen() {
     [activities, actionSheetActivityId],
   );
 
-  const handleOpenActivity = useCallback(
-    (activityId: number) => { setActionSheetActivityId(activityId); },
-    [],
-  );
+  const handleOpenActivity = useCallback((activityId: number) => {
+    setActionSheetActivityId(activityId);
+  }, []);
   const handleCloseActionSheet = useCallback(() => setActionSheetActivityId(null), []);
   const handleEditActivity = useCallback(
     (activityId: number) => {
@@ -372,11 +390,44 @@ export default function HomeScreen() {
         {
           text: t.common.delete,
           style: 'destructive',
-          onPress: () => { void deleteActivity(activityId); },
+          onPress: () => {
+            void deleteActivity(activityId);
+          },
         },
       ]);
     },
     [deleteActivity, t],
+  );
+
+  // ── Quick category picker (edit-mode row, Weekly view only) ────────────────
+  const [categoryPickerActivityId, setCategoryPickerActivityId] = useState<number | null>(null);
+  const categoryPickerActivity = useMemo(
+    () => activities.find((a) => a.id === categoryPickerActivityId) ?? null,
+    [activities, categoryPickerActivityId],
+  );
+  const handleOpenCategoryPicker = useCallback((activityId: number) => {
+    setCategoryPickerActivityId(activityId);
+  }, []);
+  const handleCloseCategoryPicker = useCallback(() => setCategoryPickerActivityId(null), []);
+  const handleSelectCategory = useCallback(
+    (activityId: number, categoryId: number | null) => {
+      void setActivityCategory(activityId, categoryId);
+    },
+    [setActivityCategory],
+  );
+
+  // ── Manage mode reordering ──────────────────────────────────────────────────
+  const handleReorderActivities = useCallback(
+    (_categoryId: number | null, orderedIds: number[]) => {
+      void reorderActivities(orderedIds);
+    },
+    [reorderActivities],
+  );
+  const handleReorderCategories = useCallback(
+    (orderedIds: number[]) => {
+      void reorderCategories(orderedIds);
+    },
+    [reorderCategories],
   );
 
   // ── List edit mode (toggled from the section header) ───────────────────────
@@ -417,10 +468,7 @@ export default function HomeScreen() {
   }, [celebrating, reduceMotion, ringPop]);
   const ringPopStyle = useAnimatedStyle(() => ({ transform: [{ scale: ringPop.value }] }));
 
-  const celebrationColors = useMemo(
-    () => todayActivities.map((a) => a.color),
-    [todayActivities],
-  );
+  const celebrationColors = useMemo(() => todayActivities.map((a) => a.color), [todayActivities]);
 
   // ── Today/Weekly segment pill (slides between tabs) ────────────────────────
   const [modeFrames, setModeFrames] = useState<Record<string, ModeFrame>>({});
@@ -509,39 +557,80 @@ export default function HomeScreen() {
   // Driven by the DEFERRED listMode so the heavy remount stays low-priority.
   const listData = activities.length > 0 ? (isListToday ? todayActivities : activities) : [];
 
-  const keyExtractor = useCallback((item: Activity) => String(item.id), []);
+  const categoryNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const cat of categories) map.set(cat.id, cat.name);
+    return map;
+  }, [categories]);
+
+  // Groups the flat list by category — but only when categories are actually
+  // in use (progressive disclosure, see vault thinking/backlog.md "Kategorie
+  // návyků"): if nobody assigned a category, this collapses back to exactly
+  // the old flat list, byte-for-byte the same render as before. Categorized
+  // groups come first (in the user's chosen category order — reorderable via
+  // Manage mode), and uncategorized habits are pushed to the end under an
+  // explicit "Ostatní" header — once any category exists, an unlabeled
+  // trailing group would read as a rendering glitch rather than an
+  // intentional bucket.
+  const listItems = useMemo<ListItem[]>(() => {
+    if (listData.length === 0) return [];
+    const hasAnyCategory = listData.some((a) => a.categoryId != null);
+    if (!hasAnyCategory) {
+      return listData.map((a) => ({ kind: 'activity', key: String(a.id), activity: a }));
+    }
+    const items: ListItem[] = [];
+    for (const cat of categories) {
+      const inCategory = listData.filter((a) => a.categoryId === cat.id);
+      if (inCategory.length === 0) continue;
+      items.push({ kind: 'header', key: `cat-${cat.id}`, label: cat.name });
+      for (const a of inCategory) items.push({ kind: 'activity', key: String(a.id), activity: a });
+    }
+    const uncategorized = listData.filter((a) => a.categoryId == null);
+    if (uncategorized.length > 0) {
+      items.push({ kind: 'header', key: 'cat-none', label: t.home.uncategorized });
+      for (const a of uncategorized)
+        items.push({ kind: 'activity', key: String(a.id), activity: a });
+    }
+    return items;
+  }, [listData, categories, t]);
+
+  const keyExtractor = useCallback((item: ListItem) => item.key, []);
 
   // Stable renderItem (deps only change when the underlying data does) so
   // FlatList cells aren't re-rendered on unrelated screen re-renders.
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<Activity>) => {
+    ({ item }: ListRenderItemInfo<ListItem>) => {
+      if (item.kind === 'header') {
+        return <Text style={[styles.categoryHeader, { color: textMuted }]}>{item.label}</Text>;
+      }
+      const activity = item.activity;
+      const categoryName =
+        activity.categoryId != null ? (categoryNameById.get(activity.categoryId) ?? null) : null;
       if (isListToday) {
         return (
           <TodayActivityRow
-            activity={item}
-            completed={completionsByActivity.get(item.id)?.has(today) ?? false}
-            currentStreak={activityStreaks.get(item.id) ?? 0}
+            activity={activity}
+            completed={completionsByActivity.get(activity.id)?.has(today) ?? false}
+            currentStreak={activityStreaks.get(activity.id) ?? 0}
             onToggle={handleToggleToday}
             onOpen={handleOpenActivity}
-            editMode={editMode}
-            onEdit={handleEditActivity}
-            onDelete={handleDeleteActivity}
+            categoryName={categoryName}
+            onOpenCategoryPicker={handleOpenCategoryPicker}
             isDark={isDark}
           />
         );
       }
       return (
         <ActivityRow
-          activity={item}
+          activity={activity}
           weekDates={currentWeekDates}
           todayIso={today}
-          completedByDate={completionsByActivity.get(item.id) ?? EMPTY_SET}
-          currentStreak={activityStreaks.get(item.id) ?? 0}
+          completedByDate={completionsByActivity.get(activity.id) ?? EMPTY_SET}
+          currentStreak={activityStreaks.get(activity.id) ?? 0}
           onToggle={handleToggle}
           onOpen={handleOpenActivity}
-          editMode={editMode}
-          onEdit={handleEditActivity}
-          onDelete={handleDeleteActivity}
+          categoryName={categoryName}
+          onOpenCategoryPicker={handleOpenCategoryPicker}
           isDark={isDark}
         />
       );
@@ -552,19 +641,18 @@ export default function HomeScreen() {
       activityStreaks,
       today,
       currentWeekDates,
+      categoryNameById,
       handleToggle,
       handleToggleToday,
       handleOpenActivity,
-      editMode,
-      handleEditActivity,
-      handleDeleteActivity,
+      handleOpenCategoryPicker,
       isDark,
+      textMuted,
     ],
   );
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: BG }]}>
-
       {/* ── Page title ── */}
       <Text style={[styles.pageTitle, { color: textPrimary }]}>{t.tabs.habits}</Text>
 
@@ -576,10 +664,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.modeTabsInner}
         >
           {/* Sliding green segment — sits behind the labels. */}
-          <ReAnimated.View
-            pointerEvents="none"
-            style={[styles.modeTabPill, modePillStyle]}
-          />
+          <ReAnimated.View pointerEvents="none" style={[styles.modeTabPill, modePillStyle]} />
           {VIEW_MODES.map((m) => {
             const active = m.key === viewMode;
             return (
@@ -589,11 +674,13 @@ export default function HomeScreen() {
                 onPress={() => handleSetMode(m.key)}
                 style={styles.modeTab}
               >
-                <Text style={[
-                  styles.modeTabLabel,
-                  { color: active ? COLORS.primary : textMuted },
-                  active && styles.modeTabLabelActive,
-                ]}>
+                <Text
+                  style={[
+                    styles.modeTabLabel,
+                    { color: active ? COLORS.primary : textMuted },
+                    active && styles.modeTabLabelActive,
+                  ]}
+                >
                   {m.label}
                 </Text>
               </Pressable>
@@ -609,190 +696,234 @@ export default function HomeScreen() {
         *  scrolls beneath the (opaque) header.
         ─────────────────────────────────────────────────────────────────────── */}
       <View style={styles.bodyWrap}>
-        <ReAnimated.FlatList
-          data={listData}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          ListHeaderComponent={
-            activities.length > 0 ? (
-              <>
-                {showWidgetNudge ? (
-                  <ReAnimated.View
-                    entering={reduceMotion ? undefined : FadeInDown.duration(280)}
-                    style={[
-                      styles.widgetNudge,
-                      { backgroundColor: isDark ? '#1E2E20' : '#EAF8EE' },
-                    ]}
-                  >
-                    <View style={styles.widgetNudgeTextWrap}>
-                      <Text style={[styles.widgetNudgeTitle, { color: textPrimary }]}>
-                        {t.widget.nudgeTitle}
-                      </Text>
-                      <Text style={[styles.widgetNudgeBody, { color: textSec }]}>
-                        {t.widget.nudgeBody}
-                      </Text>
-                      <AnimatedPressable
-                        hapticStyle="none"
-                        style={styles.widgetNudgeCta}
-                        onPress={handleWidgetNudgeCta}
-                        accessibilityRole="button"
+        {editMode ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: textMuted }]}>
+                {t.home.habitsSection}
+              </Text>
+              <AnimatedPressable hapticStyle="none" hitSlop={8} onPress={handleToggleEditMode}>
+                <Text style={[styles.editToggle, { color: COLORS.primary }]}>{t.common.done}</Text>
+              </AnimatedPressable>
+            </View>
+            <ManageHabitsView
+              activities={activities}
+              categories={categories}
+              onReorderActivities={handleReorderActivities}
+              onReorderCategories={handleReorderCategories}
+              onDeleteActivity={handleDeleteActivity}
+              onEditActivity={handleEditActivity}
+              isDark={isDark}
+            />
+          </>
+        ) : (
+          <>
+            <ReAnimated.FlatList
+              data={listItems}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              ListHeaderComponent={
+                activities.length > 0 ? (
+                  <>
+                    {showWidgetNudge ? (
+                      <ReAnimated.View
+                        entering={reduceMotion ? undefined : FadeInDown.duration(280)}
+                        style={[
+                          styles.widgetNudge,
+                          { backgroundColor: isDark ? '#1E2E20' : '#EAF8EE' },
+                        ]}
                       >
-                        <Text style={styles.widgetNudgeCtaText}>{t.widget.nudgeCta}</Text>
-                      </AnimatedPressable>
-                    </View>
-                    <AnimatedPressable
-                      hapticStyle="none"
-                      hitSlop={8}
-                      onPress={handleWidgetNudgeDismiss}
-                      accessibilityRole="button"
-                      accessibilityLabel={t.widget.nudgeDismissAccessibilityLabel}
-                    >
-                      <MaterialCommunityIcons name="close" size={18} color={textMuted} />
-                    </AnimatedPressable>
-                  </ReAnimated.View>
-                ) : null}
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: textMuted }]}>
-                    {t.home.habitsSection}
-                  </Text>
-                  <View style={styles.sectionRight}>
-                    <Text style={[styles.sectionCount, { color: textMuted }]}>
-                      {t.home.activeCount(isListToday ? todayPlannedCount : activities.length)}
-                    </Text>
-                    <AnimatedPressable hapticStyle="none" hitSlop={8} onPress={handleToggleEditMode}>
-                      <Text style={[styles.editToggle, { color: COLORS.primary }]}>
-                        {editMode ? t.common.done : t.common.edit}
+                        <View style={styles.widgetNudgeTextWrap}>
+                          <Text style={[styles.widgetNudgeTitle, { color: textPrimary }]}>
+                            {t.widget.nudgeTitle}
+                          </Text>
+                          <Text style={[styles.widgetNudgeBody, { color: textSec }]}>
+                            {t.widget.nudgeBody}
+                          </Text>
+                          <AnimatedPressable
+                            hapticStyle="none"
+                            style={styles.widgetNudgeCta}
+                            onPress={handleWidgetNudgeCta}
+                            accessibilityRole="button"
+                          >
+                            <Text style={styles.widgetNudgeCtaText}>{t.widget.nudgeCta}</Text>
+                          </AnimatedPressable>
+                        </View>
+                        <AnimatedPressable
+                          hapticStyle="none"
+                          hitSlop={8}
+                          onPress={handleWidgetNudgeDismiss}
+                          accessibilityRole="button"
+                          accessibilityLabel={t.widget.nudgeDismissAccessibilityLabel}
+                        >
+                          <MaterialCommunityIcons name="close" size={18} color={textMuted} />
+                        </AnimatedPressable>
+                      </ReAnimated.View>
+                    ) : null}
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionTitle, { color: textMuted }]}>
+                        {t.home.habitsSection}
                       </Text>
-                    </AnimatedPressable>
+                      <View style={styles.sectionRight}>
+                        <Text style={[styles.sectionCount, { color: textMuted }]}>
+                          {t.home.activeCount(isListToday ? todayPlannedCount : activities.length)}
+                        </Text>
+                        <AnimatedPressable
+                          hapticStyle="none"
+                          hitSlop={8}
+                          onPress={handleToggleEditMode}
+                        >
+                          {/* This branch only ever renders while editMode is false
+                          (Manage mode swaps in a whole separate header+view,
+                          see below) — so this toggle only ever needs to say
+                          "Upravit", never "Hotovo". */}
+                          <Text style={[styles.editToggle, { color: COLORS.primary }]}>
+                            {t.common.edit}
+                          </Text>
+                        </AnimatedPressable>
+                      </View>
+                    </View>
+                  </>
+                ) : null
+              }
+              ListEmptyComponent={
+                !loaded ? null : activities.length === 0 ? (
+                  <View style={styles.empty}>
+                    <Image source={ICONS.target} style={styles.emptyIcon} resizeMode="contain" />
+                    <Text style={[styles.emptyTitle, { color: textPrimary }]}>
+                      {t.home.appTitle}
+                    </Text>
+                    <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
                   </View>
-                </View>
-              </>
-            ) : null
-          }
-          ListEmptyComponent={
-            !loaded ? null : activities.length === 0 ? (
-              <View style={styles.empty}>
-                <Image source={ICONS.target} style={styles.emptyIcon} resizeMode="contain" />
-                <Text style={[styles.emptyTitle, { color: textPrimary }]}>{t.home.appTitle}</Text>
-                <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.empty}</Text>
-              </View>
-            ) : isListToday ? (
-              <View style={styles.empty}>
-                <Image source={ICONS.partlyCloudy} style={styles.emptyIcon} resizeMode="contain" />
-                <Text style={[styles.emptyBody, { color: textSec }]}>{t.home.noHabitsToday}</Text>
-              </View>
-            ) : null
-          }
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          // contentAnimStyle (mode-switch fade/shift) lives on the OUTER,
-          // viewport-sized container — not on a content-sized wrapper — so the
-          // transform never promotes the whole list to a giant GPU layer.
-          style={[styles.list, { backgroundColor: BG }, contentAnimStyle]}
-          contentContainerStyle={[
-            styles.listContent,
-            headerVisible && { paddingTop: CIRCLE_H + HEADER_GAP + 4 },
-          ]}
-          showsVerticalScrollIndicator={false}
-          // Switching Today→Weekly remounts the heavier week rows. Mounting a
-          // small first batch and spreading the rest across frames keeps the
-          // switch from blocking a single frame (the hitch).
-          initialNumToRender={5}
-          maxToRenderPerBatch={4}
-          updateCellsBatchingPeriod={50}
-          windowSize={9}
-        />
+                ) : isListToday ? (
+                  <View style={styles.empty}>
+                    <Image
+                      source={ICONS.partlyCloudy}
+                      style={styles.emptyIcon}
+                      resizeMode="contain"
+                    />
+                    <Text style={[styles.emptyBody, { color: textSec }]}>
+                      {t.home.noHabitsToday}
+                    </Text>
+                  </View>
+                ) : null
+              }
+              onScroll={scrollHandler}
+              scrollEventThrottle={16}
+              // contentAnimStyle (mode-switch fade/shift) lives on the OUTER,
+              // viewport-sized container — not on a content-sized wrapper — so the
+              // transform never promotes the whole list to a giant GPU layer.
+              style={[styles.list, { backgroundColor: BG }, contentAnimStyle]}
+              contentContainerStyle={[
+                styles.listContent,
+                headerVisible && { paddingTop: CIRCLE_H + HEADER_GAP + 4 },
+              ]}
+              showsVerticalScrollIndicator={false}
+              // Switching Today→Weekly remounts the heavier week rows. Mounting a
+              // small first batch and spreading the rest across frames keeps the
+              // switch from blocking a single frame (the hitch).
+              initialNumToRender={5}
+              maxToRenderPerBatch={4}
+              updateCellsBatchingPeriod={50}
+              windowSize={9}
+            />
 
-        {/* ── Collapsing header overlay (absolute, transform-only) ──────────────
+            {/* ── Collapsing header overlay (absolute, transform-only) ──────────────
           *  Rendered after the ScrollView so it paints on top. Slides up via
           *  translateY; circle card anchored top, bar card anchored bottom, so
           *  the bar is what remains visible once collapsed.
           ──────────────────────────────────────────────────────────────────── */}
-        {headerVisible && (
-          <ReAnimated.View style={[
-            styles.headerZone,
-            { shadowColor: headerTheme.shadowColor },
-            isDark && { elevation: 0, shadowOpacity: 0 },
-            headerZoneAnimStyle,
-          ]}>
-            <HeaderGradient isPerfect={isHeaderPerfect} isDark={isDark} />
-            <CardConfetti active={celebrating} width={CARD_W} height={CIRCLE_H} />
+            {headerVisible && (
+              <ReAnimated.View
+                style={[
+                  styles.headerZone,
+                  { shadowColor: headerTheme.shadowColor },
+                  isDark && { elevation: 0, shadowOpacity: 0 },
+                  headerZoneAnimStyle,
+                ]}
+              >
+                <HeaderGradient isPerfect={isHeaderPerfect} isDark={isDark} />
+                <CardConfetti active={celebrating} width={CARD_W} height={CIRCLE_H} />
 
-            {/* ── State A: ring + tiered message card (anchored top) ── */}
-            <ReAnimated.View style={[styles.card, styles.circleCard, circleCardAnimStyle]}>
-              <ReAnimated.View style={ringPopStyle}>
-                <CircularProgress
-                  size={84}
-                  strokeWidth={9}
-                  progress={headerRatio}
-                  color={headerTheme.ringColor}
-                  trackColor={headerTheme.ringTrack}
-                >
-                  <View style={styles.ringInner}>
-                    <CountUpText
-                      value={headerPct}
-                      suffix="%"
-                      style={[styles.ringPct, { color: headerTheme.textPrimary }]}
-                    />
-                    <Text style={[styles.ringFraction, { color: headerTheme.textTertiary }]}>
-                      {headerCompleted}/{headerPlanned}
-                    </Text>
-                  </View>
-                </CircularProgress>
-              </ReAnimated.View>
-
-              <View style={styles.circleText}>
-                <ReAnimated.View
-                  key={headerTier}
-                  entering={reduceMotion ? undefined : FadeInDown.duration(280)}
-                >
-                  <View style={[styles.tierPill, { backgroundColor: headerTheme.pillBg }]}>
-                    <Image source={tierIcon} style={styles.tierPillIcon} resizeMode="contain" />
-                    <Text
-                      style={[styles.tierPillText, { color: headerTheme.pillText }]}
-                      numberOfLines={2}
+                {/* ── State A: ring + tiered message card (anchored top) ── */}
+                <ReAnimated.View style={[styles.card, styles.circleCard, circleCardAnimStyle]}>
+                  <ReAnimated.View style={ringPopStyle}>
+                    <CircularProgress
+                      size={84}
+                      strokeWidth={9}
+                      progress={headerRatio}
+                      color={headerTheme.ringColor}
+                      trackColor={headerTheme.ringTrack}
                     >
-                      {tierTitle}
+                      <View style={styles.ringInner}>
+                        <CountUpText
+                          value={headerPct}
+                          suffix="%"
+                          style={[styles.ringPct, { color: headerTheme.textPrimary }]}
+                        />
+                        <Text style={[styles.ringFraction, { color: headerTheme.textTertiary }]}>
+                          {headerCompleted}/{headerPlanned}
+                        </Text>
+                      </View>
+                    </CircularProgress>
+                  </ReAnimated.View>
+
+                  <View style={styles.circleText}>
+                    <ReAnimated.View
+                      key={headerTier}
+                      entering={reduceMotion ? undefined : FadeInDown.duration(280)}
+                    >
+                      <View style={[styles.tierPill, { backgroundColor: headerTheme.pillBg }]}>
+                        <Image source={tierIcon} style={styles.tierPillIcon} resizeMode="contain" />
+                        <Text
+                          style={[styles.tierPillText, { color: headerTheme.pillText }]}
+                          numberOfLines={2}
+                        >
+                          {tierTitle}
+                        </Text>
+                      </View>
+                    </ReAnimated.View>
+                    <Text style={[styles.summaryLine, { color: headerTheme.textPrimary }]}>
+                      {summaryLine}
                     </Text>
                   </View>
                 </ReAnimated.View>
-                <Text style={[styles.summaryLine, { color: headerTheme.textPrimary }]}>
-                  {summaryLine}
-                </Text>
-              </View>
-            </ReAnimated.View>
 
-            {/* ── State B: compact bar (anchored bottom) ── */}
-            <ReAnimated.View style={[styles.barCard, barCardAnimStyle]}>
-              <View style={styles.barHeader}>
-                <Text style={[styles.heroLabel, { color: headerTheme.textSecondary }]}>
-                  {headerLabel}
-                </Text>
-                {/* Sibling Texts — avoids nested-Text rendering quirks in RN */}
-                <View style={styles.barRight}>
-                  <Text style={[styles.barCount, { color: headerTheme.textPrimary }]}>
-                    {headerCount}
-                  </Text>
-                  <CountUpText
-                    value={headerPct}
-                    suffix="%"
-                    style={[styles.barPct, { color: headerTheme.textTertiary }]}
-                  />
-                </View>
-              </View>
-              <View style={[styles.progressTrack, { backgroundColor: headerTheme.barTrack }]}>
-                {/* No borderRadius on fill — at 1–4% width the rounded ends overlap
+                {/* ── State B: compact bar (anchored bottom) ── */}
+                <ReAnimated.View style={[styles.barCard, barCardAnimStyle]}>
+                  <View style={styles.barHeader}>
+                    <Text style={[styles.heroLabel, { color: headerTheme.textSecondary }]}>
+                      {headerLabel}
+                    </Text>
+                    {/* Sibling Texts — avoids nested-Text rendering quirks in RN */}
+                    <View style={styles.barRight}>
+                      <Text style={[styles.barCount, { color: headerTheme.textPrimary }]}>
+                        {headerCount}
+                      </Text>
+                      <CountUpText
+                        value={headerPct}
+                        suffix="%"
+                        style={[styles.barPct, { color: headerTheme.textTertiary }]}
+                      />
+                    </View>
+                  </View>
+                  <View style={[styles.progressTrack, { backgroundColor: headerTheme.barTrack }]}>
+                    {/* No borderRadius on fill — at 1–4% width the rounded ends overlap
                     and the fill disappears. Parent overflow:hidden provides the clip. */}
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${headerPct}%` as `${number}%`, backgroundColor: headerTheme.barFill },
-                  ]}
-                />
-              </View>
-            </ReAnimated.View>
-
-          </ReAnimated.View>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${headerPct}%` as `${number}%`,
+                          backgroundColor: headerTheme.barFill,
+                        },
+                      ]}
+                    />
+                  </View>
+                </ReAnimated.View>
+              </ReAnimated.View>
+            )}
+          </>
         )}
       </View>
 
@@ -824,6 +955,15 @@ export default function HomeScreen() {
         onDelete={handleDeleteActivity}
       />
 
+      {/* ── Quick category picker (edit-mode row, Weekly view) ── */}
+      <CategoryPickerSheet
+        visible={categoryPickerActivityId !== null}
+        activity={categoryPickerActivity}
+        categories={categories}
+        onClose={handleCloseCategoryPicker}
+        onSelect={handleSelectCategory}
+        onCreate={createCategory}
+      />
     </SafeAreaView>
   );
 }
@@ -1087,6 +1227,15 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.extraBold,
   },
 
+  // ── Category header (inline in the list, only when categories are used) ──
+  categoryHeader: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    paddingHorizontal: 22,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+
   // ── Empty state ───────────────────────────────────────────────────────────
   empty: {
     alignItems: 'center',
@@ -1097,7 +1246,7 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 56, marginBottom: 16 },
   emptyIcon: { width: 60, height: 60, marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontFamily: FONTS.bold, marginBottom: 8 },
-  emptyBody:  { fontSize: 14, fontFamily: FONTS.semiBold, textAlign: 'center' },
+  emptyBody: { fontSize: 14, fontFamily: FONTS.semiBold, textAlign: 'center' },
 
   // ── FAB ──────────────────────────────────────────────────────────────────────
   fab: {

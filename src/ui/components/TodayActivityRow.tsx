@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,7 +18,6 @@ import { useTranslation } from '@/i18n';
 import { tapLight, tapMedium } from '@/ui/anim/haptics';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
-import { EditMinusButton } from './EditMinusButton';
 
 // Vlastní ikona (assets/icons/flame.png) nahrazující 🔥 — viz vault design/visual-assets.md.
 const FLAME_ICON = require('../../../assets/icons/flame.png');
@@ -30,11 +29,11 @@ interface TodayActivityRowProps {
   /** Stable callback — receives the activity id so one fn serves every row. */
   onToggle: (activityId: number) => void;
   onOpen?: (activityId: number) => void;
-  /** List edit mode (toggled from the section header) — shows the remove
-   *  control and routes a row tap straight to editing instead of toggling. */
-  editMode?: boolean;
-  onEdit?: (activityId: number) => void;
-  onDelete?: (activityId: number) => void;
+  /** Resolved category name (parent looks it up by `activity.categoryId`) —
+   *  undefined/null hides the chip entirely (unassigned habit). */
+  categoryName?: string | null;
+  /** Opens the quick category picker — tapping the always-visible chip. */
+  onOpenCategoryPicker?: (activityId: number) => void;
   isDark?: boolean;
 }
 
@@ -44,17 +43,17 @@ function TodayActivityRowImpl({
   currentStreak = 0,
   onToggle,
   onOpen,
-  editMode = false,
-  onEdit,
-  onDelete,
+  categoryName,
+  onOpenCategoryPicker,
   isDark = false,
 }: TodayActivityRowProps) {
   const t = useTranslation();
-  const cardBg     = isDark ? '#2C2C2E' : '#FFFFFF';
-  const nameColor  = isDark ? '#F2F2F7' : '#1A1A1A';
-  const metaColor  = isDark ? '#ABABAB' : '#888888';
-  const ringColor  = isDark ? '#3A3A3C' : '#E2E4E8';
-  const editBtnBg  = isDark ? 'rgba(76,141,240,0.18)' : '#EEF4FF';
+  const cardBg = isDark ? '#2C2C2E' : '#FFFFFF';
+  const nameColor = isDark ? '#F2F2F7' : '#1A1A1A';
+  const metaColor = isDark ? '#ABABAB' : '#888888';
+  const ringColor = isDark ? '#3A3A3C' : '#E2E4E8';
+  const chipBg = isDark ? '#3A3A3C' : '#F0F0F0';
+  const chipFg = isDark ? '#ABABAB' : '#777777';
 
   const badgeBg = getPastelColor(activity.color);
   const reduceMotion = useReduceMotion();
@@ -103,11 +102,7 @@ function TodayActivityRowImpl({
   }, [completed, reduceMotion, fill, scale, checkOpacity, checkScale]);
 
   const circleAnimatedStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      fill.value,
-      [0, 1],
-      [`${activity.color}00`, activity.color],
-    ),
+    backgroundColor: interpolateColor(fill.value, [0, 1], [`${activity.color}00`, activity.color]),
     transform: [{ scale: scale.value }],
   }));
 
@@ -116,97 +111,70 @@ function TodayActivityRowImpl({
     transform: [{ scale: checkScale.value }],
   }));
 
-  // ── Checkbox ↔ edit-button cross-fade (driven by editMode) ─────────────────
-  const editProgress = useSharedValue(editMode ? 1 : 0);
-  useEffect(() => {
-    editProgress.value = reduceMotion
-      ? editMode ? 1 : 0
-      : withTiming(editMode ? 1 : 0, { duration: 200 });
-  }, [editMode, reduceMotion, editProgress]);
-
-  const checkboxLayerStyle = useAnimatedStyle(() => ({ opacity: 1 - editProgress.value }));
-  const editButtonLayerStyle = useAnimatedStyle(() => ({ opacity: editProgress.value }));
-
   return (
     <Pressable
-      onPress={editMode && onEdit ? () => onEdit(activity.id) : undefined}
-      onLongPress={!editMode && onOpen ? () => onOpen(activity.id) : undefined}
+      onLongPress={onOpen ? () => onOpen(activity.id) : undefined}
       delayLongPress={400}
       android_ripple={{ color: `${activity.color}18` }}
       style={[styles.card, { backgroundColor: cardBg }]}
       accessibilityRole="button"
       accessibilityLabel={activity.name}
     >
-      {onDelete ? (
-        <EditMinusButton
-          editMode={editMode}
-          onPress={() => onDelete(activity.id)}
-          accessibilityLabel={`${t.common.delete} – ${activity.name}`}
-        />
-      ) : null}
-
       <View style={styles.content}>
         {/* ── Pastel badge ── */}
         <View style={[styles.badge, { backgroundColor: badgeBg }]}>
           <Text style={styles.badgeEmoji}>{activity.emoji}</Text>
         </View>
 
-        {/* ── Name + streak ── */}
+        {/* ── Name + streak + category chip ── */}
         <View style={styles.nameBlock}>
           <Text style={[styles.name, { color: nameColor }]} numberOfLines={1}>
             {activity.name}
           </Text>
-          {currentStreak > 0 ? (
-            <View style={styles.metaRow}>
-              <Image source={FLAME_ICON} style={styles.metaIcon} resizeMode="contain" />
-              <Text style={[styles.metaText, { color: metaColor }]} numberOfLines={1}>
-                {t.home.nDays(currentStreak)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* ── Action slot: checkbox (normal) ↔ edit button (edit mode) ── */}
-        <View style={styles.actionSlot}>
-          <Animated.View
-            style={[styles.actionLayer, checkboxLayerStyle]}
-            pointerEvents={editMode ? 'none' : 'auto'}
-          >
-            <Pressable
-              onPress={() => onToggle(activity.id)}
-              hitSlop={10}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: completed }}
-            >
-              <Animated.View
-                style={[
-                  styles.checkbox,
-                  { borderColor: completed ? activity.color : ringColor },
-                  circleAnimatedStyle,
-                ]}
+          <View style={styles.metaRow}>
+            {currentStreak > 0 ? (
+              <View style={styles.metaGroup}>
+                <Image source={FLAME_ICON} style={styles.metaIcon} resizeMode="contain" />
+                <Text style={[styles.metaText, { color: metaColor }]} numberOfLines={1}>
+                  {t.home.nDays(currentStreak)}
+                </Text>
+              </View>
+            ) : null}
+            {categoryName ? (
+              <AnimatedPressable
+                hapticStyle="light"
+                onPress={() => onOpenCategoryPicker?.(activity.id)}
+                style={[styles.categoryChip, { backgroundColor: chipBg }]}
+                accessibilityRole="button"
+                accessibilityLabel={`${t.activity.categoryLabel}: ${categoryName}`}
               >
-                <Animated.View style={checkAnimatedStyle}>
-                  <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
-                </Animated.View>
-              </Animated.View>
-            </Pressable>
-          </Animated.View>
-
-          <Animated.View
-            style={[styles.actionLayer, editButtonLayerStyle]}
-            pointerEvents={editMode ? 'auto' : 'none'}
-          >
-            <AnimatedPressable
-              style={[styles.editButton, { backgroundColor: editBtnBg }]}
-              hapticStyle="light"
-              onPress={() => onEdit?.(activity.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`${t.common.edit} – ${activity.name}`}
-            >
-              <MaterialCommunityIcons name="pencil-outline" size={18} color="#4C8DF0" />
-            </AnimatedPressable>
-          </Animated.View>
+                <Text style={[styles.categoryChipText, { color: chipFg }]} numberOfLines={1}>
+                  {categoryName}
+                </Text>
+              </AnimatedPressable>
+            ) : null}
+          </View>
         </View>
+
+        {/* ── Checkbox ── */}
+        <Pressable
+          onPress={() => onToggle(activity.id)}
+          hitSlop={10}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: completed }}
+        >
+          <Animated.View
+            style={[
+              styles.checkbox,
+              { borderColor: completed ? activity.color : ringColor },
+              circleAnimatedStyle,
+            ]}
+          >
+            <Animated.View style={checkAnimatedStyle}>
+              <MaterialCommunityIcons name="check" size={20} color="#FFFFFF" />
+            </Animated.View>
+          </Animated.View>
+        </Pressable>
       </View>
     </Pressable>
   );
@@ -262,26 +230,29 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginTop: 3,
+    minHeight: 15,
+  },
+  metaGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaIcon: { width: 13, height: 13 },
   metaText: {
     fontSize: 12.5,
     fontFamily: FONTS.semiBold,
   },
-
-  // Fixed-size slot the checkbox and edit button cross-fade within, so
-  // swapping never shifts row layout.
-  actionSlot: {
-    width: 32,
-    height: 32,
-    flexShrink: 0,
+  categoryChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    maxWidth: 120,
   },
-  actionLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+  categoryChipText: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
   },
 
   checkbox: {
@@ -292,13 +263,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-
-  editButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

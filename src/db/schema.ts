@@ -2,6 +2,21 @@ import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 
 /**
+ * Kategorie pro vizuální seskupení návyků (Habits view) — čistě organizační,
+ * bez vlastní logiky/pravidel. Smazání kategorie neodstraní aktivity, jen je
+ * odkategorizuje (ON DELETE SET NULL na activities.categoryId).
+ */
+export const categories = sqliteTable('categories', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  /** Pořadí kategorií (Manage Habits Mode) — přeřaditelné tažením. */
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: integer('created_at')
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+/**
  * Aktivity, které uživatel sleduje.
  *
  * scheduledDaysMask — bitmaska 7 dní; bit 0 = pondělí, bit 6 = neděle.
@@ -13,6 +28,9 @@ export const activities = sqliteTable('activities', {
   emoji: text('emoji').notNull(),
   color: text('color').notNull(),
   scheduledDaysMask: integer('scheduled_days_mask').notNull().default(0),
+  categoryId: integer('category_id').references(() => categories.id, { onDelete: 'set null' }),
+  /** Pořadí uvnitř kategorie (nebo uvnitř "bez kategorie") — Manage Habits Mode. */
+  sortOrder: integer('sort_order').notNull().default(0),
   createdAt: integer('created_at')
     .notNull()
     .default(sql`(unixepoch() * 1000)`),
@@ -38,10 +56,7 @@ export const completions = sqliteTable(
       .default(sql`(unixepoch() * 1000)`),
   },
   (table) => ({
-    uniqActivityDate: uniqueIndex('uniq_completion_activity_date').on(
-      table.activityId,
-      table.date,
-    ),
+    uniqActivityDate: uniqueIndex('uniq_completion_activity_date').on(table.activityId, table.date),
     dateIdx: index('completion_date_idx').on(table.date),
   }),
 );
@@ -71,3 +86,5 @@ export type CompletionRow = typeof completions.$inferSelect;
 export type NewCompletionRow = typeof completions.$inferInsert;
 export type StreakFreezeRow = typeof streakFreezes.$inferSelect;
 export type NewStreakFreezeRow = typeof streakFreezes.$inferInsert;
+export type CategoryRow = typeof categories.$inferSelect;
+export type NewCategoryRow = typeof categories.$inferInsert;

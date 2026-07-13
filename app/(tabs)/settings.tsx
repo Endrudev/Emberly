@@ -23,6 +23,7 @@ import * as Notifications from 'expo-notifications';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useAppStore } from '@/store/useAppStore';
+import { useFunnelStore } from '@/store/useFunnelStore';
 import { useSettingsStore, type WeekStart } from '@/store/useSettingsStore';
 import { usePurchasesStore, useIsPremium } from '@/store/usePurchasesStore';
 import { seedDemoData } from '@/db/demoSeed';
@@ -437,11 +438,12 @@ export default function SettingsScreen() {
             iconBg="#EEF4FF"
             label={t.settings.language}
             value={
-              settings.language === 'cs'
-                ? t.settings.languageCz
-                : settings.language === 'en'
-                  ? t.settings.languageEn
-                  : t.settings.languageAuto
+              {
+                cs: t.settings.languageCz,
+                en: t.settings.languageEn,
+                de: t.settings.languageDe,
+                auto: t.settings.languageAuto,
+              }[settings.language]
             }
             onPress={() => router.push('/settings/language')}
             isLast
@@ -540,6 +542,10 @@ export default function SettingsScreen() {
             iconBg="#E8F7EB"
             label={t.settings.replayOnboardingLabel}
             onPress={() => {
+              // Funnel store se resetuje tady (ne při dokončení funnelu) —
+              // viz komentář v `applyFunnelAnswers.ts` proč reset na konci
+              // způsoboval probliknutí prvního kroku při přechodu do appky.
+              useFunnelStore.getState().reset();
               settings.resetOnboarding();
               router.replace('/funnel');
             }}

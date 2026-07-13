@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type AppTheme = 'system' | 'light' | 'dark';
 export type WeekStart = 'monday' | 'sunday';
-export type AppLanguage = 'auto' | 'cs' | 'en';
+export type AppLanguage = 'auto' | 'cs' | 'en' | 'de';
 
 /** date-fns `weekStartsOn` konvence (0=neděle, 1=pondělí) odpovídající nastavení. */
 export function weekStartFlag(weekStart: WeekStart): 0 | 1 {

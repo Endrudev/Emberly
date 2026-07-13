@@ -54,12 +54,14 @@ export const en = {
     daysLeftThisWeek: (n: number) => `${n} ${n === 1 ? 'day' : 'days'} left this week`,
     habitsSection: 'YOUR HABITS',
     activeCount: (n: number) => `${n} active`,
+    uncategorized: 'Other',
+    categoryOrderLabel: 'Category order',
     everyDay: 'Everyday',
     nDays: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
     greatWeek: 'Great week!',
     goodWeek: 'Good week!',
     okWeek: 'Not bad.',
-    badWeek: 'Let\'s go!',
+    badWeek: "Let's go!",
     periodToday: 'today',
     periodThisWeek: 'this week',
     periodDayNoun: 'day',
@@ -69,7 +71,8 @@ export const en = {
     tierPerfectTitle: (periodNoun: string) => `Perfect ${periodNoun}!`,
     summaryOfTotal: (done: number, total: number, periodWord: string) =>
       `${done} of ${total} habits ${periodWord}`,
-    summaryLeftSubtext: (n: number, periodNoun: string) => `${n} more and the ${periodNoun} is perfect`,
+    summaryLeftSubtext: (n: number, periodNoun: string) =>
+      `${n} more and the ${periodNoun} is perfect`,
     summaryAllDoneSubtext: (periodNoun: string) => `All done — enjoy the whole ${periodNoun}!`,
   },
   activity: {
@@ -90,6 +93,10 @@ export const en = {
     presetWeekdays: 'Weekdays',
     presetWeekend: 'Weekend',
     presetCustom: 'Custom',
+    categoryLabel: 'Category',
+    newCategoryLabel: 'New',
+    newCategoryPlaceholder: 'Category name',
+    noCategoryLabel: 'No category',
     deleteActivity: 'Delete activity',
     deleteConfirmTitle: 'Delete activity?',
     deleteConfirmBody: 'The activity and all its history will be permanently deleted.',
@@ -151,18 +158,25 @@ export const en = {
     dayStreak: 'day streak',
     daysToNextBadge: (n: number, badge: string) =>
       `${n} ${n === 1 ? 'day' : 'days'} to badge ${badge}`,
-    keepGoing: 'Keep going — don\'t break the chain.',
+    keepGoing: "Keep going — don't break the chain.",
     noStreak: 'Start today!',
     noStreakSub: 'Check off your first activity and start a streak.',
-    maxReached: '🏆 You\'ve reached the max!',
+    maxReached: "🏆 You've reached the max!",
     tiersTitle: 'STREAK TIERS',
-    youreHere: 'You\'re here',
+    youreHere: "You're here",
     tiers: [
       { key: 'spark', name: 'Spark', emoji: '🕯️', min: 1, max: 6, label: '1–6 day streak' },
       { key: 'flame', name: 'Flame', emoji: '🔥', min: 7, max: 29, label: '7–29 day streak' },
       { key: 'blaze', name: 'Blaze', emoji: '🔥🔥', min: 30, max: 59, label: '30–59 day streak' },
       { key: 'inferno', name: 'Inferno', emoji: '🌋', min: 60, max: 99, label: '60–99 day streak' },
-      { key: 'legendary', name: 'Legendary', emoji: '⚡⚡', min: 100, max: Infinity, label: '100+ day streak' },
+      {
+        key: 'legendary',
+        name: 'Legendary',
+        emoji: '⚡⚡',
+        min: 100,
+        max: Infinity,
+        label: '100+ day streak',
+      },
     ] as const,
   },
   streakFreeze: {
@@ -203,7 +217,7 @@ export const en = {
     autoBackupDescription:
       "Your habits and settings are automatically backed up to your Google account and restored after reinstalling the app. Backups aren't instant — typically once a day, while charging on Wi-Fi.",
     persistentNotification: 'Persistent notification',
-    persistentNotificationDescription: 'Shows daily streak and today\'s progress.',
+    persistentNotificationDescription: "Shows daily streak and today's progress.",
     exportData: 'Export data',
     importData: 'Import data',
     resetData: 'Reset all data',
@@ -216,7 +230,7 @@ export const en = {
     reportProblemEmailSubject: 'Emberly beta – bug report',
     reportProblemEmailBody: (appVersion: string, device: string, os: string) =>
       `App version: ${appVersion}\nDevice: ${device}\nOS: ${os}\n\nDescribe what happened:\n`,
-    reportProblemErrorTitle: 'Couldn\'t open',
+    reportProblemErrorTitle: "Couldn't open",
     reportProblemErrorBody: (email: string) => `Please email us manually at ${email}.`,
     replayOnboardingLabel: 'Replay onboarding',
     about: 'About',
@@ -230,6 +244,7 @@ export const en = {
     languageAuto: 'Auto',
     languageCz: 'Čeština',
     languageEn: 'English',
+    languageDe: 'Deutsch',
   },
   // Local scheduled reminders (daily + streak-at-risk) — in the mascot
   // Ember's voice. NOT to be confused with `notification` below, which is
@@ -256,7 +271,8 @@ export const en = {
     },
     promise: {
       title: "Most people quit. You won't.",
-      subtitle: "Emberly is built for exactly that — to keep your streak alive even on the days you don't feel like it.",
+      subtitle:
+        "Emberly is built for exactly that — to keep your streak alive even on the days you don't feel like it.",
       cta: 'I want that too',
     },
     categoriesStep: {
@@ -397,7 +413,7 @@ export const en = {
     lockTierTitle: 'Higher tiers are Premium',
     lockTierBody: 'Unlock all streak tiers and watch Emberly grow all the way to legend.',
     lockStreakFreezeTitle: 'Streak protection is Premium',
-    lockStreakFreezeBody: "Never lose your streak again over one forgotten day.",
+    lockStreakFreezeBody: 'Never lose your streak again over one forgotten day.',
     // Settings section
     subscriptionSection: 'SUBSCRIPTION',
     upgradeTitle: 'Upgrade to Premium',
@@ -437,8 +453,7 @@ export const en = {
     streakLabel: '🔥 Streak: %d days',
     progressLabel: 'Today: %d/%d done',
     permissionRequiredTitle: 'Notification permission',
-    permissionRequiredBody:
-      'We need notification permission to show your daily streak.',
+    permissionRequiredBody: 'We need notification permission to show your daily streak.',
   },
   reviewer: {
     title: 'Reviewer access',

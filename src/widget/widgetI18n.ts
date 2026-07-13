@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 
-export type WidgetLang = 'cs' | 'en';
+export type WidgetLang = 'cs' | 'en' | 'de';
 
 const SETTINGS_KEY = 'emberly-settings';
 
@@ -11,13 +11,15 @@ export async function resolveWidgetLanguage(): Promise<WidgetLang> {
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const lang = (JSON.parse(raw)?.state?.language as string | undefined) ?? 'auto';
-      if (lang === 'cs' || lang === 'en') return lang;
+      if (lang === 'cs' || lang === 'en' || lang === 'de') return lang;
     }
   } catch {
     // ignore — fall through to device locale
   }
   const code = getLocales()[0]?.languageCode ?? 'en';
-  return code === 'cs' ? 'cs' : 'en';
+  if (code === 'cs') return 'cs';
+  if (code === 'de') return 'de';
+  return 'en';
 }
 
 /** Stejný princip jako jazyk výše — "začátek týdne" čteme přímo z AsyncStorage. */
@@ -73,6 +75,26 @@ export const widgetStrings = {
     newRecordHeadline: (n: number) => `${n} days`,
     newRecordSubtitle: (n: number) => `Day complete — all ${n} habits ✓`,
     back: '← Back',
+  },
+  de: {
+    dayLabels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] as const,
+    today: 'HEUTE',
+    noActivitiesToday: 'Heute keine Aktivitäten 🎉',
+    completed: 'erledigt',
+    notCompleted: 'nicht erledigt',
+    streakHeadline: (streak: number) => (streak > 0 ? 'Längste Serie!' : 'Starte heute eine Serie!'),
+    badgeEarned: (target: number) => `Abzeichen „${target}" erhalten! 🏆`,
+    daysToBadge: (n: number, target: number) =>
+      `Noch ${n} ${n === 1 ? 'Tag' : 'Tage'} bis zum Abzeichen „${target}"`,
+    streakShield: '📦 Serienschutz 1×',
+    personalRecordBadge: '🎉 Persönlicher Rekord',
+    allDoneTitle: 'Heute alles erledigt!',
+    allDoneSubtitle: (n: number) => `Alle ${n} Gewohnheiten erledigt 🎉`,
+    streakProgress: (prev: number, current: number) => `Serie ${prev} → ${current} Tage`,
+    newRecordTitle: 'Neue längste Serie!',
+    newRecordHeadline: (n: number) => `${n} Tage`,
+    newRecordSubtitle: (n: number) => `Tag erledigt — alle ${n} Gewohnheiten ✓`,
+    back: '← Zurück',
   },
 } as const;
 

@@ -15,6 +15,20 @@
       "when": 1782233263372,
       "tag": "0001_jittery_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783964791877,
+      "tag": "0002_shocking_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1783967255801,
+      "tag": "0003_nappy_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

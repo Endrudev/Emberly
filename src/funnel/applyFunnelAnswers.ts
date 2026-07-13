@@ -21,7 +21,7 @@ import { FUNNEL_CATEGORIES, type FunnelCategoryKey } from './categories';
 export async function applyFunnelAnswers(
   categoryLabels: Record<FunnelCategoryKey, string>,
 ): Promise<void> {
-  const { answers, reset } = useFunnelStore.getState();
+  const { answers } = useFunnelStore.getState();
   const { createActivity } = useAppStore.getState();
 
   for (const categoryKey of answers.categories) {
@@ -36,5 +36,10 @@ export async function applyFunnelAnswers(
   }
 
   useSettingsStore.getState().completeOnboarding();
-  reset();
+  // Funnel store se NEresetuje tady — `stepIndex` je reaktivně čtený v
+  // `FunnelEngine`, takže reset na 0 by za běhu ještě mountnutého funnel
+  // screenu (během přechodu na `router.replace('/(tabs)')`) na zlomek
+  // vteřiny přerenderoval na první onboarding krok (viditelný "problikne").
+  // Reset se místo toho dělá při vstupu do funnelu znovu (dev "Restart
+  // onboarding") — viz `app/(tabs)/settings.tsx`.
 }

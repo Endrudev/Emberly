@@ -1,7 +1,7 @@
 import { addDays } from 'date-fns';
 
 import { db } from './client';
-import { activities, completions, streakFreezes } from './schema';
+import { activities, categories, completions, streakFreezes } from './schema';
 import type { DayOfWeek } from '@/domain/types';
 import { daysToMask, dowOf, parseIsoDate, toIsoDate, todayIso } from '@/domain/week';
 
@@ -45,6 +45,7 @@ export async function seedDemoData(): Promise<void> {
   await db.delete(completions);
   await db.delete(streakFreezes);
   await db.delete(activities);
+  await db.delete(categories);
 
   const today = todayIso();
   const todayDate = parseIsoDate(today);

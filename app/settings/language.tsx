@@ -9,7 +9,7 @@ import { useAppTheme } from '@/ui/useAppTheme';
 import { COLORS, FONTS } from '@/ui/theme';
 import { useTranslation } from '@/i18n';
 
-const LANGUAGES: AppLanguage[] = ['auto', 'cs', 'en'];
+const LANGUAGES: AppLanguage[] = ['auto', 'cs', 'en', 'de'];
 
 export default function LanguageScreen() {
   const t = useTranslation();
@@ -20,6 +20,7 @@ export default function LanguageScreen() {
   function labelFor(lang: AppLanguage) {
     if (lang === 'auto') return t.settings.languageAuto;
     if (lang === 'cs') return t.settings.languageCz;
+    if (lang === 'de') return t.settings.languageDe;
     return t.settings.languageEn;
   }
 

@@ -11,6 +11,19 @@ export interface Activity {
   scheduledDays: DayOfWeek[];
   archived: boolean;
   createdAt: number;
+  /** Volitelné vizuální seskupení (Habits view) — null = nezařazeno. */
+  categoryId: number | null;
+  /** Pořadí uvnitř kategorie (nebo uvnitř "bez kategorie") — Manage Habits Mode. */
+  sortOrder: number;
+}
+
+/** Čistě vizuální seskupení návyků — žádná vlastní logika/pravidla. */
+export interface Category {
+  id: number;
+  name: string;
+  /** Pořadí kategorií samotných — Manage Habits Mode. */
+  sortOrder: number;
+  createdAt: number;
 }
 
 export interface Completion {
