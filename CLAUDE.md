@@ -356,6 +356,78 @@ Premium uživatel má automatickou ochranu denního streaku (headline stat na St
   (earned ✓ / premium-locked 🔒 / nedosažené ztlumené); freeze karta s ledovým plamínkem. Tier badge
   assety jsou RGBA (pozadí odstraněno flood-fillem od okrajů, viz Emberly assety výše).
 
+### Kategorie návyků a Manage Habits Mode
+Kategorie jsou **čistě vizuální seskupení** (Habits view) — žádná vlastní logika/pravidla,
+funkčně identické s nezařazenými návyky. Vzniklo v backlogu jako "Kategorie návyků" +
+"Manage Habits Mode", teď obojí hotové a propojené.
+- **Schéma**: nová tabulka `categories` (`src/db/schema.ts`, migrace `0002`) + `activities.categoryId`
+  (nullable FK). `ON DELETE SET NULL` se ale **nespoléhá na SQLite FK enforcement** (appka nikde
+  nezapíná `PRAGMA foreign_keys`) — `categoryRepo.delete()` explicitně nejdřív odkategorizuje
+  aktivity (`UPDATE ... SET category_id = NULL`), pak teprve smaže řádek kategorie.
+- **`sortOrder` (migrace `0003`)** na `activities` i `categories` — unikátní jen **v rámci
+  skupiny** (kategorie, nebo "bez kategorie"), ne globálně. Řazení uvnitř skupiny přes
+  `activityRepo.reorder(orderedIds)` / `categoryRepo.reorder(orderedIds)`.
+  ⚠️ **Gotcha, na kterou narazit příště:** jakákoli store akce, co mění `categoryId`/`sortOrder`
+  u aktivity (`setActivityCategory`, `updateActivity`), musí po patchi **znovu seřadit** lokální
+  pole `activities` podle `sortOrder` (`patched.sort((a,b) => a.sortOrder - b.sortOrder)`) —
+  jinak zůstane přesunutá aktivita na svém starém místě v poli, i když má nové `sortOrder`, a
+  konzumenti co seskupují podle kategorie přes `.filter()` (spoléhající na pořadí pole) ji ukážou
+  na špatném místě (vizuálně "nahradí" jinou položku ve stejné skupině).
+- **Manage mode** (`src/ui/components/ManageHabitsView.tsx`) nahrazuje virtualizovaný FlatList,
+  když je zapnutý `editMode` — drag & drop řazení je **vlastní implementace** nad
+  `react-native-gesture-handler` + `reanimated` (`ReorderableGroup.tsx`), žádná knihovna navíc.
+  NeVirtualizovaný záměrně (pár položek, jednodušší drag logika víc než výkon).
+  ⚠️ **Gotcha #1 (drag matematika)**: offset tažení se musí počítat od **zafixované počáteční
+  pozice** (zachycené jednou v `onStart`), ne přepočítávat živě z `positions.value[originalIndex]`
+  při každém update — ta hodnota se sama mění, jak se posouvají ostatní řádky, takže "pohyblivá
+  základna + kumulativní offset" se exponenciálně rozjíždí a tažená položka skončí vždy na konci
+  seznamu bez ohledu na to, kam ji pustíš.
+  ⚠️ **Gotcha #2 (NaN pozice)**: `positions` shared value se resetuje až v `useEffect` PO renderu,
+  kdy se skupina zvětší (nová položka v kategorii) — na prvním renderu nové položky je
+  `positions.value[originalIndex]` mimo rozsah (`undefined` → `NaN` → `withSpring` z `NaN` zůstane
+  `NaN` navždy, dokud gesto hodnotu napřímo nepřepíše). Řešení: `positions.value[i] ?? i` — fallback
+  na `originalIndex` je navíc přesně ta správná hodnota (identity mapping), ne jen záchranná síť.
+  ⚠️ **Gotcha #3 (mezery mezi řádky)**: `ReorderableGroup` pozicuje řádky přes `top = slot *
+  itemHeight` — `marginBottom` na samotném řádku je neviditelný (další řádek začíná přesně na
+  `itemHeight`, ne na `výška + margin`). Mezeru je nutné zapéct přímo do `itemHeight` (`rowHeight +
+  gap`), ne řešit marginem.
+- **Kategorie se dají měnit i z Manage mode** (ikona 🏷️ v řádku) — otevře stejný
+  `CategoryPickerSheet` jako Today/Weekly view. Není to drag mezi sekcemi (`ReorderableGroup` řadí
+  jen v rámci JEDNÉ pevně-vysoké skupiny), ale tap-based přeřazení, pak se řádek přesune do nové
+  sekce po zavření sheetu.
+
+### Quick-complete tlačítka v notifikaci (L2)
+Zapojeno do L2 (streak-at-risk večerní notifikace, `src/notifications/scheduler.ts`), NE jako
+samostatná třetí notifikace — L1 zůstává záměrně evergreen/nezávislý na živém stavu (nativní
+recurring trigger nejde bezpečně pozastavit "jen na dnešek" bez rizika zapomenutí, viz
+`useReminderSync.ts`).
+- Když chybí 1–2 dnešní návyky, notifikace dostane tlačítka pojmenovaná podle konkrétních návyků
+  (`registerQuickCompleteCategory` — dynamicky přeregistrovaná `setNotificationCategoryAsync`
+  kategorie, jde volat znovu s jiným obsahem kdykoli). Nad 2 chybějícími zůstává obecný text beze
+  tlačítek (appka nemá vybírat "nejdůležitější 2" arbitrárně).
+- Tap označí návyk splněný bez otevření appky (`opensAppToForeground: false`,
+  `completeHabitFromNotification` volané z modulového `addNotificationResponseReceivedListener`
+  v `app/_layout.tsx`, ne z React komponenty — funguje i když appku OS vzbudí jen na pozadí).
+  - **1–2 zbývá** → notifikace se aktualizuje na místě (tlačítko jen pro to, co ještě zbývá).
+  - **Dnešek dokončen** → notifikace zmizí, nahradí ji "🎉 Dnešek hotovo!" (náhrada za celebration
+    animaci, kterou appka zavřená ukázat nemůže).
+- ⚠️ **Kritické pořadí, ověřené opakovaným testováním na reálném zařízení (Samsung/Android): zápis
+  do DB (`toggleCompletion`) musí DOBĚHNOUT dřív, než se zavolá cokoli z Notifications API**
+  (dismiss/cancel/present). Notification API volané dřív, nebo i jen současně (`Promise.all`),
+  spolehlivě "ukouslo" zápis bez jakékoli chyby v logu — proces na pozadí je zjevně reklamovaný
+  Androidem, jakmile OS považuje interakci s notifikací za vyřízenou, bez ohledu na to, co appka
+  v JS ještě čeká. Cena bezpečného pořadí: notifikace zmizí až ~1s po tapu (čeká na zápis), ne
+  okamžitě — vědomě přijato, spolehlivost dat > ta chvilka zpoždění.
+- ⚠️ **Funguje jen dokud appka běží** (na pozadí i v popředí). **Nefunguje, pokud je proces appky
+  úplně killnutý** (swipe z multitaskingu) — `expo-notifications` nemá na Androidu headless
+  mechanismus pro reakci na tap tlačítka bez běžící appky (na rozdíl od zobrazení notifikace
+  samotné, to je čistě nativní). Oprava by vyžadovala vlastní `BroadcastReceiver` +
+  `HeadlessJsTaskService` (nový nativní modul, podobný rozsah práce jako widget task handler) —
+  **vědomě neimplementováno**, přijato jako omezení (pokrývá naprostou většinu reálného použití).
+- Dev testovací tlačítko: Nastavení → Data → 🔔 „Otestovat quick-complete notifikaci (dev)" —
+  pošle notifikaci nad živými daty appky okamžitě (`presentTestQuickCompleteNotification`),
+  obchází čas 20:30 i podmínku živého streaku.
+
 ### Android Auto Backup (perzistence dat přes reinstalaci)
 `allowBackup` je explicitně `true` v `app.json` (`android.allowBackup`) — Auto Backup zálohuje
 výchozí fileset (SQLite DB + AsyncStorage) na Google Drive uživatele, ~1×/24h při nabíjení+Wi-Fi.
@@ -534,6 +606,8 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 [x] 9.  Persistentní notifikace (Android) — lokální L1/L2 připomínky (src/notifications/)
 [x] 13. Onboarding funnel (17 obrazovek, 6 fází) — nahradil starý 3-krokový onboarding
 [x] 14. Android home screen widget (4×3 + 4×2 + 2×2 ring-only) + pin-to-home (widget-pin modul)
+[x] 16. Kategorie návyků + Manage Habits Mode (drag reorder, delete, quick category picker)
+[x] 17. Quick-complete tlačítka v L2 notifikaci (viz sekce níže)
 [ ] 10. Export/Import JSON
 [ ] 11. Nastavení (funkční — theme, week start, streak goal)
 [ ] 12. Polish (animace, haptika, a11y)
