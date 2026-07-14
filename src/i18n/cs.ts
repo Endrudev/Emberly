@@ -103,6 +103,9 @@ export const cs = {
     deleteActivity: 'Smazat aktivitu',
     deleteConfirmTitle: 'Smazat aktivitu?',
     deleteConfirmBody: 'Aktivita i celá historie splnění bude smazána. Tuto akci nelze vrátit.',
+    deleteCategoryConfirmTitle: 'Smazat kategorii?',
+    deleteCategoryConfirmBody: (name: string) =>
+      `Kategorie „${name}" bude smazána. Návyky v ní zůstanou, jen se odkategorizují.`,
     archiveConfirmTitle: 'Archivovat aktivitu?',
     archiveConfirmBody: 'Aktivita zmizí z přehledu, historie zůstane zachována.',
   },
@@ -270,6 +273,9 @@ export const cs = {
       '🔥 Nepřeruš svou sérii! Zbývá dnešek.',
       'Tvůj streak čeká na tebe — ještě dnes ho zachráníš 🔥',
     ],
+    oneLeft: (name: string) => `Ještě ${name} a máš dnešek hotový!`,
+    fewLeft: (names: string[]) => `Ještě ti dnes chybí: ${names.join(', ')}.`,
+    allDone: '🎉 Dnešek hotovo!',
   },
   // Dlouhý personalizovaný onboarding funnel (nahrazuje `onboarding`) —
   // viz vault `screens/onboarding-funnel.md`. Klíče se plní postupně, krok po
@@ -489,6 +495,7 @@ export const cs = {
     seedDemoLabel: 'Naplnit ukázkovými daty (dev)',
     seedDemoConfirmTitle: 'Naplnit ukázkovými daty?',
     seedDemoConfirmBody: 'Přepíše to všechny současné aktivity a historii.',
+    testQuickCompleteLabel: 'Otestovat quick-complete notifikaci (dev)',
   },
   // Fallback obrazovka AppErrorBoundary — čteno přes getTranslation() (ne useTranslation()
   // hook), protože boundary obaluje appku i nad providery, které mohly být zrovna rozbité.

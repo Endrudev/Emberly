@@ -18,6 +18,10 @@ import { useDbInit } from '@/db/useDbInit';
 import { useWalCheckpoint } from '@/db/useWalCheckpoint';
 import { ensureReminderChannel } from '@/notifications/channel';
 import { useReminderSync } from '@/notifications/useReminderSync';
+import {
+  completeHabitFromNotification,
+  QUICK_COMPLETE_ACTION_PREFIX,
+} from '@/notifications/scheduler';
 import { usePurchasesSync } from '@/purchases/usePurchasesSync';
 import { useStreakFreezeSync } from '@/purchases/useStreakFreezeSync';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -51,6 +55,26 @@ Notifications.setNotificationHandler({
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
+});
+
+// Quick-complete action buttons (L2 streak-risk notification, see
+// `scheduler.ts`) — registered at MODULE level, not inside a React component,
+// so it also fires when the OS wakes the app in the background to handle the
+// tap (`opensAppToForeground: false`), not just while the UI is mounted.
+// Only handles our custom actions — a plain tap on the notification body
+// keeps using `Notifications.DEFAULT_ACTION_IDENTIFIER`, left to the
+// tap-to-open navigation effect further down in RootLayout.
+Notifications.addNotificationResponseReceivedListener((response) => {
+  const { actionIdentifier, notification } = response;
+  if (!actionIdentifier.startsWith(QUICK_COMPLETE_ACTION_PREFIX)) return;
+  const slot = Number(actionIdentifier.slice(QUICK_COMPLETE_ACTION_PREFIX.length));
+  const habitIds = notification.request.content.data?.habitIds as number[] | undefined;
+  const habitId = habitIds?.[slot];
+  if (habitId != null) {
+    completeHabitFromNotification(habitId).catch((err) => {
+      if (__DEV__) console.warn('[quick-complete] failed', err);
+    });
+  }
 });
 
 export default function RootLayout() {
@@ -117,10 +141,13 @@ export default function RootLayout() {
   // on the Aktivity tab. Guarded by onboardingCompleted — bez toho by tahle
   // navigace mohla (ve stejném renderu) přepsat redirect na /funnel výše, pokud
   // by `getLastNotificationResponse()` vrátil zastaralou nativní hodnotu z
-  // dřívějšího testování (notifikace přežívají i smazání dat appky).
+  // dřívějšího testování (notifikace přežívají i smazání dat appky). Vyloučeny
+  // jsou quick-complete tlačítka (`QUICK_COMPLETE_...`) — ta appku schválně
+  // neotevírají, jen tiše zapíšou splnění (viz listener výše).
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
   useEffect(() => {
     if (isLoading || error || !lastNotificationResponse || !settings.onboardingCompleted) return;
+    if (lastNotificationResponse.actionIdentifier.startsWith(QUICK_COMPLETE_ACTION_PREFIX)) return;
     router.push('/');
   }, [isLoading, error, lastNotificationResponse, settings.onboardingCompleted, router]);
 

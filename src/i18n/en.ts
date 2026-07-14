@@ -100,6 +100,9 @@ export const en = {
     deleteActivity: 'Delete activity',
     deleteConfirmTitle: 'Delete activity?',
     deleteConfirmBody: 'The activity and all its history will be permanently deleted.',
+    deleteCategoryConfirmTitle: 'Delete category?',
+    deleteCategoryConfirmBody: (name: string) =>
+      `The "${name}" category will be deleted. Habits in it will stay, just unassigned.`,
     archiveConfirmTitle: 'Archive activity?',
     archiveConfirmBody: 'The activity will be hidden from the list, but its history will be kept.',
   },
@@ -260,6 +263,9 @@ export const en = {
       "🔥 Don't break your streak — today's still open!",
       'Your streak is waiting — you can still save it today 🔥',
     ],
+    oneLeft: (name: string) => `Just ${name} left and today's done!`,
+    fewLeft: (names: string[]) => `Still left today: ${names.join(', ')}.`,
+    allDone: '🎉 Today is done!',
   },
   // Long personalized onboarding funnel (replaces `onboarding`) — see vault
   // `screens/onboarding-funnel.md`. Keys filled in incrementally per phase.
@@ -472,6 +478,7 @@ export const en = {
     seedDemoLabel: 'Seed demo data (dev)',
     seedDemoConfirmTitle: 'Fill with demo data?',
     seedDemoConfirmBody: 'This will overwrite all current activities and history.',
+    testQuickCompleteLabel: 'Test quick-complete notification (dev)',
   },
   errorBoundary: {
     title: 'Something went wrong',

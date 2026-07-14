@@ -186,6 +186,7 @@ export default function HomeScreen() {
   const setActivityCategory = useAppStore((s) => s.setActivityCategory);
   const reorderActivities = useAppStore((s) => s.reorderActivities);
   const reorderCategories = useAppStore((s) => s.reorderCategories);
+  const deleteCategory = useAppStore((s) => s.deleteCategory);
   const isPremium = useIsPremium();
 
   // Přidání návyku — free uživatel má limit (FREE_HABIT_LIMIT). Při dosažení
@@ -429,6 +430,26 @@ export default function HomeScreen() {
     },
     [reorderCategories],
   );
+  const handleDeleteCategory = useCallback(
+    (categoryId: number) => {
+      const category = categories.find((c) => c.id === categoryId);
+      Alert.alert(
+        t.activity.deleteCategoryConfirmTitle,
+        t.activity.deleteCategoryConfirmBody(category?.name ?? ''),
+        [
+          { text: t.common.cancel, style: 'cancel' },
+          {
+            text: t.common.delete,
+            style: 'destructive',
+            onPress: () => {
+              void deleteCategory(categoryId);
+            },
+          },
+        ],
+      );
+    },
+    [categories, deleteCategory, t],
+  );
 
   // ── List edit mode (toggled from the section header) ───────────────────────
   const [editMode, setEditMode] = useState(false);
@@ -580,12 +601,18 @@ export default function HomeScreen() {
     }
     const items: ListItem[] = [];
     for (const cat of categories) {
-      const inCategory = listData.filter((a) => a.categoryId === cat.id);
+      // Sort by sortOrder explicitly, not just "however they fell out of the
+      // filter" — see the same fix in ManageHabitsView for why this matters.
+      const inCategory = listData
+        .filter((a) => a.categoryId === cat.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
       if (inCategory.length === 0) continue;
       items.push({ kind: 'header', key: `cat-${cat.id}`, label: cat.name });
       for (const a of inCategory) items.push({ kind: 'activity', key: String(a.id), activity: a });
     }
-    const uncategorized = listData.filter((a) => a.categoryId == null);
+    const uncategorized = listData
+      .filter((a) => a.categoryId == null)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
     if (uncategorized.length > 0) {
       items.push({ kind: 'header', key: 'cat-none', label: t.home.uncategorized });
       for (const a of uncategorized)
@@ -709,10 +736,13 @@ export default function HomeScreen() {
             <ManageHabitsView
               activities={activities}
               categories={categories}
+              categoryNameById={categoryNameById}
               onReorderActivities={handleReorderActivities}
               onReorderCategories={handleReorderCategories}
+              onDeleteCategory={handleDeleteCategory}
               onDeleteActivity={handleDeleteActivity}
               onEditActivity={handleEditActivity}
+              onOpenCategoryPicker={handleOpenCategoryPicker}
               isDark={isDark}
             />
           </>

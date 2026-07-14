@@ -8,19 +8,38 @@ import type { Activity, Category } from '@/domain/types';
 import { useTranslation } from '@/i18n';
 import { useAppTheme } from '@/ui/useAppTheme';
 import { FONTS, getPastelColor } from '@/ui/theme';
+import { AnimatedPressable } from '@/ui/anim/AnimatedPressable';
 import { EditMinusButton } from './EditMinusButton';
 import { ReorderableGroup } from './ReorderableGroup';
 
 const CATEGORY_ROW_HEIGHT = 52;
 const HABIT_ROW_HEIGHT = 66;
+// Gap between rows — baked into the SLOT spacing passed to ReorderableGroup,
+// not a margin on the row itself: ReorderableGroup positions rows via
+// `top = slot * itemHeight`, a fixed stride independent of the row's own
+// rendered height, so a `marginBottom` on the row is invisible (the next
+// row's slot starts exactly at itemHeight regardless of the row's margin).
+const ROW_GAP = 10;
+const CATEGORY_ITEM_HEIGHT = CATEGORY_ROW_HEIGHT + ROW_GAP;
+const HABIT_ITEM_HEIGHT = HABIT_ROW_HEIGHT + ROW_GAP;
 
 interface ManageHabitsViewProps {
   activities: readonly Activity[];
   categories: readonly Category[];
+  /** Resolved category name lookup (index.tsx already builds this). */
+  categoryNameById: ReadonlyMap<number, string>;
   onReorderActivities: (categoryId: number | null, orderedIds: number[]) => void;
   onReorderCategories: (orderedIds: number[]) => void;
   onDeleteActivity: (activityId: number) => void;
   onEditActivity: (activityId: number) => void;
+  /** Deletes a category — habits inside it are unassigned, not deleted. */
+  onDeleteCategory: (categoryId: number) => void;
+  /** Opens the quick category picker — how a habit moves to a different
+   *  category from Manage mode. Not a cross-section drag: ReorderableGroup
+   *  only reorders WITHIN one fixed-height list, so moving between
+   *  categories reuses the same tap-to-reassign sheet used elsewhere,
+   *  rather than a much bigger "drag across independent lists" rebuild. */
+  onOpenCategoryPicker: (activityId: number) => void;
   isDark: boolean;
 }
 
@@ -45,10 +64,13 @@ interface ManageHabitsViewProps {
 export function ManageHabitsView({
   activities,
   categories,
+  categoryNameById,
   onReorderActivities,
   onReorderCategories,
   onDeleteActivity,
   onEditActivity,
+  onDeleteCategory,
+  onOpenCategoryPicker,
   isDark,
 }: ManageHabitsViewProps) {
   const t = useTranslation();
@@ -57,20 +79,33 @@ export function ManageHabitsView({
   const cardBg = isDark ? '#2C2C2E' : '#FFFFFF';
   const nameColor = isDark ? '#F2F2F7' : '#1A1A1A';
   const handleColor = isDark ? '#8E8E93' : '#B0B0B0';
+  const categoryBtnBg = isDark ? '#3A3A3C' : '#F0F0F0';
+  const categoryBtnFg = isDark ? '#ABABAB' : '#666666';
 
-  const uncategorized = useMemo(() => activities.filter((a) => a.categoryId == null), [activities]);
+  // Sort by `sortOrder` explicitly here rather than trusting that the
+  // incoming `activities` array is already globally ordered to match it —
+  // any store action that patches sortOrder without also re-sorting the
+  // array (easy to miss, already happened once) would otherwise silently
+  // misplace rows within their group, overlapping whichever habit actually
+  // owns that slot.
+  const uncategorized = useMemo(
+    () => activities.filter((a) => a.categoryId == null).sort((a, b) => a.sortOrder - b.sortOrder),
+    [activities],
+  );
   const byCategory = useMemo(() => {
     const map = new Map<number, Activity[]>();
     for (const cat of categories) {
       map.set(
         cat.id,
-        activities.filter((a) => a.categoryId === cat.id),
+        activities.filter((a) => a.categoryId === cat.id).sort((a, b) => a.sortOrder - b.sortOrder),
       );
     }
     return map;
   }, [activities, categories]);
 
   function renderHabitRow(activity: Activity, dragHandleGesture: GestureType) {
+    const categoryName =
+      activity.categoryId != null ? categoryNameById.get(activity.categoryId) : null;
     return (
       <View style={[styles.habitRow, { backgroundColor: cardBg }]}>
         <EditMinusButton
@@ -91,6 +126,21 @@ export function ManageHabitsView({
             {activity.name}
           </Text>
         </Pressable>
+        <AnimatedPressable
+          hapticStyle="light"
+          onPress={() => onOpenCategoryPicker(activity.id)}
+          style={[styles.categoryBtn, { backgroundColor: categoryBtnBg }]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            categoryName ? `${t.activity.categoryLabel}: ${categoryName}` : t.activity.categoryLabel
+          }
+        >
+          <MaterialCommunityIcons
+            name={categoryName ? 'tag' : 'tag-outline'}
+            size={18}
+            color={categoryBtnFg}
+          />
+        </AnimatedPressable>
         <GestureDetector gesture={dragHandleGesture}>
           <View style={styles.dragHandle} hitSlop={12}>
             <MaterialCommunityIcons name="drag-horizontal-variant" size={22} color={handleColor} />
@@ -110,7 +160,7 @@ export function ManageHabitsView({
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      {categories.length > 1 ? (
+      {categories.length > 0 ? (
         <>
           <Text style={[styles.sectionLabel, { color: C.textTertiary }]}>
             {t.home.categoryOrderLabel}
@@ -118,10 +168,15 @@ export function ManageHabitsView({
           <ReorderableGroup
             items={categories}
             keyExtractor={(cat) => `cat-${cat.id}`}
-            itemHeight={CATEGORY_ROW_HEIGHT}
+            itemHeight={CATEGORY_ITEM_HEIGHT}
             onReorder={(ordered) => onReorderCategories(ordered.map((c) => c.id))}
             renderItem={(cat, dragHandleGesture) => (
               <View style={[styles.categoryRow, { backgroundColor: cardBg }]}>
+                <EditMinusButton
+                  editMode
+                  onPress={() => onDeleteCategory(cat.id)}
+                  accessibilityLabel={`${t.common.delete} – ${cat.name}`}
+                />
                 <Text style={[styles.categoryName, { color: nameColor }]} numberOfLines={1}>
                   {cat.name}
                 </Text>
@@ -149,7 +204,7 @@ export function ManageHabitsView({
             <ReorderableGroup
               items={items}
               keyExtractor={(a) => String(a.id)}
-              itemHeight={HABIT_ROW_HEIGHT}
+              itemHeight={HABIT_ITEM_HEIGHT}
               onReorder={(ordered) =>
                 onReorderActivities(
                   cat.id,
@@ -172,7 +227,7 @@ export function ManageHabitsView({
           <ReorderableGroup
             items={uncategorized}
             keyExtractor={(a) => String(a.id)}
-            itemHeight={HABIT_ROW_HEIGHT}
+            itemHeight={HABIT_ITEM_HEIGHT}
             onReorder={(ordered) =>
               onReorderActivities(
                 null,
@@ -216,7 +271,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
-    marginBottom: 6,
   },
   categoryName: {
     fontSize: 15,
@@ -236,7 +290,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
-    marginBottom: 6,
   },
   habitContent: {
     flex: 1,
@@ -257,6 +310,14 @@ const styles = StyleSheet.create({
     fontSize: 15.5,
     fontFamily: FONTS.bold,
     flexShrink: 1,
+  },
+  categoryBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   dragHandle: {
     width: 32,

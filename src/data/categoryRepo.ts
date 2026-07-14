@@ -1,7 +1,7 @@
 import { asc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { categories, type CategoryRow } from '@/db/schema';
+import { activities, categories, type CategoryRow } from '@/db/schema';
 import type { Category } from '@/domain/types';
 
 function toDomain(row: CategoryRow): Category {
@@ -35,6 +35,17 @@ export const categoryRepo = {
         db.update(categories).set({ sortOrder: index }).where(eq(categories.id, id)),
       ),
     );
+  },
+
+  /**
+   * Smaže kategorii. Nespoléhá na `ON DELETE SET NULL` FK enforcement (appka
+   * nikde nezapíná `PRAGMA foreign_keys`, takže by na SQLite úrovni nemuselo
+   * být vynucené) — explicitně nejdřív odkategorizuje aktivity, pak smaže
+   * řádek kategorie samotné.
+   */
+  async delete(id: number): Promise<void> {
+    await db.update(activities).set({ categoryId: null }).where(eq(activities.categoryId, id));
+    await db.delete(categories).where(eq(categories.id, id));
   },
 
   async deleteAll(): Promise<void> {

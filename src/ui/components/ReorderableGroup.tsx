@@ -19,6 +19,22 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+// `positions.value` only gets resized/reset by ReorderableGroup's effect
+// AFTER a render where `items` has grown/shrunk — on the very first paint of
+// a newly-added row, `positions.value[originalIndex]` is out of bounds
+// (`undefined`). `undefined * itemHeight` is NaN, and once a `withSpring`
+// animation is fed NaN as its starting value it stays NaN forever (spring
+// physics never recovers from a non-finite input) — the row would then sit
+// invisibly stuck until some OTHER gesture directly overwrote the value.
+// Falling back to `originalIndex` sidesteps the timing gap entirely: it's
+// also the semantically correct resting slot whenever no drag is honestly
+// reordering things (identity mapping is exactly what the resync effect
+// would set anyway), so this isn't just a safety net, it's the right value.
+function slotOf(positions: number[], originalIndex: number): number {
+  'worklet';
+  return positions[originalIndex] ?? originalIndex;
+}
+
 interface RowProps {
   originalIndex: number;
   count: number;
@@ -39,26 +55,33 @@ function ReorderableRow({
   children,
 }: RowProps) {
   const dragTranslateY = useSharedValue(0);
+  // Fixed baseline captured once at gesture start — `event.translationY` is
+  // cumulative from the start of the gesture, so the offset must be added to
+  // a STABLE starting Y, not to `positions.value[originalIndex]` re-read live
+  // (that value changes as other rows shift out of the way mid-drag, which
+  // was compounding on every update and rocketing the target slot straight
+  // to the end of the list regardless of where the finger actually was).
+  const startY = useSharedValue(0);
   const reduceMotion = useReduceMotion();
 
   const pan = Gesture.Pan()
     .onStart(() => {
       activeIndex.value = originalIndex;
-      dragTranslateY.value = positions.value[originalIndex]! * itemHeight;
+      startY.value = slotOf(positions.value, originalIndex) * itemHeight;
+      dragTranslateY.value = startY.value;
       runOnJS(tapLight)();
     })
     .onUpdate((event) => {
-      const baseY = positions.value[originalIndex]! * itemHeight;
-      dragTranslateY.value = baseY + event.translationY;
+      dragTranslateY.value = startY.value + event.translationY;
       const targetSlot = clamp(Math.round(dragTranslateY.value / itemHeight), 0, count - 1);
-      const currentSlot = positions.value[originalIndex]!;
+      const currentSlot = slotOf(positions.value, originalIndex);
       if (targetSlot === currentSlot) return;
       // Shift every row between the old and new slot by one to make room —
       // absolute-position + index-driven `top` (not re-sorting the rendered
       // list) is what keeps this jank-free: no remount, just a `top` change.
       const next = positions.value.slice();
       for (let i = 0; i < next.length; i++) {
-        const slot = next[i]!;
+        const slot = slotOf(next, i);
         if (i === originalIndex) continue;
         if (currentSlot < targetSlot && slot > currentSlot && slot <= targetSlot) {
           next[i] = slot - 1;
@@ -71,7 +94,7 @@ function ReorderableRow({
     })
     .onEnd(() => {
       dragTranslateY.value = withSpring(
-        positions.value[originalIndex]! * itemHeight,
+        slotOf(positions.value, originalIndex) * itemHeight,
         REORDER_SPRING,
       );
       activeIndex.value = -1;
@@ -83,8 +106,8 @@ function ReorderableRow({
     const top = isActive
       ? dragTranslateY.value
       : reduceMotion
-        ? positions.value[originalIndex]! * itemHeight
-        : withSpring(positions.value[originalIndex]! * itemHeight, REORDER_SPRING);
+        ? slotOf(positions.value, originalIndex) * itemHeight
+        : withSpring(slotOf(positions.value, originalIndex) * itemHeight, REORDER_SPRING);
     return {
       position: 'absolute',
       top,

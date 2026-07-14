@@ -54,6 +54,8 @@ interface AppState {
   reorderActivities: (orderedIds: readonly number[]) => Promise<void>;
   /** Přeřadí kategorie samotné (Manage Habits Mode). */
   reorderCategories: (orderedIds: readonly number[]) => Promise<void>;
+  /** Smaže kategorii (Manage Habits Mode) — aktivity v ní jen odkategorizuje. */
+  deleteCategory: (categoryId: number) => Promise<void>;
 
   toggleCompletion: (activityId: number, dateIso: string) => Promise<boolean>;
   /** Zaznamená zmrazený den (volá se z `useStreakFreezeSync`). Idempotentní. */
@@ -99,9 +101,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   async updateActivity(id, input) {
     const updated = await activityRepo.update(id, input);
-    set({
-      activities: get().activities.map((a) => (a.id === id ? updated : a)),
-    });
+    // Same reasoning as setActivityCategory: if the category changed here
+    // (full ActivityForm, not just the quick picker), the repo re-appends
+    // sortOrder to the end of the new group — re-sort locally too so array
+    // order doesn't drift out of sync with it.
+    const patched = get().activities.map((a) => (a.id === id ? updated : a));
+    patched.sort((a, b) => a.sortOrder - b.sortOrder);
+    set({ activities: patched });
     return updated;
   },
 
@@ -129,11 +135,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Mirrors the repo's own "append to end of the new group" behavior, so
     // the local list order stays correct without waiting for a reload.
     const nextSortOrder = get().activities.filter((a) => a.categoryId === categoryId).length;
-    set({
-      activities: get().activities.map((a) =>
-        a.id === activityId ? { ...a, categoryId, sortOrder: nextSortOrder } : a,
-      ),
-    });
+    const patched = get().activities.map((a) =>
+      a.id === activityId ? { ...a, categoryId, sortOrder: nextSortOrder } : a,
+    );
+    // `.map()` keeps the moved activity at its OLD array position even
+    // though its sortOrder just changed — consumers that group-by-category
+    // while relying on array order (e.g. ManageHabitsView) would then show
+    // it in the wrong slot, overlapping whichever habit actually belongs
+    // there. Re-sort (same as reorderActivities/reorderCategories) so array
+    // order matches sortOrder again.
+    patched.sort((a, b) => a.sortOrder - b.sortOrder);
+    set({ activities: patched });
   },
 
   async reorderActivities(orderedIds) {
@@ -157,6 +169,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     );
     patched.sort((a, b) => a.sortOrder - b.sortOrder);
     set({ categories: patched });
+  },
+
+  async deleteCategory(categoryId) {
+    await categoryRepo.delete(categoryId);
+    set({
+      categories: get().categories.filter((c) => c.id !== categoryId),
+      activities: get().activities.map((a) =>
+        a.categoryId === categoryId ? { ...a, categoryId: null } : a,
+      ),
+    });
   },
 
   async resetAllData() {

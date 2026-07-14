@@ -111,6 +111,9 @@ export const de = {
     deleteActivity: 'Aktivität löschen',
     deleteConfirmTitle: 'Aktivität löschen?',
     deleteConfirmBody: 'Die Aktivität und der gesamte Verlauf werden dauerhaft gelöscht.',
+    deleteCategoryConfirmTitle: 'Kategorie löschen?',
+    deleteCategoryConfirmBody: (name: string) =>
+      `Die Kategorie „${name}" wird gelöscht. Gewohnheiten darin bleiben erhalten, werden nur zugeordnet entfernt.`,
     archiveConfirmTitle: 'Aktivität archivieren?',
     archiveConfirmBody:
       'Die Aktivität verschwindet aus der Übersicht, der Verlauf bleibt erhalten.',
@@ -287,6 +290,9 @@ export const de = {
       '🔥 Lass deine Serie nicht abreißen! Heute ist noch Zeit.',
       'Dein Streak wartet auf dich — heute kannst du ihn noch retten 🔥',
     ],
+    oneLeft: (name: string) => `Nur noch ${name} und heute ist alles erledigt!`,
+    fewLeft: (names: string[]) => `Heute fehlt noch: ${names.join(', ')}.`,
+    allDone: '🎉 Heute alles erledigt!',
   },
   // Langer personalisierter Onboarding-Funnel (ersetzt `onboarding`) — siehe
   // Vault `screens/onboarding-funnel.md`. Schlüssel werden schrittweise mit
@@ -509,6 +515,7 @@ export const de = {
     seedDemoLabel: 'Mit Beispieldaten füllen (dev)',
     seedDemoConfirmTitle: 'Mit Beispieldaten füllen?',
     seedDemoConfirmBody: 'Alle aktuellen Aktivitäten und der Verlauf werden überschrieben.',
+    testQuickCompleteLabel: 'Quick-Complete-Benachrichtigung testen (dev)',
   },
   // Fallback-Bildschirm des AppErrorBoundary — gelesen über getTranslation() (nicht
   // useTranslation() Hook), da der Boundary die App auch über Providern umschließt,

@@ -18,7 +18,12 @@ import { TAB_BAR_SPACE } from './_layout';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -37,6 +42,7 @@ import { SegmentedPill } from '@/ui/components/SegmentedPill';
 import { useReduceMotion } from '@/ui/anim/useReduceMotion';
 import { success, tapMedium } from '@/ui/anim/haptics';
 import { requestNotificationPermission } from '@/notifications/permissions';
+import { presentTestQuickCompleteNotification } from '@/notifications/scheduler';
 import { REVIEWER_UNLOCK_CODE, TESTER_LIFETIME_CODE } from '@/purchases/gating';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/config/legal';
 import { FEEDBACK_EMAIL, FEEDBACK_DISCORD_URL, hasRealDiscordUrl } from '@/config/feedback';
@@ -124,9 +130,10 @@ function SettingsRow({
         <Text style={[styles.rowText, { color: textColor }]}>{label}</Text>
         {value ? <Text style={[styles.rowValue, { color: valueColor }]}>{value}</Text> : null}
       </View>
-      {right ?? (showArrow && onPress ? (
-        <MaterialCommunityIcons name="chevron-right" size={20} color={isDark ? '#555' : '#CCC'} />
-      ) : null)}
+      {right ??
+        (showArrow && onPress ? (
+          <MaterialCommunityIcons name="chevron-right" size={20} color={isDark ? '#555' : '#CCC'} />
+        ) : null)}
     </Pressable>
   );
 }
@@ -139,10 +146,11 @@ export default function SettingsScreen() {
   const C = useAppTheme();
   const router = useRouter();
   const activities = useAppStore((s) => s.activities);
+  const completions = useAppStore((s) => s.completions);
   const resetAllData = useAppStore((s) => s.resetAllData);
   const loadAll = useAppStore((s) => s.loadAll);
-  const settings   = useSettingsStore();
-  const isPremium  = useIsPremium();
+  const settings = useSettingsStore();
+  const isPremium = useIsPremium();
   const devOverride = usePurchasesStore((s) => s.devPremiumOverride);
   const setDevOverride = usePurchasesStore((s) => s.setDevOverride);
   const reviewerUnlock = usePurchasesStore((s) => s.reviewerUnlock);
@@ -200,7 +208,11 @@ export default function SettingsScreen() {
   const handleTesterLifetimeDisable = useCallback(() => {
     Alert.alert(t.testerLifetime.title, t.testerLifetime.disableConfirmBody, [
       { text: t.common.cancel, style: 'cancel' },
-      { text: t.common.delete, style: 'destructive', onPress: () => setTesterLifetimeUnlock(false) },
+      {
+        text: t.common.delete,
+        style: 'destructive',
+        onPress: () => setTesterLifetimeUnlock(false),
+      },
     ]);
   }, [t, setTesterLifetimeUnlock]);
 
@@ -248,6 +260,25 @@ export default function SettingsScreen() {
     ]);
   }, [t, loadAll, setDevOverride]);
 
+  // Dev-only: pošle skutečnou quick-complete notifikaci HNED (obchází čas
+  // 20:30 i podmínku "streak musí žít") nad živými daty appky, ať jde
+  // otestovat reálný tap-flow bez čekání na večer. Vyžaduje granted
+  // oprávnění — appka ho normálně žádá při zapnutí "Připomínky" výš na téhle
+  // obrazovce, takže dev tester by ho v běžném testovacím flow už měl mít.
+  const handleTestQuickCompleteNotification = useCallback(() => {
+    tapMedium();
+    void requestNotificationPermission().then((status) => {
+      if (status !== Notifications.PermissionStatus.GRANTED) {
+        Alert.alert(
+          t.settings.reminderPermissionDeniedTitle,
+          t.settings.reminderPermissionDeniedBody,
+        );
+        return;
+      }
+      void presentTestQuickCompleteNotification({ activities, completions }).then(() => success());
+    });
+  }, [activities, completions, t]);
+
   const [reminderTimePickerVisible, setReminderTimePickerVisible] = useState(false);
 
   const handleToggleReminders = useCallback(
@@ -289,8 +320,7 @@ export default function SettingsScreen() {
 
   // Application.native*Version čte skutečné hodnoty z buildu (ne z app.json) — v Expo Go
   // ale nemusí být dostupné, proto fallback na Constants.expoConfig.version.
-  const appVersion =
-    Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '—';
+  const appVersion = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '—';
   const buildVersion = Application.nativeBuildVersion;
   const versionLabel = buildVersion ? `${appVersion} (build ${buildVersion})` : appVersion;
 
@@ -310,7 +340,10 @@ export default function SettingsScreen() {
       )}&body=${encodeURIComponent(body)}`;
       void Linking.openURL(mailtoUrl);
     } catch {
-      Alert.alert(t.settings.reportProblemErrorTitle, t.settings.reportProblemErrorBody(FEEDBACK_EMAIL));
+      Alert.alert(
+        t.settings.reportProblemErrorTitle,
+        t.settings.reportProblemErrorBody(FEEDBACK_EMAIL),
+      );
     }
   }, [t, versionLabel]);
 
@@ -349,330 +382,334 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <Animated.View style={[styles.safe, bgAnimStyle]}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <Text style={[styles.pageTitle, { color: C.text }]}>{t.settings.title}</Text>
 
-        <Text style={[styles.pageTitle, { color: C.text }]}>{t.settings.title}</Text>
-
-        {/* ── Preferences ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
-          {t.settings.preferencesSection}
-        </Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.bell}
-            iconBg="#FFF0E8"
-            label={t.settings.reminders}
-            showArrow={false}
-            right={
-              <AnimatedToggle
-                value={settings.remindersEnabled}
-                onValueChange={handleToggleReminders}
-              />
-            }
-          />
-          {settings.remindersEnabled ? (
-            <>
-              <SettingsRow
-                {...rowProps}
-                icon={ICONS.alarmClock}
-                iconBg="#FFF0E8"
-                label={t.settings.reminderTimeLabel}
-                value={settings.reminderTime}
-                onPress={() => setReminderTimePickerVisible(true)}
-              />
-              <SettingsRow
-                {...rowProps}
-                icon={ICONS.flame}
-                iconBg="#FFF0E8"
-                label={t.settings.streakReminderLabel}
-                showArrow={false}
-                right={
-                  <AnimatedToggle
-                    value={settings.streakReminderEnabled}
-                    onValueChange={settings.setStreakReminderEnabled}
-                  />
-                }
-              />
-            </>
-          ) : null}
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.palette}
-            iconBg="#F0EEFF"
-            label={t.settings.appearance}
-            value={C.isDark ? t.settings.themeDark : t.settings.themeLight}
-            showArrow={false}
-            right={
-              <AnimatedToggle
-                value={C.isDark}
-                onValueChange={(v) => settings.setTheme(v ? 'dark' : 'light')}
-              />
-            }
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.widget}
-            iconBg="#E8F7EB"
-            label={t.widget.settingsRowLabel}
-            onPress={() => router.push('/settings/widget')}
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.calendar}
-            iconBg="#E8F4FE"
-            label={t.settings.weekStartsOn}
-            showArrow={false}
-            right={
-              <SegmentedPill
-                options={weekStartOptions}
-                value={settings.weekStart}
-                onChange={handleChangeWeekStart}
-                isDark={C.isDark}
-              />
-            }
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.globe}
-            iconBg="#EEF4FF"
-            label={t.settings.language}
-            value={
-              {
-                cs: t.settings.languageCz,
-                en: t.settings.languageEn,
-                de: t.settings.languageDe,
-                auto: t.settings.languageAuto,
-              }[settings.language]
-            }
-            onPress={() => router.push('/settings/language')}
-            isLast
-          />
-        </Animated.View>
-
-        {reminderTimePickerVisible ? (
-          <DateTimePicker
-            value={timeStringToDate(settings.reminderTime)}
-            mode="time"
-            is24Hour
-            onChange={(event, date) => {
-              setReminderTimePickerVisible(false);
-              if (event.type === 'set' && date) {
-                settings.setReminderTime(format(date, 'HH:mm'));
-              }
-            }}
-          />
-        ) : null}
-
-        {/* ── Subscription ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
-          {t.premium.subscriptionSection}
-        </Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          {isPremium ? (
-            <>
-              <SettingsRow
-                {...rowProps}
-                icon={ICONS.starFilled}
-                iconBg="#FFF7E0"
-                label={t.premium.premiumActiveTitle}
-                value={t.premium.premiumActiveSubtitle}
-                showArrow={false}
-              />
-              <SettingsRow
-                {...rowProps}
-                icon={ICONS.gear}
-                iconBg="#E8F4FE"
-                label={t.premium.manageTitle}
-                onPress={() => void showManageSubscriptions()}
-              />
-            </>
-          ) : (
+          {/* ── Preferences ── */}
+          <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+            {t.settings.preferencesSection}
+          </Text>
+          <Animated.View style={[styles.section, surfaceAnimStyle]}>
             <SettingsRow
               {...rowProps}
-              icon={ICONS.starFilled}
-              iconBg="#FFF7E0"
-              label={t.premium.upgradeTitle}
-              value={t.premium.upgradeSubtitle}
-              onPress={() => void openPaywall()}
-            />
-          )}
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.restore}
-            iconBg="#E8F7EB"
-            label={t.premium.restoreTitle}
-            onPress={handleRestore}
-            isLast={!__DEV__}
-          />
-          {__DEV__ ? (
-            <SettingsRow
-              {...rowProps}
-              icon="🧪"
-              iconBg="#F0EEFF"
-              label={t.premium.devOverrideLabel}
+              icon={ICONS.bell}
+              iconBg="#FFF0E8"
+              label={t.settings.reminders}
               showArrow={false}
-              isLast
               right={
                 <AnimatedToggle
-                  value={isPremium}
-                  onValueChange={(v) => setDevOverride(v)}
+                  value={settings.remindersEnabled}
+                  onValueChange={handleToggleReminders}
                 />
               }
             />
-          ) : null}
-        </Animated.View>
-
-        {/* ── Beta ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
-          {t.settings.betaSection}
-        </Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.lightbulb}
-            iconBg="#FFF4E5"
-            label={t.settings.reportProblem}
-            onPress={handleReportProblem}
-          />
-          {/* TODO beta-only: remove before production launch */}
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.restore}
-            iconBg="#E8F7EB"
-            label={t.settings.replayOnboardingLabel}
-            onPress={() => {
-              // Funnel store se resetuje tady (ne při dokončení funnelu) —
-              // viz komentář v `applyFunnelAnswers.ts` proč reset na konci
-              // způsoboval probliknutí prvního kroku při přechodu do appky.
-              useFunnelStore.getState().reset();
-              settings.resetOnboarding();
-              router.replace('/funnel');
-            }}
-            isLast
-          />
-        </Animated.View>
-
-        {/* ── About ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.lock}
-            iconBg="#F0F2F5"
-            label={t.settings.privacyPolicy}
-            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.document}
-            iconBg="#F0F2F5"
-            label={t.settings.termsOfService}
-            onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.info}
-            iconBg="#F0F2F5"
-            label={t.settings.version}
-            value={versionLabel}
-            showArrow={false}
-            isLast={!showReviewerInput && !anyCodeUnlockActive}
-            onPress={handleVersionTap}
-          />
-          {/* Skryté pole pro kód — odhalí se po 7× klepnutí na verzi. Přijímá jak
-              reviewer kód, tak kód doživotního premia pro testery. */}
-          {showReviewerInput && !anyCodeUnlockActive ? (
-            <View style={[styles.row, styles.rowBorder, { borderBottomColor: C.border }]}>
-              <View style={[styles.rowIcon, { backgroundColor: '#EEF0FF' }]}>
-                <Image source={ICONS.key} style={styles.rowIconImage} resizeMode="contain" />
-              </View>
-              <TextInput
-                style={[styles.rowText, { flex: 1, color: C.isDark ? '#F2F2F7' : '#1A1A1A' }]}
-                placeholder={t.reviewer.codePlaceholder}
-                placeholderTextColor={C.textTertiary}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                autoFocus
-                value={reviewerCode}
-                onChangeText={setReviewerCode}
-                onSubmitEditing={handleReviewerCodeSubmit}
-                returnKeyType="done"
-              />
-            </View>
-          ) : null}
-          {reviewerUnlock ? (
+            {settings.remindersEnabled ? (
+              <>
+                <SettingsRow
+                  {...rowProps}
+                  icon={ICONS.alarmClock}
+                  iconBg="#FFF0E8"
+                  label={t.settings.reminderTimeLabel}
+                  value={settings.reminderTime}
+                  onPress={() => setReminderTimePickerVisible(true)}
+                />
+                <SettingsRow
+                  {...rowProps}
+                  icon={ICONS.flame}
+                  iconBg="#FFF0E8"
+                  label={t.settings.streakReminderLabel}
+                  showArrow={false}
+                  right={
+                    <AnimatedToggle
+                      value={settings.streakReminderEnabled}
+                      onValueChange={settings.setStreakReminderEnabled}
+                    />
+                  }
+                />
+              </>
+            ) : null}
             <SettingsRow
               {...rowProps}
-              icon={ICONS.key}
-              iconBg="#EEF0FF"
-              label={t.reviewer.title}
-              value={t.reviewer.activeValue}
+              icon={ICONS.palette}
+              iconBg="#F0EEFF"
+              label={t.settings.appearance}
+              value={C.isDark ? t.settings.themeDark : t.settings.themeLight}
               showArrow={false}
-              isLast={!testerLifetimeUnlock}
-              onPress={handleReviewerDisable}
+              right={
+                <AnimatedToggle
+                  value={C.isDark}
+                  onValueChange={(v) => settings.setTheme(v ? 'dark' : 'light')}
+                />
+              }
             />
-          ) : null}
-          {testerLifetimeUnlock ? (
             <SettingsRow
               {...rowProps}
-              icon={ICONS.key}
-              iconBg="#EEF0FF"
-              label={t.testerLifetime.title}
-              value={t.reviewer.activeValue}
-              showArrow={false}
-              isLast
-              onPress={handleTesterLifetimeDisable}
+              icon={ICONS.widget}
+              iconBg="#E8F7EB"
+              label={t.widget.settingsRowLabel}
+              onPress={() => router.push('/settings/widget')}
             />
-          ) : null}
-        </Animated.View>
-
-        {/* ── Data ── */}
-        <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
-          {t.settings.dataSection}
-        </Text>
-        <Animated.View style={[styles.section, surfaceAnimStyle]}>
-          {trackingSince ? (
             <SettingsRow
               {...rowProps}
               icon={ICONS.calendar}
               iconBg="#E8F4FE"
-              label={t.settings.trackingSinceLabel}
-              value={trackingSince}
+              label={t.settings.weekStartsOn}
               showArrow={false}
+              right={
+                <SegmentedPill
+                  options={weekStartOptions}
+                  value={settings.weekStart}
+                  onChange={handleChangeWeekStart}
+                  isDark={C.isDark}
+                />
+              }
             />
-          ) : null}
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.cloudBackup}
-            iconBg="#E8F4FE"
-            label={t.settings.autoBackupLabel}
-            showArrow={false}
-          />
-          <SettingsRow
-            {...rowProps}
-            icon={ICONS.trash}
-            iconBg="#FFE8E8"
-            label={t.settings.resetData}
-            onPress={handleResetData}
-            isLast={!__DEV__}
-          />
-          {__DEV__ ? (
             <SettingsRow
               {...rowProps}
-              icon="🧪"
-              iconBg="#F0EEFF"
-              label={t.devTools.seedDemoLabel}
-              onPress={handleSeedDemoData}
+              icon={ICONS.globe}
+              iconBg="#EEF4FF"
+              label={t.settings.language}
+              value={
+                {
+                  cs: t.settings.languageCz,
+                  en: t.settings.languageEn,
+                  de: t.settings.languageDe,
+                  auto: t.settings.languageAuto,
+                }[settings.language]
+              }
+              onPress={() => router.push('/settings/language')}
               isLast
             />
-          ) : null}
-        </Animated.View>
-        <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
-          {t.settings.autoBackupDescription}
-        </Text>
+          </Animated.View>
 
-      </ScrollView>
+          {reminderTimePickerVisible ? (
+            <DateTimePicker
+              value={timeStringToDate(settings.reminderTime)}
+              mode="time"
+              is24Hour
+              onChange={(event, date) => {
+                setReminderTimePickerVisible(false);
+                if (event.type === 'set' && date) {
+                  settings.setReminderTime(format(date, 'HH:mm'));
+                }
+              }}
+            />
+          ) : null}
+
+          {/* ── Subscription ── */}
+          <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+            {t.premium.subscriptionSection}
+          </Text>
+          <Animated.View style={[styles.section, surfaceAnimStyle]}>
+            {isPremium ? (
+              <>
+                <SettingsRow
+                  {...rowProps}
+                  icon={ICONS.starFilled}
+                  iconBg="#FFF7E0"
+                  label={t.premium.premiumActiveTitle}
+                  value={t.premium.premiumActiveSubtitle}
+                  showArrow={false}
+                />
+                <SettingsRow
+                  {...rowProps}
+                  icon={ICONS.gear}
+                  iconBg="#E8F4FE"
+                  label={t.premium.manageTitle}
+                  onPress={() => void showManageSubscriptions()}
+                />
+              </>
+            ) : (
+              <SettingsRow
+                {...rowProps}
+                icon={ICONS.starFilled}
+                iconBg="#FFF7E0"
+                label={t.premium.upgradeTitle}
+                value={t.premium.upgradeSubtitle}
+                onPress={() => void openPaywall()}
+              />
+            )}
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.restore}
+              iconBg="#E8F7EB"
+              label={t.premium.restoreTitle}
+              onPress={handleRestore}
+              isLast={!__DEV__}
+            />
+            {__DEV__ ? (
+              <SettingsRow
+                {...rowProps}
+                icon="🧪"
+                iconBg="#F0EEFF"
+                label={t.premium.devOverrideLabel}
+                showArrow={false}
+                isLast
+                right={
+                  <AnimatedToggle value={isPremium} onValueChange={(v) => setDevOverride(v)} />
+                }
+              />
+            ) : null}
+          </Animated.View>
+
+          {/* ── Beta ── */}
+          <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+            {t.settings.betaSection}
+          </Text>
+          <Animated.View style={[styles.section, surfaceAnimStyle]}>
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.lightbulb}
+              iconBg="#FFF4E5"
+              label={t.settings.reportProblem}
+              onPress={handleReportProblem}
+            />
+            {/* TODO beta-only: remove before production launch */}
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.restore}
+              iconBg="#E8F7EB"
+              label={t.settings.replayOnboardingLabel}
+              onPress={() => {
+                // Funnel store se resetuje tady (ne při dokončení funnelu) —
+                // viz komentář v `applyFunnelAnswers.ts` proč reset na konci
+                // způsoboval probliknutí prvního kroku při přechodu do appky.
+                useFunnelStore.getState().reset();
+                settings.resetOnboarding();
+                router.replace('/funnel');
+              }}
+              isLast
+            />
+          </Animated.View>
+
+          {/* ── About ── */}
+          <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>{t.settings.about}</Text>
+          <Animated.View style={[styles.section, surfaceAnimStyle]}>
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.lock}
+              iconBg="#F0F2F5"
+              label={t.settings.privacyPolicy}
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            />
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.document}
+              iconBg="#F0F2F5"
+              label={t.settings.termsOfService}
+              onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
+            />
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.info}
+              iconBg="#F0F2F5"
+              label={t.settings.version}
+              value={versionLabel}
+              showArrow={false}
+              isLast={!showReviewerInput && !anyCodeUnlockActive}
+              onPress={handleVersionTap}
+            />
+            {/* Skryté pole pro kód — odhalí se po 7× klepnutí na verzi. Přijímá jak
+              reviewer kód, tak kód doživotního premia pro testery. */}
+            {showReviewerInput && !anyCodeUnlockActive ? (
+              <View style={[styles.row, styles.rowBorder, { borderBottomColor: C.border }]}>
+                <View style={[styles.rowIcon, { backgroundColor: '#EEF0FF' }]}>
+                  <Image source={ICONS.key} style={styles.rowIconImage} resizeMode="contain" />
+                </View>
+                <TextInput
+                  style={[styles.rowText, { flex: 1, color: C.isDark ? '#F2F2F7' : '#1A1A1A' }]}
+                  placeholder={t.reviewer.codePlaceholder}
+                  placeholderTextColor={C.textTertiary}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  autoFocus
+                  value={reviewerCode}
+                  onChangeText={setReviewerCode}
+                  onSubmitEditing={handleReviewerCodeSubmit}
+                  returnKeyType="done"
+                />
+              </View>
+            ) : null}
+            {reviewerUnlock ? (
+              <SettingsRow
+                {...rowProps}
+                icon={ICONS.key}
+                iconBg="#EEF0FF"
+                label={t.reviewer.title}
+                value={t.reviewer.activeValue}
+                showArrow={false}
+                isLast={!testerLifetimeUnlock}
+                onPress={handleReviewerDisable}
+              />
+            ) : null}
+            {testerLifetimeUnlock ? (
+              <SettingsRow
+                {...rowProps}
+                icon={ICONS.key}
+                iconBg="#EEF0FF"
+                label={t.testerLifetime.title}
+                value={t.reviewer.activeValue}
+                showArrow={false}
+                isLast
+                onPress={handleTesterLifetimeDisable}
+              />
+            ) : null}
+          </Animated.View>
+
+          {/* ── Data ── */}
+          <Text style={[styles.sectionTitle, { color: C.textTertiary }]}>
+            {t.settings.dataSection}
+          </Text>
+          <Animated.View style={[styles.section, surfaceAnimStyle]}>
+            {trackingSince ? (
+              <SettingsRow
+                {...rowProps}
+                icon={ICONS.calendar}
+                iconBg="#E8F4FE"
+                label={t.settings.trackingSinceLabel}
+                value={trackingSince}
+                showArrow={false}
+              />
+            ) : null}
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.cloudBackup}
+              iconBg="#E8F4FE"
+              label={t.settings.autoBackupLabel}
+              showArrow={false}
+            />
+            <SettingsRow
+              {...rowProps}
+              icon={ICONS.trash}
+              iconBg="#FFE8E8"
+              label={t.settings.resetData}
+              onPress={handleResetData}
+              isLast={!__DEV__}
+            />
+            {__DEV__ ? (
+              <SettingsRow
+                {...rowProps}
+                icon="🧪"
+                iconBg="#F0EEFF"
+                label={t.devTools.seedDemoLabel}
+                onPress={handleSeedDemoData}
+              />
+            ) : null}
+            {__DEV__ ? (
+              <SettingsRow
+                {...rowProps}
+                icon="🔔"
+                iconBg="#F0EEFF"
+                label={t.devTools.testQuickCompleteLabel}
+                onPress={handleTestQuickCompleteNotification}
+                isLast
+              />
+            ) : null}
+          </Animated.View>
+          <Text style={[styles.sectionFootnote, { color: C.textTertiary }]}>
+            {t.settings.autoBackupDescription}
+          </Text>
+        </ScrollView>
       </Animated.View>
     </SafeAreaView>
   );
@@ -732,6 +769,6 @@ const styles = StyleSheet.create({
   rowIconEmoji: { fontSize: 18 },
   rowIconImage: { width: 20, height: 20 },
   rowLabel: { flex: 1 },
-  rowText:  { fontSize: 15, fontFamily: FONTS.semiBold },
+  rowText: { fontSize: 15, fontFamily: FONTS.semiBold },
   rowValue: { fontSize: 13, fontFamily: FONTS.semiBold, marginTop: 1 },
 });
