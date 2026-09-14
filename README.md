@@ -19,6 +19,8 @@ rád bych z toho jednou měl i něco komerčního. Jen chci být od začátku tr
 za tím stojí a s jakými zkušenostmi — ať si každý, kdo se na kód nebo na appku podívá, umí udělat
 vlastní obrázek.
 
+<img width="1280" height="678" alt="image" src="https://github.com/user-attachments/assets/fa5b009b-2fa9-4386-b211-576c56ca05b7" />
+
 ## Tech stack
 
 - **Expo SDK 54** (managed workflow, new architecture) + **Expo Router v6** (file-based)
@@ -115,4 +117,3 @@ Víc detailů o architektuře, rozhodnutích a historii projektu je v `CLAUDE.md
 [ ] Export/Import JSON
 [ ] Polish (animace, haptika, a11y)
 ```
-<img width="1280" height="678" alt="image" src="https://github.com/user-attachments/assets/fa5b009b-2fa9-4386-b211-576c56ca05b7" />
