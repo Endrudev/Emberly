@@ -14,7 +14,8 @@ Hub note (rozcestník pro vše): `00-index.md`
 pravidelně commitovaný a pushovaný do **soukromého** GitHub repa
 (`github.com/Endrudev/Emberly-docs`) — nezávisle na tomto kódovém repozitáři. Na jiných
 zařízeních (jiný Windows profil) může být zrcadlo naklonované na jiné cestě
-(např. `C:\Users\Ondřej\Desktop\_localRepos\Emberly-docs\Emberly\`) — pokud vault na
+(např. `d:\_localrepos\Emberly-docs\` — soubory vaultu jsou přímo v kořeni repa, bez
+podsložky `Emberly\`) — pokud vault na
 očekávané cestě `ondra\...` neexistuje, zkontroluj, jestli zařízení místo toho nemá
 naklonované tohle git zrcadlo.
 
@@ -40,7 +41,8 @@ Struktura vaultu:
 
 1. **Najdi vault.** Zkus primární cestu `C:\Users\ondra\Desktop\_obsidianProjects\Emberly\`.
    Pokud na tomhle stroji neexistuje (jiný Windows profil), hledej git zrcadlo — typicky
-   `...\_localRepos\Emberly-docs\Emberly\`. Pokud není naklonované ani to, naklonuj ho:
+   `...\_localrepos\Emberly-docs\` (kořen repa = kořen vaultu). Pokud není naklonované ani to,
+   naklonuj ho:
    ```bash
    git clone https://github.com/Endrudev/Emberly-docs.git
    ```
@@ -60,7 +62,7 @@ Struktura vaultu:
 5. **Zazálohuj (commit + push).** Po netriviální dávce úprav (ne po každém řádku):
    ```bash
    cd <cesta ke git zrcadlu Emberly-docs>
-   git add Emberly/
+   git add .
    git commit -m "docs: <stručný popis změny>"
    git push origin main
    ```
@@ -74,7 +76,7 @@ npm start                    # LAN mode — DOPORUČENO (telefon i PC na stejné
 npm run start:usb            # USB kabel: spustí adb reverse + localhost Metro
 npm run start:fresh          # LAN mode + --clear (použij po změně balíčků)
 npm run start:tunnel         # NEPOUŽÍVAT — Expo tunnel infrastruktura je nespolehlivá
-npm test                     # Jest unit testy (25 testů, suite streaks + week)
+npm test                     # Jest unit testy (61 testů v 5 sadách: streaks, week, insights, streakFreeze, gating)
 npm run typecheck            # tsc --noEmit
 npm run lint                 # ESLint
 npm run db:generate          # Drizzle — vygeneruje nové SQL migrace ze schématu
@@ -228,8 +230,11 @@ src/
 └── utils/
 
 __tests__/
-├── streaks.test.ts          # 17 test cases pro streak logiku
-└── week.test.ts             # 8 test cases pro week/day funkce
+├── streaks.test.ts          # 21 test cases pro streak logiku
+├── week.test.ts             # 13 test cases pro week/day funkce
+├── insights.test.ts         # 10 test cases pro agregace statistik
+├── streakFreeze.test.ts     # 9 test cases pro ochranu série
+└── gating.test.ts           # 8 test cases pro premium feature gating
 ```
 
 ## Klíčová rozhodnutí — NEZDŮVODŇUJ ZNOVU
@@ -594,7 +599,7 @@ Pravidlo se přidává jednorázově jako admin (viz sekce "Jak spustit" výše)
 ```
 [x] 1.  Setup (Expo SDK 54, TS strict, Router v6, ESLint/Prettier)
 [x] 2.  DB vrstva (Drizzle schema, expo-sqlite v16, repositories, seed)
-[x] 3.  Domain logika + unit testy (streaks, week — 25 testů)
+[x] 3.  Domain logika + unit testy (streaks, week, insights, streakFreeze, gating — 61 testů)
 [x] 4.  Theme + komponenty (ActivityRow, DayCheckbox, CircularProgress, HabitHeatmap)
 [x] 5.  Home obrazovka (weekly tracker, week navigation, summary card)
 [x] 6.  Add/Edit Activity (modal formulář, emoji/barva/dny, long-press menu)
