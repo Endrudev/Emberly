@@ -46,6 +46,19 @@ modules/*/android/build/
 
 # Local env
 .env*.local
+.env
+.env.*
+!.env.example
+
+# Firebase / EAS / Play Console credentials
+google-services.json
+GoogleService-Info.plist
+credentials.json
+service-account*.json
+
+# Build artefakty (APK/AAB z EAS buildů)
+*.apk
+*.aab
 
 # Drizzle
 src/db/migrations/meta/_journal.json.bak
