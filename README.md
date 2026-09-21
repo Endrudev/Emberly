@@ -155,6 +155,31 @@ src/
 
 Víc detailů o architektuře, rozhodnutích a historii projektu je v `CLAUDE.md` v rootu repa.
 
+## Dokumentace projektu
+
+Kód není jediné, co u Emberly udržuju. Celý projekt mám zdokumentovaný v **Obsidian vaultu** —
+zhruba 50 propojených poznámek, které pokrývají produkt i to, jak se dostal k dnešní podobě:
+
+- **Produkt:** vize, persony, business rules (co je úspěšný den, jak fungují streaky a tiery),
+  glosář, user journeys.
+- **Architektura a data:** tech stack, state management, navigace, DB schéma a migrace, doménové
+  typy a konvence.
+- **Design:** principy, design systém, inventář komponent, plán vizuálních assetů a maskota.
+- **Obrazovky a widget:** popis jednotlivých obrazovek a plán Android widgetu včetně věcí, které
+  na platformě nejdou.
+- **Provoz:** dev setup, debugging playbook, release checklist, RevenueCat setup, právní
+  náležitosti a workflow pro zpracování feedbacku od beta testerů.
+- **Myšlení:** otevřené otázky, poučení z vývoje a backlog nápadů, které ještě nejsou v plánu.
+- **Marketing:** analýza produktu, název, ASO, kanály a časová osa launche.
+
+Poznámky na sebe odkazují přes `[[wikilinky]]` z jednoho rozcestníku (`00-index`). Technická
+pravidla drží jako jediný zdroj pravdy [CLAUDE.md](CLAUDE.md) a vault je jeho rozšíření; při
+konfliktu vyhrává CLAUDE.md. Před každou zálohou kontroluju, jestli dokumentace nezaostala za
+kódem, a případný rozpor opravuju ve stejné dávce.
+
+Vault je verzovaný jako samostatný **soukromý** git repozitář, takže má vlastní historii nezávislou
+na kódu. Proto tu na něj není veřejný odkaz.
+
 ## Stav implementace
 
 ```
