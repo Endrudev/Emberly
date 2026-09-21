@@ -15,6 +15,65 @@ ale produktová, architektonická a UX rozhodnutí jsou moje. Snažím se to dě
 datová vrstva (Drizzle nad SQLite), testovaná doménová logika, promyšlená architektura a čitelná
 historie rozhodnutí — viz sekce [Klíčová rozhodnutí](#klíčová-rozhodnutí) a [CLAUDE.md](CLAUDE.md).
 
+## Odměnový systém a maskot
+
+Emberly stojí na jedné krátké smyčce: **aktivita → splnění → odměna**. Nechci další složitý
+tracker s projekty a subtasky, ale appku, která ti na konci náročného dne dá pocit, že se ti
+povedlo. Proto je UI záměrně živé a barevné (každý návyk má svou barvu) a záměrně bez
+„gamifikace pro gamifikaci" — žádné virtuální měny, levely ani žebříčky.
+
+Odměna přichází ve čtyřech okamžicích:
+
+- **Splnění návyku** — okamžitá odezva na tap (haptika, animace).
+- **Splněný den** — při 100 % se spustí celebration s konfetami.
+- **Streak tier** — denní série se překlápí přes pět úrovní (Jiskra 1–6 dní, Plamen 7–29,
+  Výheň 30–59, Inferno 60–99, Legendární 100+), které na Streak obrazovce tvoří sbírku odznaků.
+- **Statistiky** — heatmapa a trendy jako vizuální důkaz dlouhodobé práce.
+
+K tomu patří **Ochrana série**: jeden zmeškaný den nemá smazat měsíce práce a otočit motivaci v
+trest, takže premium uživatele automaticky chrání (2× za měsíc, jen včerejší den, bez zpětného
+„dohánění" historie). Série tak zůstává smysluplná, ale ne tvrdá.
+
+**Maskot Emberly** je plamínek — tvář appky i značky. Je v ní zatím jako statické PNG stavy
+(onboarding funnel, streak odznaky, ikona), staticky přepínané podle stavu. Za vším je jedna
+myšlenka: selhání habit trackeru je doslova vyhoření, a tenhle rozpor chci mít zabudovaný
+přímo v maskotovi. Proto vzniklo i koncepční **alter ego Chilly** — ledový, klidný protipól
+Emberly s identickou siluetou, který říká „odpočiň si, nemusíš takhle fungovat napořád". Není to
+hrozba, ale druhá půlka téže bytosti (jin-jang). Chilly je zatím jen návrh a v appce ještě není;
+stejně tak reaktivní animace maskota (např. přes Rive) jsou plán do budoucna, ne hotová věc.
+
+## Co appka umí
+
+- **Android widget ve třech velikostech** (4×3, 4×2 a 2×2 se streak kruhem). Návyky jde odškrtávat
+  přímo z plochy, stránkují se šipkami (RemoteViews neumí horizontální scroll) a widget reaguje
+  okamžitě: nejdřív se vykreslí z cache, pak doběhne skutečný zápis do DB. Běží jako headless JS
+  task s přímým přístupem k SQLite a přidání na plochu řeší vlastní nativní modul.
+- **Notifikace, které jdou splnit bez otevření appky.** Denní připomínka a večerní upozornění na
+  ohroženou sérii, které při 1–2 chybějících návycích nabídne tlačítka pojmenovaná podle
+  konkrétních návyků. Po dokončení dne je nahradí „Dnešek hotovo!". Zápis do DB musí doběhnout
+  dřív než jakékoli volání Notifications API, jinak Android proces zabije — ověřeno na reálném
+  zařízení. Funguje jen dokud proces appky žije, což je vědomě přijaté omezení.
+- **Data přežijí reinstalaci bez backendu.** Android Auto Backup s explicitními include-only
+  pravidly (záloha ~62 KB místo zbytečných ~15 MB), WAL checkpoint při odchodu appky na pozadí,
+  aby byla záloha konzistentní, a ošetřené obnovení oprávnění k notifikacím, které OS nikdy
+  nezálohuje.
+- **Personalizovaný onboarding funnel** (17 obrazovek v 6 fázích) s obnovením po zabití appky,
+  který na konci nasadí vybrané návyky a čas připomínky a zakončí se paywallem.
+- **Přehledy jako dashboard:** dlaždice, přepínač období, a v premium 8týdenní trend, heatmapa,
+  žebříček návyků a rozpad podle dnů v týdnu.
+- **Kategorie a Manage mód** s drag & drop řazením, které je napsané vlastní nad
+  `react-native-gesture-handler` a `reanimated`, bez další knihovny.
+- **Předplatné přes RevenueCat:** vzdálený paywall, entitlementy a feature gating s čistou
+  testovanou logikou (zdarma 3 návyky, zbytek za premium).
+- **Tři jazyky** (čeština, angličtina, němčina) včetně widgetu a notifikací, které mají vlastní
+  oddělený i18n, a světlý i tmavý režim.
+- **Bez vlastního serveru.** Data žijí lokálně na zařízení uživatele (SQLite) a appka zatím nemá
+  žádnou vlastní telemetrii ani analytiku.
+
+Kvalita: TypeScript strict s `noUncheckedIndexedAccess` a 61 unit testů v 5 sadách (streaky, týdny,
+statistiky, ochrana série, gating). Řada rozhodnutí vznikla na reálném zařízení, ne u stolu, a
+všechna jsou zapsaná včetně důvodů v [CLAUDE.md](CLAUDE.md).
+
 ## Tech stack
 
 - **Expo SDK 54** (managed workflow, new architecture) + **Expo Router v6** (file-based)
