@@ -4,22 +4,16 @@ Aplikace pro sledování pravidelných týdenních aktivit a budování návyků
 Postavena na **Expo / React Native + TypeScript**, primárně cílí na Android, ale je
 napsaná tak, aby šla bez velkých zásahů sestavit i pro iOS.
 
-## Trochu upřímnosti na úvod
-
-Tohle je **vibecoded hobby projekt** — dělám ho ve volném čase, protože mě baví. Programování
-mobilních aplikací není moje profese ani obor, kterému se věnuji na plný úvazek; živí mě jiná
-odvětví programování. Emberly je pro mě spíš hřiště, na kterém si zkouším budovat a řídit
-vlastní produkt od nuly — produktové rozhodování, monetizaci, provoz, celý ten byznysový kus
-řemesla — a velká část kódu vznikla ve spolupráci s AI nástroji, ne jako výsledek let zkušeností
-s React Native.
-
-Zároveň mi na tom záleží a nechci to flákat. I když je to koníček, snažím se to dělat pořádně —
-testy, typovanou datovou vrstvu, promyšlenou architekturu, čitelnou historii rozhodnutí. A ano,
-rád bych z toho jednou měl i něco komerčního. Jen chci být od začátku transparentní v tom, kdo
-za tím stojí a s jakými zkušenostmi — ať si každý, kdo se na kód nebo na appku podívá, umí udělat
-vlastní obrázek.
-
 <img width="1280" height="678" alt="image" src="https://github.com/user-attachments/assets/fa5b009b-2fa9-4386-b211-576c56ca05b7" />
+
+## O projektu
+
+Emberly je osobní projekt, který stavím sólo ve volném čase — včetně produktového rozhodování,
+monetizace i provozu. Můj hlavní obor je web a React; mobil je pro mě prostor, kde na svém React
+základu stavím a řídím vlastní React Native / Expo produkt od nuly. Pracuju AI-first workflow,
+ale produktová, architektonická a UX rozhodnutí jsou moje. Snažím se to dělat pořádně: typovaná
+datová vrstva (Drizzle nad SQLite), testovaná doménová logika, promyšlená architektura a čitelná
+historie rozhodnutí — viz sekce [Klíčová rozhodnutí](#klíčová-rozhodnutí) a [CLAUDE.md](CLAUDE.md).
 
 ## Tech stack
 
