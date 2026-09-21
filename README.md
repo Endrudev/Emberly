@@ -15,6 +15,12 @@ ale produktová, architektonická a UX rozhodnutí jsou moje. Snažím se to dě
 datová vrstva (Drizzle nad SQLite), testovaná doménová logika, promyšlená architektura a čitelná
 historie rozhodnutí — viz sekce [Klíčová rozhodnutí](#klíčová-rozhodnutí) a [CLAUDE.md](CLAUDE.md).
 
+## Stav projektu
+
+Emberly je aktuálně v uzavřeném testování jako MVP — základní smyčka funguje a běží u prvních
+testerů, teď ladím chyby a dotahuju detaily. Něco proto ještě nemusí být dokonalé nebo se může
+měnit; co je a není hotové, ukazuje sekce [Stav implementace](#stav-implementace).
+
 ## Odměnový systém a maskot
 
 Emberly stojí na jedné krátké smyčce: **aktivita → splnění → odměna**. Nechci další složitý
